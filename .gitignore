@@ -1,2 +1,7 @@
 .DS_Store
-sitemonitor
+monitor
+migrate
+.env
+.env.*
+!.env.example
+!cmd/**/*
