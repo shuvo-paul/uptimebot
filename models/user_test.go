@@ -61,6 +61,10 @@ func TestRegister(t *testing.T) {
 			t.Fatal("Expected user, got nil")
 		}
 
+		if user.ID == 0 {
+			t.Fatal("User ID is zero")
+		}
+
 		if user.Username != "newuser" {
 			t.Errorf("Expected username 'newuser', got '%s'", user.Username)
 		}

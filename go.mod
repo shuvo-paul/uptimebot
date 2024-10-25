@@ -3,6 +3,7 @@ module github.com/shuvo-paul/sitemonitor
 go 1.23.0
 
 require (
+	github.com/google/uuid v1.3.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 	github.com/rubenv/sql-migrate v1.7.0
@@ -15,6 +16,5 @@ require (
 	github.com/coder/websocket v1.8.12 // indirect
 	github.com/go-gorp/gorp/v3 v3.1.0 // indirect
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
-	github.com/stretchr/testify v1.9.0 // indirect
 	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8 // indirect
 )

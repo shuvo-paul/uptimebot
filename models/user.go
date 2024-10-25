@@ -14,17 +14,24 @@ type User struct {
 	Password string // This will store the hashed password
 }
 
-func (u *User) Save() error {
+func (u *User) Save() (*User, error) {
 	if config.DB == nil {
-		return fmt.Errorf("database connection is not initialized")
+		return nil, fmt.Errorf("database connection is not initialized")
 	}
 
 	query := `INSERT INTO users (username, email, password) VALUES (?, ?, ?)`
-	_, err := config.DB.Exec(query, u.Username, u.Email, u.Password)
+	result, err := config.DB.Exec(query, u.Username, u.Email, u.Password)
 	if err != nil {
-		return fmt.Errorf("failed to save user: %w", err)
+		return nil, fmt.Errorf("failed to save user: %w", err)
 	}
-	return nil
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get last insert ID: %w", err)
+	}
+
+	u.ID = int(id)
+	return u, nil
 }
 
 func (u *User) HashPassword() error {
@@ -56,7 +63,8 @@ func Register(username, email, password string) (*User, error) {
 		return nil, err
 	}
 
-	if err := user.Save(); err != nil {
+	user, err = user.Save()
+	if err != nil {
 		return nil, err
 	}
 
