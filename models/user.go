@@ -77,3 +77,27 @@ func EmailExists(email string) (bool, error) {
 
 	return count > 0, nil
 }
+
+func (u *User) VerifyPassword(password string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
+	return err == nil
+}
+
+func Login(email, password string) (*User, error) {
+	if config.DB == nil {
+		return nil, fmt.Errorf("database connection is not initialized")
+	}
+
+	user := &User{}
+	query := `SELECT id, username, email, password FROM users WHERE email = ?`
+	err := config.DB.QueryRow(query, email).Scan(&user.ID, &user.Username, &user.Email, &user.Password)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find user: %w", err)
+	}
+
+	if !user.VerifyPassword(password) {
+		return nil, fmt.Errorf("invalid password")
+	}
+
+	return user, nil
+}
