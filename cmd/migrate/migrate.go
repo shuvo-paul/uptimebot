@@ -9,7 +9,7 @@ import (
 
 	"github.com/joho/godotenv"
 	migrate "github.com/rubenv/sql-migrate"
-	"github.com/shuvo-paul/sitemonitor/config"
+	"github.com/shuvo-paul/sitemonitor/database"
 )
 
 func main() {
@@ -30,10 +30,10 @@ func main() {
 
 	// Initialize the database only if the command is not "new"
 	if command != "new" {
-		if err := config.InitDatabase(); err != nil {
+		if err := database.InitDatabase(); err != nil {
 			log.Panicf("Failed to initialize database: %v", err)
 		}
-		defer config.DB.Close() // Ensure the database connection is closed
+		defer database.DB.Close() // Ensure the database connection is closed
 	}
 
 	migrationsDir := "./migrations"
@@ -44,7 +44,7 @@ func main() {
 
 	commands := map[string]func() error{
 		"up": func() error {
-			n, err := migrate.Exec(config.DB, "sqlite3", migrations, migrate.Up)
+			n, err := migrate.Exec(database.DB, "sqlite3", migrations, migrate.Up)
 			if err != nil {
 				return err
 			}
@@ -52,7 +52,7 @@ func main() {
 			return nil
 		},
 		"down": func() error {
-			n, err := migrate.ExecMax(config.DB, "sqlite3", migrations, migrate.Down, 1)
+			n, err := migrate.ExecMax(database.DB, "sqlite3", migrations, migrate.Down, 1)
 			if err != nil {
 				return err
 			}
@@ -78,13 +78,13 @@ func main() {
 			return nil
 		},
 		"redo": func() error {
-			n, err := migrate.ExecMax(config.DB, "sqlite3", migrations, migrate.Down, 1)
+			n, err := migrate.ExecMax(database.DB, "sqlite3", migrations, migrate.Down, 1)
 			if err != nil {
 				return err
 			}
 			fmt.Printf("Rolled back %d migration!\n", n)
 
-			n, err = migrate.ExecMax(config.DB, "sqlite3", migrations, migrate.Up, 1)
+			n, err = migrate.ExecMax(database.DB, "sqlite3", migrations, migrate.Up, 1)
 			if err != nil {
 				return err
 			}
@@ -92,7 +92,7 @@ func main() {
 			return nil
 		},
 		"status": func() error {
-			records, err := migrate.GetMigrationRecords(config.DB, "sqlite3")
+			records, err := migrate.GetMigrationRecords(database.DB, "sqlite3")
 			if err != nil {
 				return err
 			}
@@ -110,14 +110,14 @@ func main() {
 		},
 		"fresh": func() error {
 			// Rollback all migrations
-			n, err := migrate.Exec(config.DB, "sqlite3", migrations, migrate.Down)
+			n, err := migrate.Exec(database.DB, "sqlite3", migrations, migrate.Down)
 			if err != nil {
 				return err
 			}
 			fmt.Printf("Rolled back %d migrations!\n", n)
 
 			// Apply all migrations
-			n, err = migrate.Exec(config.DB, "sqlite3", migrations, migrate.Up)
+			n, err = migrate.Exec(database.DB, "sqlite3", migrations, migrate.Up)
 			if err != nil {
 				return err
 			}
