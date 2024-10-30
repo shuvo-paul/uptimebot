@@ -1,16 +1,16 @@
-package config
+package database
 
 import (
 	"testing"
 
-	"github.com/joho/godotenv" // Import the godotenv package
-	_ "github.com/lib/pq"      // Import the database driver
+	// Import the godotenv package
+	"github.com/joho/godotenv"
 )
 
 func TestInitDatabase(t *testing.T) {
-	// Load environment variables from .env.test file
-	if err := godotenv.Load("../.env.test"); err != nil {
-		t.Fatalf("Error loading .env.test file: %v", err)
+	// Load environment variables from .env file
+	if err := godotenv.Load("../.env"); err != nil {
+		t.Fatalf("Error loading .env file: %v", err)
 	}
 
 	// Call the function to test
