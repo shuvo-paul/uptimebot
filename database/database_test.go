@@ -14,18 +14,21 @@ func TestInitDatabase(t *testing.T) {
 	}
 
 	// Call the function to test
-	InitDatabase()
+	db, err := InitDatabase()
+	if err != nil {
+		t.Fatalf("Error initializing database: %v", err)
+	}
 
 	// Check if the DB variable is not nil
-	if DB == nil {
+	if db == nil {
 		t.Fatal("Expected DB to be initialized, but it was nil")
 	}
 
 	// Check if the database connection is valid
-	if err := DB.Ping(); err != nil {
+	if err := db.Ping(); err != nil {
 		t.Fatalf("Expected to connect to the database, but got error: %v", err)
 	}
 
 	// Clean up
-	DB.Close()
+	db.Close()
 }
