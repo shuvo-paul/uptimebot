@@ -1,7 +1,8 @@
 .PHONY: build test run migrate
 
 build:
-	go build -o monitor ./cmd/monitor/monitor.go
+	pnpm build
+	go build -o monitor ./main.go
 
 test:
 	go test ./...

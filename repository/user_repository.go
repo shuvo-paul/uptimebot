@@ -33,7 +33,7 @@ func (r *UserRepository) SaveUser(user *models.User) (*models.User, error) {
 
 func (r *UserRepository) EmailExists(email string) (bool, error) {
 	var exists bool
-	query := "SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)"
+	query := "SELECT EXISTS(SELECT 1 FROM users WHERE email = ?)"
 	err := r.db.QueryRow(query, email).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("error checking email existence: %w", err)

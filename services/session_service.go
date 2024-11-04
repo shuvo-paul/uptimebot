@@ -10,6 +10,14 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type SessionServiceInterface interface {
+	CreateSession(userID int) (*models.Session, string, error)
+	ValidateSession(token string) (*models.Session, error)
+	DeleteSession(sessionID int) error
+}
+
+var _ SessionServiceInterface = (*SessionService)(nil)
+
 type SessionService struct {
 	sessionRepo repository.SessionRepositoryInterface
 }

@@ -5,3 +5,4 @@ migrate
 .env.*
 !.env.example
 !cmd/**/*
+node_modules

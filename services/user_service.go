@@ -7,6 +7,13 @@ import (
 	"github.com/shuvo-paul/sitemonitor/repository"
 )
 
+type UserServiceInterface interface {
+	CreateUser(*models.User) (*models.User, error)
+	Authenticate(string, string) (*models.User, error)
+}
+
+var _ UserServiceInterface = (*UserService)(nil)
+
 type UserService struct {
 	repo repository.UserRepositoryInterface
 }
