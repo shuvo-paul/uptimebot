@@ -1,75 +1,100 @@
 package services
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/shuvo-paul/sitemonitor/models"
-	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/assert"
 )
 
 // MockUserRepository is a mock implementation of UserRepository
-type MockUserRepository struct {
-	mock.Mock
+type mockUserRepository struct {
+	saveUserFunc       func(user *models.User) (*models.User, error)
+	emailExistsFunc    func(email string) (bool, error)
+	getUserByEmailFunc func(email string) (*models.User, error)
 }
 
-func (m *MockUserRepository) SaveUser(user *models.User) (*models.User, error) {
-	args := m.Called(user)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.User), args.Error(1)
+func (m *mockUserRepository) SaveUser(user *models.User) (*models.User, error) {
+	return m.saveUserFunc(user)
 }
 
-func (m *MockUserRepository) EmailExists(email string) (bool, error) {
-	args := m.Called(email)
-	return args.Bool(0), args.Error(1)
+func (m *mockUserRepository) EmailExists(email string) (bool, error) {
+	return m.emailExistsFunc(email)
 }
 
-func (m *MockUserRepository) GetUserByEmail(email string) (*models.User, error) {
-	args := m.Called(email)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.User), args.Error(1)
+func (m *mockUserRepository) GetUserByEmail(email string) (*models.User, error) {
+	return m.getUserByEmailFunc(email)
 }
 
 func TestCreateUser(t *testing.T) {
-	mockRepo := new(MockUserRepository)
-	userService := NewUserService(mockRepo) // Store the service instance
+	mockRepo := &mockUserRepository{
+		saveUserFunc: func(user *models.User) (*models.User, error) {
+			user.ID = 1
+			return user, nil
+		},
+	}
+	userService := NewUserService(mockRepo)
+	t.Run("User created successfully", func(t *testing.T) {
+		mockRepo.emailExistsFunc = func(email string) (bool, error) {
+			return false, nil
+		}
 
-	tests := []struct {
-		name          string
-		user          *models.User
-		setupMock     func()
-		expectedError bool
-	}{
-		{
-			name: "Success",
-			user: &models.User{
-				Username: "testuser",
-				Email:    "test@example.com",
-				Password: "password123",
-			},
-			setupMock: func() {
-				mockRepo.On("EmailExists", "test@example.com").Return(false, nil)
-				mockRepo.On("SaveUser", mock.Anything).Return(&models.User{
-					Username: "testuser",
-					Email:    "test@example.com",
-					Password: "password123",
-				}, nil)
-			},
+		user := &models.User{
+			Username: "testuser",
+			Email:    "test@example.com",
+			Password: "password123",
+		}
+		savedUser, err := userService.CreateUser(user)
+		assert.NoError(t, err)
+		assert.Equal(t, savedUser.ID, 1)
+	})
+
+	t.Run("Email Exist", func(t *testing.T) {
+		mockRepo.emailExistsFunc = func(email string) (bool, error) {
+			return true, fmt.Errorf("email already exists")
+		}
+		user := &models.User{
+			Username: "testuser",
+			Email:    "test@example.com",
+			Password: "password123",
+		}
+		_, err := userService.CreateUser(user)
+		assert.Error(t, err)
+	})
+
+}
+
+func TestAuthentication(t *testing.T) {
+	email := "test@example.com"
+	password := "password123"
+	wrongPassword := "wrongpassword123"
+
+	user := &models.User{
+		Username: "testuser",
+		Email:    email,
+		Password: password,
+	}
+
+	user.HashPassword()
+
+	mockRepo := &mockUserRepository{
+		getUserByEmailFunc: func(email string) (*models.User, error) {
+
+			return user, nil
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.setupMock != nil {
-				tt.setupMock()
-			}
-			_, err := userService.CreateUser(tt.user)
-			if (err != nil) != tt.expectedError {
-				t.Errorf("CreateUser() error = %v, expectedError %v", err, tt.expectedError)
-			}
-		})
-	}
+	userService := NewUserService(mockRepo)
+
+	t.Run("Logged in succesfully", func(t *testing.T) {
+		user, err := userService.Authenticate(email, password)
+		assert.NoError(t, err)
+		assert.Equal(t, user.Email, email)
+	})
+
+	t.Run("Login failed", func(t *testing.T) {
+		_, err := userService.Authenticate(email, wrongPassword)
+		assert.Error(t, err)
+	})
 }

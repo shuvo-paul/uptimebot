@@ -6,38 +6,33 @@ import (
 
 	"github.com/shuvo-paul/sitemonitor/models"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
-// MockSessionRepository is a mock implementation of SessionRepository
-type MockSessionRepository struct {
-	mock.Mock
+type mockSessionRepository struct {
+	createFunc     func(session *models.Session) error
+	getByTokenFunc func(token string) (*models.Session, error)
+	deleteFunc     func(sessionID int) error
 }
 
-func (m *MockSessionRepository) Create(session *models.Session) error {
-	args := m.Called(session)
-	return args.Error(0)
+func (m *mockSessionRepository) Create(session *models.Session) error {
+	return m.createFunc(session)
 }
 
-func (m *MockSessionRepository) GetByToken(token string) (*models.Session, error) {
-	args := m.Called(token)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.Session), args.Error(1)
+func (m *mockSessionRepository) GetByToken(token string) (*models.Session, error) {
+	return m.getByTokenFunc(token)
 }
 
-func (m *MockSessionRepository) Delete(sessionID int) error {
-	args := m.Called(sessionID)
-	return args.Error(0)
+func (m *mockSessionRepository) Delete(sessionID int) error {
+	return m.deleteFunc(sessionID)
 }
 
 func TestCreateSession(t *testing.T) {
-	mockRepo := new(MockSessionRepository)
+	mockRepo := &mockSessionRepository{
+		createFunc: func(session *models.Session) error {
+			return nil
+		},
+	}
 	service := NewSessionService(mockRepo)
-
-	// Setup mock expectation
-	mockRepo.On("Create", mock.AnythingOfType("*models.Session")).Return(nil)
 
 	// Test
 	session, plainToken, err := service.CreateSession(1)
@@ -50,12 +45,9 @@ func TestCreateSession(t *testing.T) {
 	assert.NotEmpty(t, session.Token)
 	assert.False(t, session.CreatedAt.IsZero())
 	assert.False(t, session.ExpiresAt.IsZero())
-	mockRepo.AssertExpectations(t)
 }
 
 func TestValidateSession(t *testing.T) {
-	mockRepo := new(MockSessionRepository)
-	service := NewSessionService(mockRepo)
 
 	t.Run("Valid session", func(t *testing.T) {
 		validSession := &models.Session{
@@ -65,7 +57,13 @@ func TestValidateSession(t *testing.T) {
 			CreatedAt: time.Now(),
 			ExpiresAt: time.Now().Add(time.Hour),
 		}
-		mockRepo.On("GetByToken", "token").Return(validSession, nil)
+
+		mockRepo := &mockSessionRepository{
+			getByTokenFunc: func(token string) (*models.Session, error) {
+				return validSession, nil
+			},
+		}
+		service := NewSessionService(mockRepo)
 
 		session, err := service.ValidateSession("token")
 		assert.NoError(t, err)
@@ -81,23 +79,40 @@ func TestValidateSession(t *testing.T) {
 			CreatedAt: time.Now().Add(-48 * time.Hour),
 			ExpiresAt: time.Now().Add(-24 * time.Hour),
 		}
-		mockRepo.On("GetByToken", "expired_token").Return(expiredSession, nil)
-		mockRepo.On("Delete", 2).Return(nil)
+
+		var deletedID int
+
+		mockRepo := &mockSessionRepository{
+			getByTokenFunc: func(token string) (*models.Session, error) {
+				return expiredSession, nil
+			},
+			deleteFunc: func(sessionID int) error {
+				deletedID = sessionID
+				return nil
+			},
+		}
+
+		service := NewSessionService(mockRepo)
 
 		session, err := service.ValidateSession("expired_token")
 		assert.Error(t, err)
 		assert.Nil(t, session)
 		assert.Contains(t, err.Error(), "session has expired")
+		assert.Equal(t, 2, deletedID)
 	})
 }
 
 func TestDeleteSession(t *testing.T) {
-	mockRepo := new(MockSessionRepository)
+	var deletedID int
+	mockRepo := &mockSessionRepository{
+		deleteFunc: func(sessionID int) error {
+			deletedID = sessionID
+			return nil
+		},
+	}
 	service := NewSessionService(mockRepo)
-
-	mockRepo.On("Delete", 1).Return(nil)
 
 	err := service.DeleteSession(1)
 	assert.NoError(t, err)
-	mockRepo.AssertExpectations(t)
+	assert.Equal(t, 1, deletedID)
 }
