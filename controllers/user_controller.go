@@ -106,7 +106,7 @@ func (c *UserController) redirectIfAuthenticated(w http.ResponseWriter, r *http.
 			})
 			return false
 		}
-		if err == nil && user != nil {
+		if user != nil {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return true
 		}
