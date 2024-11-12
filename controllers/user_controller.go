@@ -22,6 +22,9 @@ func NewUserController(userService services.UserServiceInterface, sessionService
 }
 
 func (c *UserController) ShowRegisterForm(w http.ResponseWriter, r *http.Request) {
+	if c.redirectIfAuthenticated(w, r) {
+		return
+	}
 	c.Template.Register.Execute(w, nil)
 }
 
@@ -47,24 +50,8 @@ func (c *UserController) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *UserController) ShowLoginForm(w http.ResponseWriter, r *http.Request) {
-	if cookie, err := r.Cookie("session_token"); err == nil {
-		user, err := c.sessionService.ValidateSession(cookie.Value)
-
-		if err != nil {
-			http.SetCookie(w, &http.Cookie{
-				Name:     "session_token",
-				Value:    "",
-				Path:     "/",
-				MaxAge:   -1,
-				HttpOnly: true,
-				Secure:   true,
-				SameSite: http.SameSiteStrictMode,
-			})
-		}
-		if err == nil && user != nil {
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-		}
-
+	if c.redirectIfAuthenticated(w, r) {
+		return
 	}
 	c.Template.Login.Execute(w, nil)
 }
@@ -101,4 +88,28 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 	})
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func (c *UserController) redirectIfAuthenticated(w http.ResponseWriter, r *http.Request) bool {
+	if cookie, err := r.Cookie("session_token"); err == nil {
+		user, err := c.sessionService.ValidateSession(cookie.Value)
+
+		if err != nil {
+			http.SetCookie(w, &http.Cookie{
+				Name:     "session_token",
+				Value:    "",
+				Path:     "/",
+				MaxAge:   -1,
+				HttpOnly: true,
+				Secure:   true,
+				SameSite: http.SameSiteStrictMode,
+			})
+			return false
+		}
+		if err == nil && user != nil {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return true
+		}
+	}
+	return false
 }
