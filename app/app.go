@@ -8,6 +8,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/shuvo-paul/sitemonitor/controllers"
 	"github.com/shuvo-paul/sitemonitor/database"
+	"github.com/shuvo-paul/sitemonitor/migrations"
 	"github.com/shuvo-paul/sitemonitor/repository"
 	"github.com/shuvo-paul/sitemonitor/services"
 	"github.com/shuvo-paul/sitemonitor/views"
@@ -30,6 +31,8 @@ func NewApp() *App {
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
+
+	migrations.SetupMigration(db)
 
 	template := views.NewTemplate(templates.TemplateFS)
 
