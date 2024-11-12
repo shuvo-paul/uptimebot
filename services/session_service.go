@@ -12,7 +12,7 @@ import (
 type SessionServiceInterface interface {
 	CreateSession(userID int) (*models.Session, string, error)
 	ValidateSession(token string) (*models.Session, error)
-	DeleteSession(sessionID int) error
+	DeleteSession(sessionID string) error
 }
 
 var _ SessionServiceInterface = (*SessionService)(nil)
@@ -51,13 +51,13 @@ func (s *SessionService) ValidateSession(token string) (*models.Session, error) 
 	}
 
 	if session.ExpiresAt.Before(time.Now()) {
-		s.sessionRepo.Delete(session.ID)
+		s.sessionRepo.Delete(session.Token)
 		return nil, fmt.Errorf("session has expired")
 	}
 
 	return session, nil
 }
 
-func (s *SessionService) DeleteSession(sessionID int) error {
-	return s.sessionRepo.Delete(sessionID)
+func (s *SessionService) DeleteSession(token string) error {
+	return s.sessionRepo.Delete(token)
 }

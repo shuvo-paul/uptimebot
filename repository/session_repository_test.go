@@ -39,15 +39,14 @@ func TestSessionRepository_GetByToken(t *testing.T) {
 	sessionRepo := NewSessionRepository(db)
 	now := time.Now()
 	expectedSession := &models.Session{
-		ID:        1,
 		UserID:    1,
 		Token:     "test-token",
 		CreatedAt: now,
 		ExpiresAt: now.Add(24 * time.Hour),
 	}
 
-	rows := sqlmock.NewRows([]string{"id", "user_id", "token", "created_at", "expires_at"}).
-		AddRow(expectedSession.ID, expectedSession.UserID, expectedSession.Token,
+	rows := sqlmock.NewRows([]string{"user_id", "token", "created_at", "expires_at"}).
+		AddRow(expectedSession.UserID, expectedSession.Token,
 			expectedSession.CreatedAt, expectedSession.ExpiresAt)
 
 	mock.ExpectQuery("SELECT (.+) FROM sessions").
@@ -68,10 +67,10 @@ func TestSessionRepository_Delete(t *testing.T) {
 	sessionRepo := NewSessionRepository(db)
 
 	mock.ExpectExec("DELETE FROM sessions").
-		WithArgs(1).
+		WithArgs("token").
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	err = sessionRepo.Delete(1)
+	err = sessionRepo.Delete("token")
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -111,10 +110,10 @@ func TestSessionRepository_Errors(t *testing.T) {
 
 	t.Run("Delete Error", func(t *testing.T) {
 		mock.ExpectExec("DELETE FROM sessions").
-			WithArgs(999).
+			WithArgs("token").
 			WillReturnError(sqlmock.ErrCancelled)
 
-		err = sessionRepo.Delete(999)
+		err = sessionRepo.Delete("token")
 		assert.Error(t, err)
 	})
 

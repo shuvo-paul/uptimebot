@@ -11,7 +11,7 @@ import (
 type mockSessionRepository struct {
 	createFunc     func(session *models.Session) error
 	getByTokenFunc func(token string) (*models.Session, error)
-	deleteFunc     func(sessionID int) error
+	deleteFunc     func(token string) error
 }
 
 func (m *mockSessionRepository) Create(session *models.Session) error {
@@ -22,8 +22,8 @@ func (m *mockSessionRepository) GetByToken(token string) (*models.Session, error
 	return m.getByTokenFunc(token)
 }
 
-func (m *mockSessionRepository) Delete(sessionID int) error {
-	return m.deleteFunc(sessionID)
+func (m *mockSessionRepository) Delete(token string) error {
+	return m.deleteFunc(token)
 }
 
 func TestCreateSession(t *testing.T) {
@@ -51,7 +51,6 @@ func TestValidateSession(t *testing.T) {
 
 	t.Run("Valid session", func(t *testing.T) {
 		validSession := &models.Session{
-			ID:        1,
 			UserID:    1,
 			Token:     "hashed_token",
 			CreatedAt: time.Now(),
@@ -73,21 +72,20 @@ func TestValidateSession(t *testing.T) {
 
 	t.Run("Expired session", func(t *testing.T) {
 		expiredSession := &models.Session{
-			ID:        2,
 			UserID:    1,
-			Token:     "hashed_token",
+			Token:     "test_token",
 			CreatedAt: time.Now().Add(-48 * time.Hour),
 			ExpiresAt: time.Now().Add(-24 * time.Hour),
 		}
 
-		var deletedID int
+		var sessionToken string
 
 		mockRepo := &mockSessionRepository{
 			getByTokenFunc: func(token string) (*models.Session, error) {
 				return expiredSession, nil
 			},
-			deleteFunc: func(sessionID int) error {
-				deletedID = sessionID
+			deleteFunc: func(token string) error {
+				sessionToken = token
 				return nil
 			},
 		}
@@ -98,21 +96,21 @@ func TestValidateSession(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, session)
 		assert.Contains(t, err.Error(), "session has expired")
-		assert.Equal(t, 2, deletedID)
+		assert.Equal(t, "test_token", sessionToken)
 	})
 }
 
 func TestDeleteSession(t *testing.T) {
-	var deletedID int
+	var capturedToken string
 	mockRepo := &mockSessionRepository{
-		deleteFunc: func(sessionID int) error {
-			deletedID = sessionID
+		deleteFunc: func(token string) error {
+			capturedToken = token
 			return nil
 		},
 	}
 	service := NewSessionService(mockRepo)
-
-	err := service.DeleteSession(1)
+	testToken := "test_token"
+	err := service.DeleteSession(testToken)
 	assert.NoError(t, err)
-	assert.Equal(t, 1, deletedID)
+	assert.Equal(t, testToken, capturedToken)
 }

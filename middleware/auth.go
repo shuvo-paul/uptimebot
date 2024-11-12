@@ -20,7 +20,7 @@ func RequireAuth(next http.Handler, sessionService services.SessionService, user
 			return
 		}
 
-		user, err := userService.GetUserByID(session.ID)
+		user, err := userService.GetUserByID(session.UserID)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return

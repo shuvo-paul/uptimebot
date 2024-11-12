@@ -33,7 +33,7 @@ func (m *mockUserService) GetUserByID(id int) (*models.User, error) {
 // Mock SessionService
 type mockSessionService struct {
 	createSessionFunc   func(int) (*models.Session, string, error)
-	deleteSessionFunc   func(int) error
+	deleteSessionFunc   func(string) error
 	validateSessionFunc func(string) (*models.Session, error)
 }
 
@@ -41,8 +41,8 @@ func (m *mockSessionService) CreateSession(userID int) (*models.Session, string,
 	return m.createSessionFunc(userID)
 }
 
-func (m *mockSessionService) DeleteSession(sessionID int) error {
-	return m.deleteSessionFunc(sessionID)
+func (m *mockSessionService) DeleteSession(token string) error {
+	return m.deleteSessionFunc(token)
 }
 
 func (m *mockSessionService) ValidateSession(token string) (*models.Session, error) {

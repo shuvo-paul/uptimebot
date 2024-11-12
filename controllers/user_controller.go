@@ -47,10 +47,24 @@ func (c *UserController) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *UserController) ShowLoginForm(w http.ResponseWriter, r *http.Request) {
-	_, err := r.Cookie("session_token")
-	if err == nil {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-		return
+	if cookie, err := r.Cookie("session_token"); err == nil {
+		user, err := c.sessionService.ValidateSession(cookie.Value)
+
+		if err != nil {
+			http.SetCookie(w, &http.Cookie{
+				Name:     "session_token",
+				Value:    "",
+				Path:     "/",
+				MaxAge:   -1,
+				HttpOnly: true,
+				Secure:   true,
+				SameSite: http.SameSiteStrictMode,
+			})
+		}
+		if err == nil && user != nil {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+		}
+
 	}
 	c.Template.Login.Execute(w, nil)
 }

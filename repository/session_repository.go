@@ -28,10 +28,9 @@ func (r *SessionRepository) Create(session *models.Session) error {
 
 func (r *SessionRepository) GetByToken(token string) (*models.Session, error) {
 	var session models.Session
-	query := `SELECT id, user_id, token, created_at, expires_at 
+	query := `SELECT user_id, token, created_at, expires_at 
 			  FROM sessions WHERE token = ?`
-	err := r.db.QueryRow(query, token).Scan(
-		&session.ID, &session.UserID, &session.Token,
+	err := r.db.QueryRow(query, token).Scan(&session.UserID, &session.Token,
 		&session.CreatedAt, &session.ExpiresAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get session: %w", err)
@@ -39,9 +38,9 @@ func (r *SessionRepository) GetByToken(token string) (*models.Session, error) {
 	return &session, nil
 }
 
-func (r *SessionRepository) Delete(sessionID int) error {
-	query := `DELETE FROM sessions WHERE id = ?`
-	_, err := r.db.Exec(query, sessionID)
+func (r *SessionRepository) Delete(token string) error {
+	query := `DELETE FROM sessions WHERE token = ?`
+	_, err := r.db.Exec(query, token)
 	if err != nil {
 		return fmt.Errorf("failed to delete session: %w", err)
 	}
@@ -51,7 +50,7 @@ func (r *SessionRepository) Delete(sessionID int) error {
 type SessionRepositoryInterface interface {
 	Create(session *models.Session) error
 	GetByToken(token string) (*models.Session, error)
-	Delete(sessionID int) error
+	Delete(sessionID string) error
 }
 
 // Ensure SessionRepository implements the interface
