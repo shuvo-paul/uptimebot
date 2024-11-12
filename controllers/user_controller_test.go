@@ -15,6 +15,7 @@ import (
 type mockUserService struct {
 	createUserFunc   func(*models.User) (*models.User, error)
 	authenticateFunc func(string, string) (*models.User, error)
+	getUserByIdFunc  func(id int) (*models.User, error)
 }
 
 func (m *mockUserService) CreateUser(user *models.User) (*models.User, error) {
@@ -23,6 +24,10 @@ func (m *mockUserService) CreateUser(user *models.User) (*models.User, error) {
 
 func (m *mockUserService) Authenticate(email, password string) (*models.User, error) {
 	return m.authenticateFunc(email, password)
+}
+
+func (m *mockUserService) GetUserByID(id int) (*models.User, error) {
+	return m.getUserByIdFunc(id)
 }
 
 // Mock SessionService

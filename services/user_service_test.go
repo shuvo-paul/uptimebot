@@ -13,6 +13,7 @@ type mockUserRepository struct {
 	saveUserFunc       func(user *models.User) (*models.User, error)
 	emailExistsFunc    func(email string) (bool, error)
 	getUserByEmailFunc func(email string) (*models.User, error)
+	getUserByIdFunc    func(id int) (*models.User, error)
 }
 
 func (m *mockUserRepository) SaveUser(user *models.User) (*models.User, error) {
@@ -25,6 +26,10 @@ func (m *mockUserRepository) EmailExists(email string) (bool, error) {
 
 func (m *mockUserRepository) GetUserByEmail(email string) (*models.User, error) {
 	return m.getUserByEmailFunc(email)
+}
+
+func (m *mockUserRepository) GetUserByID(id int) (*models.User, error) {
+	return m.getUserByIdFunc(id)
 }
 
 func TestCreateUser(t *testing.T) {

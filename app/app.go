@@ -17,8 +17,8 @@ import (
 var db *sql.DB
 
 type App struct {
-	userService    *services.UserService
-	sessionService *services.SessionService
+	UserService    *services.UserService
+	SessionService *services.SessionService
 	UserController *controllers.UserController
 }
 
@@ -43,7 +43,7 @@ func NewApp() *App {
 	userController.Template.Login = template.Parse("login.html")
 	fmt.Println("app initialized")
 
-	return &App{userService: userService, sessionService: sessionService, UserController: userController}
+	return &App{UserService: userService, SessionService: sessionService, UserController: userController}
 }
 
 func (a *App) Close() {

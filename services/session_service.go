@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/shuvo-paul/sitemonitor/models"
 	"github.com/shuvo-paul/sitemonitor/repository"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type SessionServiceInterface interface {
@@ -30,15 +29,9 @@ func (s *SessionService) CreateSession(userID int) (*models.Session, string, err
 	// Generate a unique token
 	plainToken := uuid.New().String()
 
-	// Hash the token
-	hashedToken, err := bcrypt.GenerateFromPassword([]byte(plainToken), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to hash token: %w", err)
-	}
-
 	session := &models.Session{
 		UserID:    userID,
-		Token:     string(hashedToken),
+		Token:     plainToken,
 		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
@@ -51,6 +44,7 @@ func (s *SessionService) CreateSession(userID int) (*models.Session, string, err
 }
 
 func (s *SessionService) ValidateSession(token string) (*models.Session, error) {
+
 	session, err := s.sessionRepo.GetByToken(token)
 	if err != nil {
 		return nil, err

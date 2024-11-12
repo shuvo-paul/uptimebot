@@ -51,10 +51,21 @@ func (r *UserRepository) GetUserByEmail(email string) (*models.User, error) {
 	return user, nil
 }
 
+func (r *UserRepository) GetUserByID(id int) (*models.User, error) {
+	user := &models.User{}
+	query := `SELECT id, username, email from users WHERE id = ?`
+	err := r.db.QueryRow(query, id).Scan(&user.ID, &user.Username, &user.Email)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find user: %w", err)
+	}
+	return user, nil
+}
+
 type UserRepositoryInterface interface {
 	SaveUser(user *models.User) (*models.User, error)
 	EmailExists(email string) (bool, error)
 	GetUserByEmail(email string) (*models.User, error)
+	GetUserByID(id int) (*models.User, error)
 }
 
 var _ UserRepositoryInterface = (*UserRepository)(nil)

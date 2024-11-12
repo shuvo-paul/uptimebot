@@ -47,6 +47,11 @@ func (c *UserController) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *UserController) ShowLoginForm(w http.ResponseWriter, r *http.Request) {
+	_, err := r.Cookie("session_token")
+	if err == nil {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
 	c.Template.Login.Execute(w, nil)
 }
 

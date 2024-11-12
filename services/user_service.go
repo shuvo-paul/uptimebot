@@ -10,6 +10,7 @@ import (
 type UserServiceInterface interface {
 	CreateUser(*models.User) (*models.User, error)
 	Authenticate(string, string) (*models.User, error)
+	GetUserByID(int) (*models.User, error)
 }
 
 var _ UserServiceInterface = (*UserService)(nil)
@@ -47,4 +48,8 @@ func (s *UserService) Authenticate(email, password string) (*models.User, error)
 	}
 
 	return user, nil
+}
+
+func (s *UserService) GetUserByID(id int) (*models.User, error) {
+	return s.repo.GetUserByID(id)
 }

@@ -11,7 +11,7 @@ import (
 func main() {
 	app := app.NewApp()
 	defer app.Close()
-	handler := routes.SetupRoutes(app.UserController)
+	handler := routes.SetupRoutes(app.UserController, *app.SessionService, *app.UserService)
 
 	// Start server
 	log.Println("Server starting on :8080")

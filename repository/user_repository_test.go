@@ -62,19 +62,18 @@ func TestEmailExists(t *testing.T) {
 	})
 }
 
-func TestGetUserByEmail(t *testing.T) {
+func TestGetUser(t *testing.T) {
 	db, mock := utils.SetupTestDB(t)
 	userRepo := NewUserRepository(db)
 	defer db.Close()
+	expectedUser := &models.User{
+		ID:       1,
+		Username: "testuser",
+		Email:    "test@example.com",
+		Password: "hashedpassword",
+	}
 
-	t.Run("user found", func(t *testing.T) {
-		expectedUser := &models.User{
-			ID:       1,
-			Username: "testuser",
-			Email:    "test@example.com",
-			Password: "hashedpassword",
-		}
-
+	t.Run("By Email: user found", func(t *testing.T) {
 		rows := sqlmock.NewRows([]string{"id", "username", "email", "password"}).
 			AddRow(expectedUser.ID, expectedUser.Username, expectedUser.Email, expectedUser.Password)
 
@@ -86,6 +85,25 @@ func TestGetUserByEmail(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, expectedUser, user)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("By ID", func(t *testing.T) {
+		rows := sqlmock.NewRows([]string{"id", "username", "email"}).
+			AddRow(expectedUser.ID, expectedUser.Username, expectedUser.Email)
+
+		mock.ExpectQuery("SELECT id, username, email from users").
+			WithArgs(expectedUser.ID).
+			WillReturnRows(rows)
+
+		repo := NewUserRepository(db)
+
+		user, err := repo.GetUserByID(expectedUser.ID)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedUser.ID, user.ID)
+		assert.Equal(t, expectedUser.Username, user.Username)
+		assert.Equal(t, expectedUser.Email, user.Email)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 }
