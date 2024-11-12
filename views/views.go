@@ -25,8 +25,9 @@ func (t *Template) Parse(files ...string) *template.Template {
 
 func (t *Template) Execute(w http.ResponseWriter, r *http.Request, tmpl *template.Template, data any) error {
 	tmpl.Funcs(template.FuncMap{
-		"currentUser": func() (*models.User, bool) {
-			return services.GetUser(r.Context())
+		"currentUser": func() *models.User {
+			user, _ := services.GetUser(r.Context())
+			return user
 		},
 	})
 
