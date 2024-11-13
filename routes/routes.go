@@ -24,16 +24,23 @@ func SetupRoutes(
 	mux.HandleFunc("POST /register", userController.Register)
 	mux.HandleFunc("GET /login", userController.ShowLoginForm)
 	mux.HandleFunc("POST /login", userController.Login)
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" {
+			return
+		}
+		fmt.Fprint(w, "Wellcome")
+	})
 
 	// Protected routes
-	mux.Handle("GET /", middleware.RequireAuth(
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			fmt.Println("index")
-			fmt.Fprint(w, "Hello World")
-		}),
+	protected := http.NewServeMux()
+	protected.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "Protected Area")
+	})
+
+	mux.Handle("/app/", middleware.RequireAuth(
+		http.StripPrefix("/app", protected),
 		sessionService,
 		userService,
 	))
-
 	return mux
 }
