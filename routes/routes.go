@@ -42,5 +42,7 @@ func SetupRoutes(
 		sessionService,
 		userService,
 	))
-	return mux
+
+	mws := middleware.CreateStack(middleware.ErrorHandler, middleware.Logger)
+	return mws(mux)
 }
