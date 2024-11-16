@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"log"
 	"net/http"
 	"text/template"
 
@@ -12,6 +13,7 @@ type UserController struct {
 	Template struct {
 		Register *template.Template
 		Login    *template.Template
+		Execute  func(w http.ResponseWriter, r *http.Request, tmpl *template.Template, data any) error
 	}
 	sessionService services.SessionServiceInterface
 	userService    services.UserServiceInterface
@@ -25,7 +27,16 @@ func (c *UserController) ShowRegisterForm(w http.ResponseWriter, r *http.Request
 	if c.redirectIfAuthenticated(w, r) {
 		return
 	}
-	c.Template.Register.Execute(w, nil)
+
+	data := map[string]string{
+		"Title": "Registration",
+	}
+
+	err := c.Template.Execute(w, r, c.Template.Register, data)
+
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func (c *UserController) Register(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +53,11 @@ func (c *UserController) Register(w http.ResponseWriter, r *http.Request) {
 
 	_, err := c.userService.CreateUser(user)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		data := map[string]string{
+			"Title": "Registration Failed",
+			"Error": err.Error(),
+		}
+		c.Template.Execute(w, r, c.Template.Register, data)
 		return
 	}
 
@@ -53,7 +68,7 @@ func (c *UserController) ShowLoginForm(w http.ResponseWriter, r *http.Request) {
 	if c.redirectIfAuthenticated(w, r) {
 		return
 	}
-	c.Template.Login.Execute(w, nil)
+	c.Template.Execute(w, r, c.Template.Login, nil)
 }
 
 func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {

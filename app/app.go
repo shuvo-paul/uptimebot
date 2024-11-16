@@ -44,6 +44,7 @@ func NewApp() *App {
 	userController := controllers.NewUserController(userService, sessionService)
 	userController.Template.Register = template.Parse("register.html")
 	userController.Template.Login = template.Parse("login.html")
+	userController.Template.Execute = template.Execute
 	fmt.Println("app initialized")
 
 	return &App{UserService: userService, SessionService: sessionService, UserController: userController}
