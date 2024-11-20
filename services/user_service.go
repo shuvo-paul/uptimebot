@@ -30,6 +30,10 @@ func (s *UserService) CreateUser(user *models.User) (*models.User, error) {
 		return nil, fmt.Errorf("email already exists")
 	}
 
+	if err := user.ValidatePassword(); err != nil {
+		return nil, err
+	}
+
 	if err := user.HashPassword(); err != nil {
 		return nil, fmt.Errorf("error hashing password: %w", err)
 	}

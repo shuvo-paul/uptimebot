@@ -3,6 +3,7 @@ package models
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -48,5 +49,65 @@ func TestUser_VerifyPassword(t *testing.T) {
 
 	if user.VerifyPassword("wrongpassword") {
 		t.Error("VerifyPassword succeeded for incorrect password")
+	}
+}
+
+func TestValidatePassword(t *testing.T) {
+	user := &User{
+		Username: "test",
+		Email:    "test@example.org",
+	}
+
+	tests := []struct {
+		name     string
+		password string
+		wantErr  bool
+		errMsg   string
+	}{
+		{
+			name:     "too short password",
+			password: "abcd",
+			wantErr:  true,
+			errMsg:   "password must be between 6 and 12 characters",
+		},
+		{
+			name:     "too long password",
+			password: "abcdefg123456789",
+			wantErr:  true,
+			errMsg:   "password must be between 6 and 12 characters",
+		},
+		{
+			name:     "missing number",
+			password: "abcdefg!@",
+			wantErr:  true,
+			errMsg:   "password must contain at least one number",
+		},
+		{
+			name:     "missing symbol",
+			password: "abcdefg1234",
+			wantErr:  true,
+			errMsg:   "password must contain at least one symbol",
+		},
+		{
+			name:     "valid password",
+			password: "abcdefg1234@",
+			wantErr:  false,
+			errMsg:   "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			user.Password = tt.password
+			err := user.ValidatePassword()
+
+			if tt.wantErr {
+				assert.NotNil(t, err)
+				assert.Equal(t, tt.errMsg, err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+
+		})
 	}
 }

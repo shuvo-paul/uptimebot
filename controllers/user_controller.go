@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
 
@@ -64,6 +65,7 @@ func (c *UserController) Register(w http.ResponseWriter, r *http.Request) {
 		flashId := flash.GetFlashIDFromContext(r.Context())
 
 		errors := []string{err.Error()}
+		fmt.Println(errors[0])
 		c.flashStore.SetFlash(flashId, "errors", errors)
 		http.Redirect(w, r, "/register", http.StatusSeeOther)
 		return
