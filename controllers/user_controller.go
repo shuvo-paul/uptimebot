@@ -55,7 +55,7 @@ func (c *UserController) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := &models.User{
-		Username: r.FormValue("username"),
+		Name:     r.FormValue("name"),
 		Email:    r.FormValue("email"),
 		Password: r.FormValue("password"),
 	}

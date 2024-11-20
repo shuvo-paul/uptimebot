@@ -15,20 +15,20 @@ func TestSaveUser(t *testing.T) {
 	defer db.Close()
 
 	user := &models.User{
-		Username: "testuser",
+		Name:     "testuser",
 		Email:    "test@example.com",
 		Password: "hashedpassword",
 	}
 
 	mock.ExpectExec("INSERT INTO users").
-		WithArgs(user.Username, user.Email, user.Password).
+		WithArgs(user.Name, user.Email, user.Password).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	savedUser, err := userRepo.SaveUser(user)
 
 	assert.NoError(t, err)
 	assert.Equal(t, 1, savedUser.ID)
-	assert.Equal(t, user.Username, savedUser.Username)
+	assert.Equal(t, user.Name, savedUser.Name)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -68,16 +68,16 @@ func TestGetUser(t *testing.T) {
 	defer db.Close()
 	expectedUser := &models.User{
 		ID:       1,
-		Username: "testuser",
+		Name:     "testuser",
 		Email:    "test@example.com",
 		Password: "hashedpassword",
 	}
 
 	t.Run("By Email: user found", func(t *testing.T) {
-		rows := sqlmock.NewRows([]string{"id", "username", "email", "password"}).
-			AddRow(expectedUser.ID, expectedUser.Username, expectedUser.Email, expectedUser.Password)
+		rows := sqlmock.NewRows([]string{"id", "name", "email", "password"}).
+			AddRow(expectedUser.ID, expectedUser.Name, expectedUser.Email, expectedUser.Password)
 
-		mock.ExpectQuery("SELECT id, username, email, password FROM users").
+		mock.ExpectQuery("SELECT id, name, email, password FROM users").
 			WithArgs(expectedUser.Email).
 			WillReturnRows(rows)
 
@@ -89,10 +89,10 @@ func TestGetUser(t *testing.T) {
 	})
 
 	t.Run("By ID", func(t *testing.T) {
-		rows := sqlmock.NewRows([]string{"id", "username", "email"}).
-			AddRow(expectedUser.ID, expectedUser.Username, expectedUser.Email)
+		rows := sqlmock.NewRows([]string{"id", "name", "email"}).
+			AddRow(expectedUser.ID, expectedUser.Name, expectedUser.Email)
 
-		mock.ExpectQuery("SELECT id, username, email from users").
+		mock.ExpectQuery("SELECT id, name, email from users").
 			WithArgs(expectedUser.ID).
 			WillReturnRows(rows)
 
@@ -102,7 +102,7 @@ func TestGetUser(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, expectedUser.ID, user.ID)
-		assert.Equal(t, expectedUser.Username, user.Username)
+		assert.Equal(t, expectedUser.Name, user.Name)
 		assert.Equal(t, expectedUser.Email, user.Email)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
