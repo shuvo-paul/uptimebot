@@ -1,9 +1,8 @@
 package controllers
 
 import (
-	"log"
+	"html/template"
 	"net/http"
-	"text/template"
 
 	"github.com/shuvo-paul/sitemonitor/models"
 	"github.com/shuvo-paul/sitemonitor/services"
@@ -13,7 +12,7 @@ type UserController struct {
 	Template struct {
 		Register *template.Template
 		Login    *template.Template
-		Execute  func(w http.ResponseWriter, r *http.Request, tmpl *template.Template, data any) error
+		Execute  func(w http.ResponseWriter, r *http.Request, tmpl *template.Template, data any)
 	}
 	sessionService services.SessionServiceInterface
 	userService    services.UserServiceInterface
@@ -32,11 +31,7 @@ func (c *UserController) ShowRegisterForm(w http.ResponseWriter, r *http.Request
 		"Title": "Registration",
 	}
 
-	err := c.Template.Execute(w, r, c.Template.Register, data)
-
-	if err != nil {
-		log.Fatal(err)
-	}
+	c.Template.Execute(w, r, c.Template.Register, data)
 }
 
 func (c *UserController) Register(w http.ResponseWriter, r *http.Request) {

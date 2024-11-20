@@ -34,7 +34,7 @@ func NewApp() *App {
 
 	migrations.SetupMigration(db)
 
-	template := views.NewTemplate(templates.TemplateFS)
+	tpl := views.NewTemplate(templates.TemplateFS)
 
 	userRepository := repository.NewUserRepository(db)
 	sessionRepository := repository.NewSessionRepository(db)
@@ -42,9 +42,9 @@ func NewApp() *App {
 	userService := services.NewUserService(userRepository)
 	sessionService := services.NewSessionService(sessionRepository)
 	userController := controllers.NewUserController(userService, sessionService)
-	userController.Template.Register = template.Parse("register.html")
-	userController.Template.Login = template.Parse("login.html")
-	userController.Template.Execute = template.Execute
+	userController.Template.Register = tpl.Parse("register.html")
+	userController.Template.Login = tpl.Parse("login.html")
+	userController.Template.Execute = tpl.Execute
 	fmt.Println("app initialized")
 
 	return &App{UserService: userService, SessionService: sessionService, UserController: userController}

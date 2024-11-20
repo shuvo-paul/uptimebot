@@ -1,12 +1,12 @@
 package controllers
 
 import (
+	"html/template"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
-	"text/template"
 
 	"github.com/shuvo-paul/sitemonitor/models"
 )
