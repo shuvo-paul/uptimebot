@@ -49,6 +49,14 @@ func (m *mockSessionService) ValidateSession(token string) (*models.Session, err
 	return m.validateSessionFunc(token)
 }
 
+type mockFlashStore struct{}
+
+func (m *mockFlashStore) GetFlash(flashID, key string) any {
+	return nil
+}
+
+func (m *mockFlashStore) SetFlash(flashID, key string, value any) {}
+
 func TestRegister(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -81,7 +89,9 @@ func TestRegister(t *testing.T) {
 			}
 			mockSession := &mockSessionService{}
 
-			controller := NewUserController(mockUser, mockSession)
+			mockFlash := &mockFlashStore{}
+
+			controller := NewUserController(mockUser, mockSession, mockFlash)
 			controller.Template.Register = template.Must(template.New("register").Parse("dummy"))
 
 			req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader(tt.formData.Encode()))
@@ -137,7 +147,9 @@ func TestLogin(t *testing.T) {
 				createSessionFunc: tt.mockSessFunc,
 			}
 
-			controller := NewUserController(mockUser, mockSession)
+			mockFlash := &mockFlashStore{}
+
+			controller := NewUserController(mockUser, mockSession, mockFlash)
 			controller.Template.Login = template.Must(template.New("login").Parse("dummy"))
 
 			req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(tt.formData.Encode()))

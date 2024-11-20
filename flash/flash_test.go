@@ -10,7 +10,6 @@ import (
 
 func TestSetAndGetFlash(t *testing.T) {
 	fs := NewFlashStore()
-	fs.generateFlashID = func() string { return "test-id" }
 	flashID := "test-id"
 
 	fs.SetFlash(flashID, "key1", "value1")
@@ -25,13 +24,10 @@ func TestSetAndGetFlash(t *testing.T) {
 }
 
 func TestMiddleware(t *testing.T) {
-	fs := NewFlashStore()
-	fs.generateFlashID = func() string { return "test-id" }
 
-	handler := fs.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		flashID, ok := GetFlashIDFromContext(r.Context())
-		assert.True(t, ok)
-		assert.Equal(t, flashID, "test-id")
+	handler := Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		flashID := GetFlashIDFromContext(r.Context())
+		assert.NotEmpty(t, flashID)
 	}))
 
 	req, _ := http.NewRequest("GET", "/", nil)
@@ -42,5 +38,5 @@ func TestMiddleware(t *testing.T) {
 	cookie := rr.Result().Cookies()[0]
 
 	assert.Equal(t, cookie.Name, "flash_id")
-	assert.Equal(t, cookie.Value, "test-id")
+	assert.NotEmpty(t, cookie.Value)
 }

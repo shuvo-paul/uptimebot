@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"net/http"
 
+	"github.com/shuvo-paul/sitemonitor/flash"
 	"github.com/shuvo-paul/sitemonitor/models"
 	"github.com/shuvo-paul/sitemonitor/services"
 )
@@ -16,10 +17,19 @@ type UserController struct {
 	}
 	sessionService services.SessionServiceInterface
 	userService    services.UserServiceInterface
+	flashStore     flash.FlashStoreInterface
 }
 
-func NewUserController(userService services.UserServiceInterface, sessionService services.SessionServiceInterface) *UserController {
-	return &UserController{userService: userService, sessionService: sessionService}
+func NewUserController(
+	userService services.UserServiceInterface,
+	sessionService services.SessionServiceInterface,
+	flashStore flash.FlashStoreInterface,
+) *UserController {
+	return &UserController{
+		userService:    userService,
+		sessionService: sessionService,
+		flashStore:     flashStore,
+	}
 }
 
 func (c *UserController) ShowRegisterForm(w http.ResponseWriter, r *http.Request) {
@@ -27,8 +37,11 @@ func (c *UserController) ShowRegisterForm(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	data := map[string]string{
+	flashId := flash.GetFlashIDFromContext(r.Context())
+
+	data := map[string]any{
 		"Title": "Registration",
+		"Erros": c.flashStore.GetFlash(flashId, "errors"),
 	}
 
 	c.Template.Execute(w, r, c.Template.Register, data)
@@ -48,11 +61,11 @@ func (c *UserController) Register(w http.ResponseWriter, r *http.Request) {
 
 	_, err := c.userService.CreateUser(user)
 	if err != nil {
-		data := map[string]string{
-			"Title": "Registration Failed",
-			"Error": err.Error(),
-		}
-		c.Template.Execute(w, r, c.Template.Register, data)
+		flashId := flash.GetFlashIDFromContext(r.Context())
+
+		errors := []string{err.Error()}
+		c.flashStore.SetFlash(flashId, "errors", errors)
+		http.Redirect(w, r, "/register", http.StatusSeeOther)
 		return
 	}
 
@@ -63,7 +76,11 @@ func (c *UserController) ShowLoginForm(w http.ResponseWriter, r *http.Request) {
 	if c.redirectIfAuthenticated(w, r) {
 		return
 	}
-	c.Template.Execute(w, r, c.Template.Login, nil)
+
+	data := map[string]string{
+		"Title": "Login",
+	}
+	c.Template.Execute(w, r, c.Template.Login, data)
 }
 
 func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {

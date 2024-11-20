@@ -8,6 +8,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/shuvo-paul/sitemonitor/controllers"
 	"github.com/shuvo-paul/sitemonitor/database"
+	"github.com/shuvo-paul/sitemonitor/flash"
 	"github.com/shuvo-paul/sitemonitor/migrations"
 	"github.com/shuvo-paul/sitemonitor/repository"
 	"github.com/shuvo-paul/sitemonitor/services"
@@ -36,12 +37,14 @@ func NewApp() *App {
 
 	tpl := views.NewTemplate(templates.TemplateFS)
 
+	flashStore := flash.NewFlashStore()
+
 	userRepository := repository.NewUserRepository(db)
 	sessionRepository := repository.NewSessionRepository(db)
 
 	userService := services.NewUserService(userRepository)
 	sessionService := services.NewSessionService(sessionRepository)
-	userController := controllers.NewUserController(userService, sessionService)
+	userController := controllers.NewUserController(userService, sessionService, flashStore)
 	userController.Template.Register = tpl.Parse("register.html")
 	userController.Template.Login = tpl.Parse("login.html")
 	userController.Template.Execute = tpl.Execute

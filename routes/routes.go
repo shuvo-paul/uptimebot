@@ -6,6 +6,7 @@ import (
 
 	"github.com/shuvo-paul/sitemonitor/controllers"
 	"github.com/shuvo-paul/sitemonitor/csrf"
+	"github.com/shuvo-paul/sitemonitor/flash"
 	"github.com/shuvo-paul/sitemonitor/middleware"
 	"github.com/shuvo-paul/sitemonitor/services"
 	"github.com/shuvo-paul/sitemonitor/static"
@@ -45,6 +46,7 @@ func SetupRoutes(
 	))
 
 	mws := middleware.CreateStack(
+		flash.Middleware,
 		csrf.Middleware,
 		middleware.ErrorHandler,
 		middleware.Logger,

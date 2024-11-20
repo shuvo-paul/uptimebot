@@ -2,20 +2,27 @@ package flash
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"sync"
 
 	"github.com/google/uuid"
 )
 
+type FlashStoreInterface interface {
+	SetFlash(flashID, key string, value any)
+	GetFlash(flashID, key string) any
+}
+
+var _ FlashStoreInterface = (*FlashStore)(nil)
+
 type contextKey string
 
 const flashIdKey contextKey = "flashIdKey"
 
 type FlashStore struct {
-	mu              sync.RWMutex
-	flashes         map[string]map[string]any
-	generateFlashID func() string
+	mu      sync.RWMutex
+	flashes map[string]map[string]any
 }
 
 func defaultFlashIdGenerator() string {
@@ -24,8 +31,7 @@ func defaultFlashIdGenerator() string {
 
 func NewFlashStore() *FlashStore {
 	return &FlashStore{
-		flashes:         make(map[string]map[string]any),
-		generateFlashID: defaultFlashIdGenerator,
+		flashes: make(map[string]map[string]any),
 	}
 }
 
@@ -62,7 +68,7 @@ func (fs *FlashStore) GetFlash(flashID, key string) any {
 	return value
 }
 
-func (fs *FlashStore) Middleware(next http.Handler) http.Handler {
+func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("flash_id")
 
@@ -72,7 +78,7 @@ func (fs *FlashStore) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
-		flashID := fs.generateFlashID()
+		flashID := defaultFlashIdGenerator()
 		http.SetCookie(w, &http.Cookie{
 			Name:  "flash_id",
 			Value: flashID,
@@ -84,7 +90,10 @@ func (fs *FlashStore) Middleware(next http.Handler) http.Handler {
 	})
 }
 
-func GetFlashIDFromContext(ctx context.Context) (string, bool) {
+func GetFlashIDFromContext(ctx context.Context) string {
 	flashId, ok := ctx.Value(flashIdKey).(string)
-	return flashId, ok
+	if !ok {
+		slog.Error("Flash Store", "OK", ok)
+	}
+	return flashId
 }
