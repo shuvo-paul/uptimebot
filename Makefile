@@ -2,13 +2,10 @@
 
 build:
 	pnpm build
-	go build -o monitor ./main.go
+	go build -o sitemonitor ./cmd/sitemonitor/sitemonitor.go
 
 test:
 	go test ./...
 
 run:
-	./monitor
-
-migrate:
-	go build -o migrate ./cmd/migrate/migrate.go
+	./sitemonitor

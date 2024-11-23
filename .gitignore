@@ -1,6 +1,5 @@
 .DS_Store
-monitor
-migrate
+sitemonitor
 .env
 .env.*
 !.env.example
