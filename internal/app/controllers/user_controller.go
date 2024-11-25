@@ -2,19 +2,18 @@ package controllers
 
 import (
 	"fmt"
-	"html/template"
 	"net/http"
 
 	"github.com/shuvo-paul/sitemonitor/internal/app/models"
+	"github.com/shuvo-paul/sitemonitor/internal/app/renderer"
 	"github.com/shuvo-paul/sitemonitor/internal/app/services"
 	"github.com/shuvo-paul/sitemonitor/pkg/flash"
 )
 
 type UserController struct {
 	Template struct {
-		Register *template.Template
-		Login    *template.Template
-		Execute  func(w http.ResponseWriter, r *http.Request, tmpl *template.Template, data any)
+		Register renderer.PageTemplate
+		Login    renderer.PageTemplate
 	}
 	sessionService services.SessionServiceInterface
 	userService    services.UserServiceInterface
@@ -45,7 +44,7 @@ func (c *UserController) ShowRegisterForm(w http.ResponseWriter, r *http.Request
 		"Erros": c.flashStore.GetFlash(flashId, "errors"),
 	}
 
-	c.Template.Execute(w, r, c.Template.Register, data)
+	c.Template.Register.Render(w, r, data)
 }
 
 func (c *UserController) Register(w http.ResponseWriter, r *http.Request) {
@@ -82,7 +81,7 @@ func (c *UserController) ShowLoginForm(w http.ResponseWriter, r *http.Request) {
 	data := map[string]string{
 		"Title": "Login",
 	}
-	c.Template.Execute(w, r, c.Template.Login, data)
+	c.Template.Login.Render(w, r, data)
 }
 
 func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {

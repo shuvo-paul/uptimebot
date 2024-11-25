@@ -7,9 +7,9 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/shuvo-paul/sitemonitor/internal/app/controllers"
+	"github.com/shuvo-paul/sitemonitor/internal/app/renderer"
 	"github.com/shuvo-paul/sitemonitor/internal/app/repository"
 	"github.com/shuvo-paul/sitemonitor/internal/app/services"
-	"github.com/shuvo-paul/sitemonitor/internal/app/views"
 	"github.com/shuvo-paul/sitemonitor/internal/database"
 	"github.com/shuvo-paul/sitemonitor/internal/database/migrations"
 	"github.com/shuvo-paul/sitemonitor/pkg/flash"
@@ -35,7 +35,7 @@ func NewApp() *App {
 
 	migrations.SetupMigration(db)
 
-	tpl := views.NewTemplate(templates.TemplateFS)
+	templateRenderer := renderer.New(templates.TemplateFS)
 
 	flashStore := flash.NewFlashStore()
 
@@ -45,9 +45,8 @@ func NewApp() *App {
 	userService := services.NewUserService(userRepository)
 	sessionService := services.NewSessionService(sessionRepository)
 	userController := controllers.NewUserController(userService, sessionService, flashStore)
-	userController.Template.Register = tpl.Parse("register.html")
-	userController.Template.Login = tpl.Parse("login.html")
-	userController.Template.Execute = tpl.Execute
+	userController.Template.Register = templateRenderer.Parse("register.html")
+	userController.Template.Login = templateRenderer.Parse("login.html")
 	fmt.Println("app initialized")
 
 	return &App{UserService: userService, SessionService: sessionService, UserController: userController}

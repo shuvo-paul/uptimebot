@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"html/template"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -9,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/shuvo-paul/sitemonitor/internal/app/models"
+	"github.com/shuvo-paul/sitemonitor/internal/app/renderer"
+	"github.com/shuvo-paul/sitemonitor/web/templates"
 )
 
 // Mock UserService
@@ -58,6 +59,8 @@ func (m *mockFlashStore) GetFlash(flashID, key string) any {
 func (m *mockFlashStore) SetFlash(flashID, key string, value any) {}
 
 func TestRegister(t *testing.T) {
+	templateRenderer := renderer.New(templates.TemplateFS)
+
 	tests := []struct {
 		name           string
 		formData       url.Values
@@ -92,7 +95,7 @@ func TestRegister(t *testing.T) {
 			mockFlash := &mockFlashStore{}
 
 			controller := NewUserController(mockUser, mockSession, mockFlash)
-			controller.Template.Register = template.Must(template.New("register").Parse("dummy"))
+			controller.Template.Register = templateRenderer.Parse("register.html")
 
 			req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader(tt.formData.Encode()))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -112,6 +115,8 @@ func TestRegister(t *testing.T) {
 }
 
 func TestLogin(t *testing.T) {
+	templateRenderer := renderer.New(templates.TemplateFS)
+
 	tests := []struct {
 		name           string
 		formData       url.Values
@@ -150,7 +155,7 @@ func TestLogin(t *testing.T) {
 			mockFlash := &mockFlashStore{}
 
 			controller := NewUserController(mockUser, mockSession, mockFlash)
-			controller.Template.Login = template.Must(template.New("login").Parse("dummy"))
+			controller.Template.Login = templateRenderer.Parse("login.html")
 
 			req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(tt.formData.Encode()))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
