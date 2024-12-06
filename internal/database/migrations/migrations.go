@@ -18,7 +18,7 @@ var migrations = &migrate.EmbedFileSystemMigrationSource{
 
 func SetupMigration(db *sql.DB) {
 	args := os.Args
-	if args[1] == "migrate" {
+	if len(args) > 1 && args[1] == "migrate" {
 		migrateTool(db)
 		os.Exit(0)
 	}
