@@ -4,17 +4,23 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
+	"os"
 
 	migrate "github.com/rubenv/sql-migrate"
 )
 
 //go:embed *.sql
 var sqlFs embed.FS
+var migrations = &migrate.EmbedFileSystemMigrationSource{
+	FileSystem: sqlFs,
+	Root:       ".",
+}
 
 func SetupMigration(db *sql.DB) {
-	migrations := &migrate.EmbedFileSystemMigrationSource{
-		FileSystem: sqlFs,
-		Root:       ".",
+	args := os.Args
+	if args[1] == "migrate" {
+		migrateTool(db)
+		os.Exit(0)
 	}
 
 	n, err := migrate.Exec(db, "sqlite3", migrations, migrate.Up)
