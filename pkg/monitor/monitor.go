@@ -48,11 +48,11 @@ type Site struct {
 	StatusChangedAt time.Time
 	mu              sync.RWMutex
 	cancelFunc      context.CancelFunc
-	client          *http.Client // Add dedicated client per site
+	Client          *http.Client // Changed from client to Client
 }
 
 func (s *Site) Check() error {
-	r, err := s.client.Get(s.URL) // Use site-specific client
+	r, err := s.Client.Get(s.URL) // Use site-specific client
 
 	if err != nil {
 		s.updateStatus(statusError)
@@ -100,8 +100,8 @@ func (m *Manager) RegisterSite(site *Site) error {
 	}
 
 	// Check if site has a client, if not use DefaultClient
-	if site.client == nil {
-		site.client = DefaultClient
+	if site.Client == nil {
+		site.Client = DefaultClient
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

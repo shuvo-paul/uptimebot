@@ -20,7 +20,7 @@ func TestSiteCheck(t *testing.T) {
 		URL:      ts.URL,
 		Interval: time.Minute,
 		Enabled:  true,
-		client:   DefaultClient,
+		Client:   DefaultClient,
 	}
 
 	err := site.Check()
