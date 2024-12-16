@@ -82,12 +82,12 @@ func (s *Site) updateStatus(status string) {
 
 type Manager struct {
 	mu    sync.Mutex
-	sites map[int]*Site
+	Sites map[int]*Site
 }
 
 func NewManager() *Manager {
 	return &Manager{
-		sites: make(map[int]*Site),
+		Sites: make(map[int]*Site),
 	}
 }
 
@@ -95,7 +95,7 @@ func (m *Manager) RegisterSite(site *Site) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if _, ok := m.sites[site.ID]; ok {
+	if _, ok := m.Sites[site.ID]; ok {
 		return fmt.Errorf("site %s already being monitored", site.URL)
 	}
 
@@ -107,7 +107,7 @@ func (m *Manager) RegisterSite(site *Site) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	site.cancelFunc = cancel
 
-	m.sites[site.ID] = site
+	m.Sites[site.ID] = site
 
 	go func() {
 		ticker := time.NewTicker(site.Interval)
@@ -118,7 +118,7 @@ func (m *Manager) RegisterSite(site *Site) error {
 			case <-ctx.Done():
 				slog.Info("Monitoring stopperd", "site", site.URL)
 				m.mu.Lock()
-				delete(m.sites, site.ID)
+				delete(m.Sites, site.ID)
 				m.mu.Unlock()
 				return
 			case <-ticker.C:
@@ -140,9 +140,9 @@ func (m *Manager) RegisterSite(site *Site) error {
 func (m *Manager) RevokeSite(siteID int) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if site, exist := m.sites[siteID]; exist {
+	if site, exist := m.Sites[siteID]; exist {
 		site.cancelFunc()
-		delete(m.sites, siteID)
+		delete(m.Sites, siteID)
 		slog.Info("Monitoring Stopped", "Site", site.URL)
 	} else {
 		slog.Info("Site removed, but no monitoring was active", "siteID", site.URL)
@@ -152,7 +152,7 @@ func (m *Manager) RevokeSite(siteID int) {
 func (m *Manager) EnableSite(siteID int) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if site, exists := m.sites[siteID]; exists {
+	if site, exists := m.Sites[siteID]; exists {
 		site.Enabled = true
 		slog.Info("Site monitoring enabled", "site", site.URL)
 	}
@@ -161,7 +161,7 @@ func (m *Manager) EnableSite(siteID int) {
 func (m *Manager) DisableSite(siteID int) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if site, exists := m.sites[siteID]; exists {
+	if site, exists := m.Sites[siteID]; exists {
 		site.Enabled = false
 		slog.Info("Site monitoring disabled", "site", site.URL)
 	}
