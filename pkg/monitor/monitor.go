@@ -30,6 +30,15 @@ var DefaultClientConfig = ClientConfig{
 	IdleConnTimeout: 90 * time.Second,
 }
 
+// DefaultClient provides a default HTTP client using DefaultClientConfig
+var DefaultClient = &http.Client{
+	Timeout: DefaultClientConfig.Timeout,
+	Transport: &http.Transport{
+		MaxIdleConns:    DefaultClientConfig.MaxIdleConns,
+		IdleConnTimeout: DefaultClientConfig.IdleConnTimeout,
+	},
+}
+
 type Site struct {
 	ID              int
 	URL             string
@@ -40,25 +49,6 @@ type Site struct {
 	mu              sync.RWMutex
 	cancelFunc      context.CancelFunc
 	client          *http.Client // Add dedicated client per site
-}
-
-// NewSite creates a new Site with configured HTTP client
-func NewSite(id int, url string, interval time.Duration, config ClientConfig) *Site {
-	transport := &http.Transport{
-		MaxIdleConns:    config.MaxIdleConns,
-		IdleConnTimeout: config.IdleConnTimeout,
-	}
-
-	return &Site{
-		ID:       id,
-		URL:      url,
-		Interval: interval,
-		Enabled:  true,
-		client: &http.Client{
-			Timeout:   config.Timeout,
-			Transport: transport,
-		},
-	}
 }
 
 func (s *Site) Check() error {
@@ -107,6 +97,11 @@ func (m *Manager) RegisterSite(site *Site) error {
 
 	if _, ok := m.sites[site.ID]; ok {
 		return fmt.Errorf("site %s already being monitored", site.URL)
+	}
+
+	// Check if site has a client, if not use DefaultClient
+	if site.client == nil {
+		site.client = DefaultClient
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

@@ -7,28 +7,6 @@ import (
 	"time"
 )
 
-func TestNewSite(t *testing.T) {
-	// Test with default config
-	site := NewSite(1, "https://example.com", time.Minute, DefaultClientConfig)
-
-	if site.client == nil {
-		t.Error("Expected HTTP client to be initialized")
-	}
-
-	// Test with custom config
-	customConfig := ClientConfig{
-		Timeout:         5 * time.Second,
-		MaxIdleConns:    50,
-		IdleConnTimeout: 30 * time.Second,
-	}
-
-	site = NewSite(2, "https://example.com", time.Minute, customConfig)
-
-	if site.client == nil {
-		t.Error("Expected HTTP client to be initialized")
-	}
-}
-
 func TestSiteCheck(t *testing.T) {
 	// Create test server
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -36,12 +14,14 @@ func TestSiteCheck(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	// Test with custom shorter timeout
-	site := NewSite(1, ts.URL, time.Minute, ClientConfig{
-		Timeout:         2 * time.Second,
-		MaxIdleConns:    10,
-		IdleConnTimeout: 30 * time.Second,
-	})
+	// Create site using DefaultClient
+	site := &Site{
+		ID:       1,
+		URL:      ts.URL,
+		Interval: time.Minute,
+		Enabled:  true,
+		client:   DefaultClient,
+	}
 
 	err := site.Check()
 	if err != nil {
