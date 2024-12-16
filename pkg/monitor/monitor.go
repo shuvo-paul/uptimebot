@@ -148,21 +148,3 @@ func (m *Manager) RevokeSite(siteID int) {
 		slog.Info("Site removed, but no monitoring was active", "siteID", siteID)
 	}
 }
-
-func (m *Manager) EnableSite(siteID int) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if site, exists := m.Sites[siteID]; exists {
-		site.Enabled = true
-		slog.Info("Site monitoring enabled", "site", site.URL)
-	}
-}
-
-func (m *Manager) DisableSite(siteID int) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if site, exists := m.Sites[siteID]; exists {
-		site.Enabled = false
-		slog.Info("Site monitoring disabled", "site", site.URL)
-	}
-}
