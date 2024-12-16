@@ -145,7 +145,7 @@ func (m *Manager) RevokeSite(siteID int) {
 		delete(m.Sites, siteID)
 		slog.Info("Monitoring Stopped", "Site", site.URL)
 	} else {
-		slog.Info("Site removed, but no monitoring was active", "siteID", site.URL)
+		slog.Info("Site removed, but no monitoring was active", "siteID", siteID)
 	}
 }
 
