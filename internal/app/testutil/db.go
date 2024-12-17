@@ -1,4 +1,4 @@
-package mocks
+package testutil
 
 import (
 	"database/sql"
@@ -7,6 +7,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 )
 
+// SetupTestDB creates a new mock database connection for testing
 func SetupTestDB(t *testing.T) (*sql.DB, sqlmock.Sqlmock) {
 	db, mock, err := sqlmock.New()
 	if err != nil {

@@ -5,12 +5,12 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/shuvo-paul/sitemonitor/internal/app/models"
-	"github.com/shuvo-paul/sitemonitor/tests/mocks"
+	"github.com/shuvo-paul/sitemonitor/internal/app/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSaveUser(t *testing.T) {
-	db, mock := mocks.SetupTestDB(t)
+	db, mock := testutil.SetupTestDB(t)
 	userRepo := NewUserRepository(db)
 	defer db.Close()
 
@@ -33,7 +33,7 @@ func TestSaveUser(t *testing.T) {
 }
 
 func TestEmailExists(t *testing.T) {
-	db, mock := mocks.SetupTestDB(t)
+	db, mock := testutil.SetupTestDB(t)
 	userRepo := NewUserRepository(db)
 	defer db.Close()
 
@@ -63,7 +63,7 @@ func TestEmailExists(t *testing.T) {
 }
 
 func TestGetUser(t *testing.T) {
-	db, mock := mocks.SetupTestDB(t)
+	db, mock := testutil.SetupTestDB(t)
 	userRepo := NewUserRepository(db)
 	defer db.Close()
 	expectedUser := &models.User{
