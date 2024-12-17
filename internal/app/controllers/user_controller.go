@@ -115,7 +115,31 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteStrictMode,
 	})
 
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, "sites", http.StatusSeeOther)
+}
+
+func (c *UserController) Logout(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("session_token")
+	if err == nil {
+		// Invalidate the session in the backend
+		if err := c.sessionService.DeleteSession(cookie.Value); err != nil {
+			http.Error(w, "Failed to logout", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// Clear the session cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	})
+
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
 func (c *UserController) redirectIfAuthenticated(w http.ResponseWriter, r *http.Request) bool {

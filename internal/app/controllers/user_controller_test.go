@@ -9,6 +9,7 @@ import (
 
 	"github.com/shuvo-paul/sitemonitor/internal/app/models"
 	"github.com/shuvo-paul/sitemonitor/internal/app/renderer"
+	"github.com/shuvo-paul/sitemonitor/internal/app/testutil"
 	"github.com/shuvo-paul/sitemonitor/web/templates"
 )
 
@@ -50,14 +51,6 @@ func (m *mockSessionService) ValidateSession(token string) (*models.Session, err
 	return m.validateSessionFunc(token)
 }
 
-type mockFlashStore struct{}
-
-func (m *mockFlashStore) GetFlash(flashID, key string) any {
-	return nil
-}
-
-func (m *mockFlashStore) SetFlash(flashID, key string, value any) {}
-
 func TestRegister(t *testing.T) {
 	templateRenderer := renderer.New(templates.TemplateFS)
 
@@ -92,7 +85,7 @@ func TestRegister(t *testing.T) {
 			}
 			mockSession := &mockSessionService{}
 
-			mockFlash := &mockFlashStore{}
+			mockFlash := &testutil.MockFlashStore{}
 
 			controller := NewUserController(mockUser, mockSession, mockFlash)
 			controller.Template.Register = templateRenderer.Parse("register.html")
@@ -138,7 +131,7 @@ func TestLogin(t *testing.T) {
 				return &models.Session{}, "session-token", nil
 			},
 			expectedStatus: http.StatusSeeOther,
-			expectedPath:   "/",
+			expectedPath:   "/sites",
 		},
 		// Add more test cases for invalid credentials, service errors, etc.
 	}
@@ -152,7 +145,7 @@ func TestLogin(t *testing.T) {
 				createSessionFunc: tt.mockSessFunc,
 			}
 
-			mockFlash := &mockFlashStore{}
+			mockFlash := &testutil.MockFlashStore{}
 
 			controller := NewUserController(mockUser, mockSession, mockFlash)
 			controller.Template.Login = templateRenderer.Parse("login.html")
