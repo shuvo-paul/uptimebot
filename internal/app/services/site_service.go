@@ -8,6 +8,16 @@ import (
 	"github.com/shuvo-paul/sitemonitor/pkg/monitor"
 )
 
+type SiteServiceInterface interface {
+	Create(url string, interval time.Duration) (*monitor.Site, error)
+	GetByID(id int) (*monitor.Site, error)
+	GetAll() ([]*monitor.Site, error)
+	Update(site *monitor.Site) (*monitor.Site, error)
+	Delete(id int) error
+}
+
+var _ SiteServiceInterface = (*SiteService)(nil)
+
 type SiteService struct {
 	repo    repository.SiteRepositoryInterface
 	manager *monitor.Manager
