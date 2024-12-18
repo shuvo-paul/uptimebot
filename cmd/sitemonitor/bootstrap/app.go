@@ -52,6 +52,12 @@ func NewApp() *App {
 	siteRepository := repository.NewSiteRepository(db)
 	siteService := services.NewSiteService(siteRepository)
 
+	// Initialize monitoring for existing sites
+	if err := siteService.InitializeMonitoring(); err != nil {
+		log.Printf("Failed to initialize site monitoring: %v", err)
+		// Don't fatal here, allow the app to continue even if some monitors fail
+	}
+
 	// Initialize site controller
 	siteController := controllers.NewSiteController(siteService, flashStore)
 	siteController.Template.List = templateRenderer.Parse("sites/list.html")

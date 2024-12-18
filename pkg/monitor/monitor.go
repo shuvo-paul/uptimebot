@@ -39,6 +39,8 @@ var DefaultClient = &http.Client{
 	},
 }
 
+type StatusUpdateCallback func(*Site, string) error
+
 type Site struct {
 	ID              int
 	URL             string
@@ -48,11 +50,16 @@ type Site struct {
 	StatusChangedAt time.Time
 	mu              sync.RWMutex
 	cancelFunc      context.CancelFunc
-	Client          *http.Client // Changed from client to Client
+	Client          *http.Client
+	OnStatusUpdate  StatusUpdateCallback
 }
 
 func (s *Site) Check() error {
-	r, err := s.Client.Get(s.URL) // Use site-specific client
+	defer func(startStatus string) {
+		slog.Info("Site check completed", "URL", s.URL, "fromStatus", startStatus, "toStatus", s.Status)
+	}(s.Status)
+
+	r, err := s.Client.Get(s.URL)
 
 	if err != nil {
 		s.updateStatus(statusError)
@@ -77,7 +84,22 @@ func (s *Site) updateStatus(status string) {
 	if s.Status != status {
 		s.Status = status
 		s.StatusChangedAt = time.Now()
+
+		if s.OnStatusUpdate != nil {
+			if err := s.OnStatusUpdate(s, status); err != nil {
+				slog.Error("Failed to persist status update", "site", s.URL, "error", err)
+			}
+		}
 	}
+}
+
+func (s *Site) Update(updatedSite *Site) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.URL = updatedSite.URL
+	s.Interval = updatedSite.Interval
+	s.Enabled = updatedSite.Enabled
 }
 
 type Manager struct {
@@ -99,7 +121,6 @@ func (m *Manager) RegisterSite(site *Site) error {
 		return fmt.Errorf("site %s already being monitored", site.URL)
 	}
 
-	// Check if site has a client, if not use DefaultClient
 	if site.Client == nil {
 		site.Client = DefaultClient
 	}

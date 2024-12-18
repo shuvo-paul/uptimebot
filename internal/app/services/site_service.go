@@ -14,6 +14,7 @@ type SiteServiceInterface interface {
 	GetAll() ([]*monitor.Site, error)
 	Update(site *monitor.Site) (*monitor.Site, error)
 	Delete(id int) error
+	InitializeMonitoring() error
 }
 
 var _ SiteServiceInterface = (*SiteService)(nil)
@@ -36,6 +37,9 @@ func (s *SiteService) Create(url string, interval time.Duration) (*monitor.Site,
 		Interval: interval,
 		Enabled:  true,
 		Status:   "pending",
+		OnStatusUpdate: func(site *monitor.Site, status string) error {
+			return s.repo.UpdateStatus(site, status)
+		},
 	}
 
 	site, err := s.repo.Create(site)
@@ -60,19 +64,19 @@ func (s *SiteService) GetAll() ([]*monitor.Site, error) {
 }
 
 func (s *SiteService) Update(site *monitor.Site) (*monitor.Site, error) {
+	// Set the callback before updating
+	site.OnStatusUpdate = func(site *monitor.Site, status string) error {
+		return s.repo.UpdateStatus(site, status)
+	}
+
 	// First update the site in the database
 	updatedSite, err := s.repo.Update(site)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update site: %w", err)
 	}
 
-	// Check if the site monitor exists
 	if existingSite, exists := s.manager.Sites[site.ID]; exists {
-		// Update all fields of the existing site
-		existingSite.URL = updatedSite.URL
-		existingSite.Interval = updatedSite.Interval
-		existingSite.Enabled = updatedSite.Enabled
-		existingSite.Status = updatedSite.Status
+		existingSite.Update(updatedSite)
 	} else {
 		// Register new monitor if it doesn't exist
 		if err := s.manager.RegisterSite(updatedSite); err != nil {
@@ -86,4 +90,23 @@ func (s *SiteService) Update(site *monitor.Site) (*monitor.Site, error) {
 func (s *SiteService) Delete(id int) error {
 	s.manager.RevokeSite(id)
 	return s.repo.Delete(id)
+}
+
+func (s *SiteService) InitializeMonitoring() error {
+	sites, err := s.repo.GetAll()
+	if err != nil {
+		return fmt.Errorf("failed to fetch sites: %w", err)
+	}
+
+	for _, site := range sites {
+		site.OnStatusUpdate = func(site *monitor.Site, status string) error {
+			return s.repo.UpdateStatus(site, status)
+		}
+
+		if err := s.manager.RegisterSite(site); err != nil {
+			return fmt.Errorf("failed to register site %s: %w", site.URL, err)
+		}
+	}
+
+	return nil
 }

@@ -17,11 +17,12 @@ import (
 
 // Mock SiteService
 type mockSiteService struct {
-	getAllFunc  func() ([]*monitor.Site, error)
-	getByIDFunc func(id int) (*monitor.Site, error)
-	createFunc  func(url string, interval time.Duration) (*monitor.Site, error)
-	updateFunc  func(site *monitor.Site) (*monitor.Site, error)
-	deleteFunc  func(id int) error
+	getAllFunc               func() ([]*monitor.Site, error)
+	getByIDFunc              func(id int) (*monitor.Site, error)
+	createFunc               func(url string, interval time.Duration) (*monitor.Site, error)
+	updateFunc               func(site *monitor.Site) (*monitor.Site, error)
+	deleteFunc               func(id int) error
+	initializeMonitoringFunc func() error
 }
 
 func (m *mockSiteService) GetAll() ([]*monitor.Site, error) {
@@ -44,11 +45,19 @@ func (m *mockSiteService) Delete(id int) error {
 	return m.deleteFunc(id)
 }
 
+func (m *mockSiteService) InitializeMonitoring() error {
+	if m.initializeMonitoringFunc != nil {
+		return m.initializeMonitoringFunc()
+	}
+	return nil
+}
+
 func TestSiteController_List(t *testing.T) {
 	mockService := &mockSiteService{
 		getAllFunc: func() ([]*monitor.Site, error) {
 			return []*monitor.Site{{ID: 1, URL: "http://example.com", Interval: 60 * time.Second}}, nil
 		},
+		initializeMonitoringFunc: func() error { return nil },
 	}
 
 	controller := NewSiteController(mockService, &testutil.MockFlashStore{})
@@ -65,7 +74,10 @@ func TestSiteController_List(t *testing.T) {
 
 func TestSiteController_Create(t *testing.T) {
 	t.Run("GET request", func(t *testing.T) {
-		controller := NewSiteController(&mockSiteService{}, &testutil.MockFlashStore{})
+		mockService := &mockSiteService{
+			initializeMonitoringFunc: func() error { return nil },
+		}
+		controller := NewSiteController(mockService, &testutil.MockFlashStore{})
 		templateRenderer := renderer.New(templates.TemplateFS)
 		controller.Template.Create = templateRenderer.Parse("sites/create.html")
 
@@ -82,6 +94,7 @@ func TestSiteController_Create(t *testing.T) {
 			createFunc: func(url string, interval time.Duration) (*monitor.Site, error) {
 				return &monitor.Site{ID: 1, URL: url, Interval: interval}, nil
 			},
+			initializeMonitoringFunc: func() error { return nil },
 		}
 
 		controller := NewSiteController(mockService, &testutil.MockFlashStore{})
@@ -107,6 +120,7 @@ func TestSiteController_Edit(t *testing.T) {
 			getByIDFunc: func(id int) (*monitor.Site, error) {
 				return &monitor.Site{ID: id, URL: "http://example.com", Interval: 60 * time.Second}, nil
 			},
+			initializeMonitoringFunc: func() error { return nil },
 		}
 
 		controller := NewSiteController(mockService, &testutil.MockFlashStore{})
@@ -131,6 +145,7 @@ func TestSiteController_Edit(t *testing.T) {
 			updateFunc: func(site *monitor.Site) (*monitor.Site, error) {
 				return site, nil
 			},
+			initializeMonitoringFunc: func() error { return nil },
 		}
 
 		controller := NewSiteController(mockService, &testutil.MockFlashStore{})
@@ -157,6 +172,7 @@ func TestSiteController_Delete(t *testing.T) {
 			deleteFunc: func(id int) error {
 				return nil
 			},
+			initializeMonitoringFunc: func() error { return nil },
 		}
 
 		controller := NewSiteController(mockService, &testutil.MockFlashStore{})
@@ -172,7 +188,10 @@ func TestSiteController_Delete(t *testing.T) {
 	})
 
 	t.Run("invalid ID", func(t *testing.T) {
-		controller := NewSiteController(&mockSiteService{}, &testutil.MockFlashStore{})
+		mockService := &mockSiteService{
+			initializeMonitoringFunc: func() error { return nil },
+		}
+		controller := NewSiteController(mockService, &testutil.MockFlashStore{})
 
 		req := httptest.NewRequest(http.MethodPost, "/sites/invalid/delete", nil)
 		req.SetPathValue("id", "invalid")

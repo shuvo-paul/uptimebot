@@ -44,7 +44,15 @@ func (r *SiteRepository) parseTime(s string) (time.Time, error) {
 	if s == "" {
 		return time.Time{}, nil
 	}
-	return time.Parse(time.RFC3339Nano, s)
+
+	// Try parsing RFC3339Nano format first
+	t, err := time.Parse(time.RFC3339Nano, s)
+	if err == nil {
+		return t, nil
+	}
+
+	// If that fails, try parsing the alternative format
+	return time.Parse("2006-01-02 15:04:05.999999999-07:00", s)
 }
 
 func (r *SiteRepository) Create(site *monitor.Site) (*monitor.Site, error) {
