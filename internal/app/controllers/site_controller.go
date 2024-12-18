@@ -37,9 +37,12 @@ func (c *SiteController) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	flashId := flash.GetFlashIDFromContext(r.Context())
+
 	data := map[string]any{
-		"title": "all sites",
-		"sites": sites,
+		"title":   "all sites",
+		"sites":   sites,
+		"success": c.flash.GetFlash(flashId, "success"),
 	}
 
 	c.Template.List.Render(w, r, data)
@@ -47,7 +50,10 @@ func (c *SiteController) List(w http.ResponseWriter, r *http.Request) {
 
 func (c *SiteController) Create(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
-		c.Template.Create.Render(w, r, nil)
+		data := map[string]any{
+			"title": "add a sites",
+		}
+		c.Template.Create.Render(w, r, data)
 		return
 	}
 
@@ -91,7 +97,7 @@ func (c *SiteController) Edit(w http.ResponseWriter, r *http.Request) {
 		}
 
 		data := map[string]any{
-			"Title": "Login",
+			"Title": "Edit Site",
 			"site":  site,
 		}
 

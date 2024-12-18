@@ -16,6 +16,7 @@ func SetupRoutes(
 	userController *controllers.UserController,
 	sessionService services.SessionService,
 	userService services.UserService,
+	siteController *controllers.SiteController,
 ) http.Handler {
 	// Setup routes
 	mux := http.NewServeMux()
@@ -26,6 +27,7 @@ func SetupRoutes(
 	mux.HandleFunc("POST /register", userController.Register)
 	mux.HandleFunc("GET /login", userController.ShowLoginForm)
 	mux.HandleFunc("POST /login", userController.Login)
+	mux.HandleFunc("POST /logout", userController.Logout)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			return
@@ -35,12 +37,16 @@ func SetupRoutes(
 
 	// Protected routes
 	protected := http.NewServeMux()
-	protected.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "Protected Area")
-	})
+	// Add site monitoring routes
+	protected.HandleFunc("GET /", siteController.List)
+	protected.HandleFunc("GET /create", siteController.Create)
+	protected.HandleFunc("POST /create", siteController.Create)
+	protected.HandleFunc("GET /{id}/edit", siteController.Edit)
+	protected.HandleFunc("POST /{id}/edit", siteController.Edit)
+	protected.HandleFunc("POST /{id}/delete", siteController.Delete)
 
-	mux.Handle("/app/", middleware.RequireAuth(
-		http.StripPrefix("/app", protected),
+	mux.Handle("/sites/", middleware.RequireAuth(
+		http.StripPrefix("/sites", protected),
 		sessionService,
 		userService,
 	))

@@ -22,6 +22,7 @@ type App struct {
 	UserService    *services.UserService
 	SessionService *services.SessionService
 	UserController *controllers.UserController
+	SiteController *controllers.SiteController
 }
 
 func NewApp() *App {
@@ -47,9 +48,23 @@ func NewApp() *App {
 	userController := controllers.NewUserController(userService, sessionService, flashStore)
 	userController.Template.Register = templateRenderer.Parse("register.html")
 	userController.Template.Login = templateRenderer.Parse("login.html")
+
+	siteRepository := repository.NewSiteRepository(db)
+	siteService := services.NewSiteService(siteRepository)
+
+	// Initialize site controller
+	siteController := controllers.NewSiteController(siteService, flashStore)
+	siteController.Template.List = templateRenderer.Parse("sites/list.html")
+	siteController.Template.Create = templateRenderer.Parse("sites/create.html")
+	siteController.Template.Edit = templateRenderer.Parse("sites/edit.html")
 	fmt.Println("app initialized")
 
-	return &App{UserService: userService, SessionService: sessionService, UserController: userController}
+	return &App{
+		UserService:    userService,
+		SessionService: sessionService,
+		UserController: userController,
+		SiteController: siteController,
+	}
 }
 
 func (a *App) Close() {
