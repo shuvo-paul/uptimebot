@@ -10,7 +10,6 @@ import (
 
 	"github.com/shuvo-paul/sitemonitor/internal/app/renderer"
 	"github.com/shuvo-paul/sitemonitor/internal/app/testutil"
-	"github.com/shuvo-paul/sitemonitor/pkg/flash"
 	"github.com/shuvo-paul/sitemonitor/pkg/monitor"
 	"github.com/shuvo-paul/sitemonitor/web/templates"
 	"github.com/stretchr/testify/assert"
@@ -43,10 +42,6 @@ func (m *mockSiteService) Update(site *monitor.Site) (*monitor.Site, error) {
 
 func (m *mockSiteService) Delete(id int) error {
 	return m.deleteFunc(id)
-}
-
-func setupFlashContext(next http.Handler) http.Handler {
-	return flash.Middleware(next)
 }
 
 func TestSiteController_List(t *testing.T) {
@@ -99,8 +94,7 @@ func TestSiteController_Create(t *testing.T) {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		w := httptest.NewRecorder()
 
-		handler := setupFlashContext(http.HandlerFunc(controller.Create))
-		handler.ServeHTTP(w, req)
+		controller.Create(w, req)
 
 		assert.Equal(t, http.StatusSeeOther, w.Code)
 		assert.Equal(t, "/sites", w.Header().Get("Location"))
@@ -150,8 +144,7 @@ func TestSiteController_Edit(t *testing.T) {
 		req.SetPathValue("id", "1")
 		w := httptest.NewRecorder()
 
-		handler := setupFlashContext(http.HandlerFunc(controller.Edit))
-		handler.ServeHTTP(w, req)
+		controller.Edit(w, req)
 
 		assert.Equal(t, http.StatusSeeOther, w.Code)
 		assert.Equal(t, "/sites", w.Header().Get("Location"))
@@ -172,8 +165,7 @@ func TestSiteController_Delete(t *testing.T) {
 		req.SetPathValue("id", "1")
 		w := httptest.NewRecorder()
 
-		handler := setupFlashContext(http.HandlerFunc(controller.Delete))
-		handler.ServeHTTP(w, req)
+		controller.Delete(w, req)
 
 		assert.Equal(t, http.StatusSeeOther, w.Code)
 		assert.Equal(t, "/sites", w.Header().Get("Location"))
@@ -186,8 +178,7 @@ func TestSiteController_Delete(t *testing.T) {
 		req.SetPathValue("id", "invalid")
 		w := httptest.NewRecorder()
 
-		handler := setupFlashContext(http.HandlerFunc(controller.Delete))
-		handler.ServeHTTP(w, req)
+		controller.Delete(w, req)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
