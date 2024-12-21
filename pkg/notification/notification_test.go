@@ -8,20 +8,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// MockSender is a manual mock implementation of the Sender interface
-type MockSender struct {
+// MockProvider is a manual mock implementation of the Sender interface
+type MockProvider struct {
 	messages []Message
 	err      error
 }
 
-func NewMockSender(err error) *MockSender {
-	return &MockSender{
+func NewMockProvider(err error) *MockProvider {
+	return &MockProvider{
 		messages: make([]Message, 0),
 		err:      err,
 	}
 }
 
-func (m *MockSender) Send(message Message) error {
+func (m *MockProvider) Send(message Message) error {
 	if m.err != nil {
 		return m.err
 	}
@@ -32,13 +32,13 @@ func (m *MockSender) Send(message Message) error {
 func TestNotifier_Send(t *testing.T) {
 	tests := []struct {
 		name      string
-		sender    *MockSender
+		sender    *MockProvider
 		event     Event
 		wantError bool
 	}{
 		{
 			name:   "successful send",
-			sender: NewMockSender(nil),
+			sender: NewMockProvider(nil),
 			event: Event{
 				SiteURL:    "https://example.com",
 				Status:     "up",
@@ -49,7 +49,7 @@ func TestNotifier_Send(t *testing.T) {
 		},
 		{
 			name:   "sender error",
-			sender: NewMockSender(fmt.Errorf("send error")),
+			sender: NewMockProvider(fmt.Errorf("send error")),
 			event: Event{
 				SiteURL:    "https://example.com",
 				Status:     "down",
@@ -80,15 +80,15 @@ func TestNotifier_Send(t *testing.T) {
 func TestNotificationHub_Send(t *testing.T) {
 	tests := []struct {
 		name           string
-		senders        []*MockSender
+		senders        []*MockProvider
 		event          Event
 		expectedErrors int
 	}{
 		{
 			name: "all senders succeed",
-			senders: []*MockSender{
-				NewMockSender(nil),
-				NewMockSender(nil),
+			senders: []*MockProvider{
+				NewMockProvider(nil),
+				NewMockProvider(nil),
 			},
 			event: Event{
 				SiteURL:    "https://example.com",
@@ -100,10 +100,10 @@ func TestNotificationHub_Send(t *testing.T) {
 		},
 		{
 			name: "some senders fail",
-			senders: []*MockSender{
-				NewMockSender(nil),
-				NewMockSender(fmt.Errorf("send error")),
-				NewMockSender(nil),
+			senders: []*MockProvider{
+				NewMockProvider(nil),
+				NewMockProvider(fmt.Errorf("send error")),
+				NewMockProvider(nil),
 			},
 			event: Event{
 				SiteURL:    "https://example.com",

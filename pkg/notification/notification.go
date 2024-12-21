@@ -19,22 +19,22 @@ type Message struct {
 	Event      Event
 }
 
-// Sender is the interface that wraps the basic Send method
-type Sender interface {
+// Provider is the interface that wraps the basic Send method
+type Provider interface {
 	Send(message Message) error
 }
 
 // Notifier represents a notification channel
 type Notifier struct {
-	id     string
-	sender Sender
+	id       string
+	provider Provider
 }
 
 // NewNotifier creates a new notifier with a specific sender
-func NewNotifier(id string, sender Sender) *Notifier {
+func NewNotifier(id string, provider Provider) *Notifier {
 	return &Notifier{
-		id:     id,
-		sender: sender,
+		id:       id,
+		provider: provider,
 	}
 }
 
@@ -44,7 +44,7 @@ func (n *Notifier) Send(event Event) error {
 		Event:      event,
 		NotifierID: n.id,
 	}
-	if err := n.sender.Send(msg); err != nil {
+	if err := n.provider.Send(msg); err != nil {
 		return fmt.Errorf("notifier %s failed: %w", n.id, err)
 	}
 	return nil
