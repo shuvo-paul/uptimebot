@@ -130,3 +130,70 @@ func TestNotifierRepository_Delete(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func TestNotifierRepository_GetBySiteID(t *testing.T) {
+	repo := NewNotifierRepository(db)
+
+	t.Run("NoNotifiers", func(t *testing.T) {
+		notifiers, err := repo.GetBySiteID(999)
+		assert.NoError(t, err)
+		assert.Empty(t, notifiers)
+	})
+
+	t.Run("MultipleNotifiers", func(t *testing.T) {
+		// Create multiple notifiers for the same site
+		siteID := 1
+		notifier1 := &models.Notifier{
+			SiteId: siteID,
+			Config: &models.NotifierConfig{
+				Type:   models.NotifierTypeSlack,
+				Config: json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test1"}`),
+			},
+		}
+		notifier2 := &models.Notifier{
+			SiteId: siteID,
+			Config: &models.NotifierConfig{
+				Type:   models.NotifierTypeSlack,
+				Config: json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test2"}`),
+			},
+		}
+
+		// Create notifier for different site
+		otherNotifier := &models.Notifier{
+			SiteId: siteID + 1,
+			Config: &models.NotifierConfig{
+				Type:   models.NotifierTypeSlack,
+				Config: json.RawMessage(`{"webhook_url": "https://hooks.slack.com/other"}`),
+			},
+		}
+
+		// Save all notifiers
+		err := repo.Create(notifier1)
+		assert.NoError(t, err)
+		err = repo.Create(notifier2)
+		assert.NoError(t, err)
+		err = repo.Create(otherNotifier)
+		assert.NoError(t, err)
+
+		// Fetch notifiers for the site
+		notifiers, err := repo.GetBySiteID(siteID)
+		assert.NoError(t, err)
+		assert.Len(t, notifiers, 2)
+
+		// Verify notifier details
+		for _, n := range notifiers {
+			assert.Equal(t, siteID, n.SiteId)
+			assert.Equal(t, models.NotifierTypeSlack, n.Config.Type)
+
+			config, err := n.Config.GetSlackConfig()
+			assert.NoError(t, err)
+			assert.Contains(t, config.WebhookURL, "https://hooks.slack.com/test")
+		}
+
+		// Verify other site's notifier is not included
+		notifiers, err = repo.GetBySiteID(siteID + 1)
+		assert.NoError(t, err)
+		assert.Len(t, notifiers, 1)
+		assert.Equal(t, siteID+1, notifiers[0].SiteId)
+	})
+}

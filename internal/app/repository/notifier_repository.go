@@ -109,3 +109,34 @@ func (r *NotifierRepository) Delete(id int64) error {
 
 	return nil
 }
+
+// GetBySiteID retrieves all notifiers for a specific site
+func (r *NotifierRepository) GetBySiteID(siteID int) ([]*models.Notifier, error) {
+	query := `
+		SELECT id, site_id, config
+		FROM notifiers
+		WHERE site_id = ?
+	`
+
+	rows, err := r.db.Query(query, siteID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query notifiers: %w", err)
+	}
+	defer rows.Close()
+
+	var notifiers []*models.Notifier
+	for rows.Next() {
+		notifier := &models.Notifier{}
+		err := rows.Scan(&notifier.ID, &notifier.SiteId, &notifier.Config)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan notifier: %w", err)
+		}
+		notifiers = append(notifiers, notifier)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating notifiers: %w", err)
+	}
+
+	return notifiers, nil
+}
