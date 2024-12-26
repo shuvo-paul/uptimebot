@@ -17,6 +17,11 @@ type Notifier interface {
 	Send(event Event) error
 }
 
+type NotificationHubInterface interface {
+	Register(Notifier)
+	Notify(Event) []error
+}
+
 // NotificationHub manages multiple notifiers
 type NotificationHub struct {
 	notifiers []Notifier

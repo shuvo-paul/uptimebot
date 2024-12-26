@@ -8,6 +8,16 @@ import (
 	"github.com/shuvo-paul/sitemonitor/internal/app/models"
 )
 
+type NotifierRepositoryInterface interface {
+	Create(*models.Notifier) error
+	Get(int64) (*models.Notifier, error)
+	Update(int, *models.NotifierConfig) (*models.Notifier, error)
+	Delete(int64) error
+	GetBySiteID(int) ([]*models.Notifier, error)
+}
+
+var _ NotifierRepositoryInterface = (*NotifierRepository)(nil)
+
 // NotifierRepository handles database operations for notifiers
 type NotifierRepository struct {
 	db *sql.DB
