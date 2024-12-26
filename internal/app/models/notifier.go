@@ -3,7 +3,6 @@ package models
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 )
 
 // NotifierType represents the type of notifier
@@ -35,16 +34,15 @@ func (n *NotifierConfig) Scan(value any) error {
 }
 
 // Value implements driver.Valuer interface
-func (n NotifierConfig) Value() (interface{}, error) {
+func (n *NotifierConfig) Value() (interface{}, error) {
 	return json.Marshal(n)
 }
 
 // Notifier represents a notification channel configuration
 type Notifier struct {
-	ID        int64          `db:"id"`
-	Config    NotifierConfig `db:"config"`
-	CreatedAt time.Time      `db:"created_at"`
-	UpdatedAt time.Time      `db:"updated_at"`
+	ID     int64           `db:"id"`
+	SiteId int             `db:"site_id"`
+	Config *NotifierConfig `db:"config"`
 }
 
 // SlackConfig represents Slack notifier configuration
