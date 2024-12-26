@@ -31,16 +31,19 @@ func NewSiteService(repo repository.SiteRepositoryInterface) *SiteService {
 	}
 }
 
+func (s *SiteService) handleStatusUpdate(site *monitor.Site, status string) error {
+	return s.repo.UpdateStatus(site, status)
+}
+
 func (s *SiteService) Create(url string, interval time.Duration) (*monitor.Site, error) {
 	site := &monitor.Site{
 		URL:      url,
 		Interval: interval,
 		Enabled:  true,
 		Status:   "pending",
-		OnStatusUpdate: func(site *monitor.Site, status string) error {
-			return s.repo.UpdateStatus(site, status)
-		},
 	}
+
+	site.OnStatusUpdate = s.handleStatusUpdate
 
 	site, err := s.repo.Create(site)
 	if err != nil {
@@ -64,10 +67,7 @@ func (s *SiteService) GetAll() ([]*monitor.Site, error) {
 }
 
 func (s *SiteService) Update(site *monitor.Site) (*monitor.Site, error) {
-	// Set the callback before updating
-	site.OnStatusUpdate = func(site *monitor.Site, status string) error {
-		return s.repo.UpdateStatus(site, status)
-	}
+	site.OnStatusUpdate = s.handleStatusUpdate
 
 	// First update the site in the database
 	updatedSite, err := s.repo.Update(site)
@@ -99,9 +99,7 @@ func (s *SiteService) InitializeMonitoring() error {
 	}
 
 	for _, site := range sites {
-		site.OnStatusUpdate = func(site *monitor.Site, status string) error {
-			return s.repo.UpdateStatus(site, status)
-		}
+		site.OnStatusUpdate = s.handleStatusUpdate
 
 		if err := s.manager.RegisterSite(site); err != nil {
 			return fmt.Errorf("failed to register site %s: %w", site.URL, err)
