@@ -4,11 +4,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/shuvo-paul/sitemonitor/internal/app/testutil"
 	"github.com/shuvo-paul/sitemonitor/pkg/monitor"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSiteRepository(t *testing.T) {
+	db := testutil.NewInMemoryDB()
+	defer db.Close()
+
 	siteRepo := NewSiteRepository(db)
 
 	createTestSite := func() *monitor.Site {

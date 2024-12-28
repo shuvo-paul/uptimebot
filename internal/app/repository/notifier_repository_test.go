@@ -5,10 +5,14 @@ import (
 	"testing"
 
 	"github.com/shuvo-paul/sitemonitor/internal/app/models"
+	"github.com/shuvo-paul/sitemonitor/internal/app/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
 func createNotifier() (*models.Notifier, error) {
+	db := testutil.NewInMemoryDB()
+	defer db.Close()
+
 	notifierRepo := NewNotifierRepository(db)
 	notifier := &models.Notifier{
 		SiteId: 1,
@@ -23,6 +27,9 @@ func createNotifier() (*models.Notifier, error) {
 }
 
 func TestNotifierRepository_Create(t *testing.T) {
+	db := testutil.NewInMemoryDB()
+	defer db.Close()
+
 	notifierRepo := NewNotifierRepository(db)
 
 	notifier := &models.Notifier{
@@ -41,6 +48,9 @@ func TestNotifierRepository_Create(t *testing.T) {
 }
 
 func TestNotifierRepository_Get(t *testing.T) {
+	db := testutil.NewInMemoryDB()
+	defer db.Close()
+
 	notifierRepo := NewNotifierRepository(db)
 
 	t.Run("NotFound", func(t *testing.T) {
@@ -72,6 +82,9 @@ func TestNotifierRepository_Get(t *testing.T) {
 }
 
 func TestNotifierRepository_Update(t *testing.T) {
+	db := testutil.NewInMemoryDB()
+	defer db.Close()
+
 	notifierRepo := NewNotifierRepository(db)
 
 	t.Run("NotFound", func(t *testing.T) {
@@ -114,6 +127,9 @@ func TestNotifierRepository_Update(t *testing.T) {
 }
 
 func TestNotifierRepository_Delete(t *testing.T) {
+	db := testutil.NewInMemoryDB()
+	defer db.Close()
+
 	repo := NewNotifierRepository(db)
 
 	t.Run("NotFound", func(t *testing.T) {
@@ -132,6 +148,9 @@ func TestNotifierRepository_Delete(t *testing.T) {
 }
 
 func TestNotifierRepository_GetBySiteID(t *testing.T) {
+	db := testutil.NewInMemoryDB()
+	defer db.Close()
+
 	repo := NewNotifierRepository(db)
 
 	t.Run("NoNotifiers", func(t *testing.T) {

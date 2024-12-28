@@ -2,16 +2,20 @@ package testutil
 
 import (
 	"database/sql"
-	"testing"
+	"fmt"
 
-	"github.com/DATA-DOG/go-sqlmock"
+	_ "github.com/mattn/go-sqlite3"
+	"github.com/shuvo-paul/sitemonitor/internal/database/migrations"
 )
 
-// SetupTestDB creates a new mock database connection for testing
-func SetupTestDB(t *testing.T) (*sql.DB, sqlmock.Sqlmock) {
-	db, mock, err := sqlmock.New()
+// NewInMemoryDB creates a new in-memory database connection for testing
+func NewInMemoryDB() *sql.DB {
+	db, err := sql.Open("sqlite3", ":memory:")
 	if err != nil {
-		t.Fatalf("Failed to create mock DB: %v", err)
+		panic(fmt.Sprintf("Error setting up test database: %v", err))
 	}
-	return db, mock
+
+	migrations.SetupMigration(db)
+
+	return db
 }
