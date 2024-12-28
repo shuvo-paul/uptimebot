@@ -57,6 +57,137 @@ func (m *mockObserver) Notify(state notification.State) error {
 	return nil
 }
 
+func TestNotifierService_Create(t *testing.T) {
+	mockRepo := &mockNotifierRepository{}
+	service := NewNotifierService(mockRepo, nil)
+
+	t.Run("successful creation", func(t *testing.T) {
+		mockRepo.createFunc = func(notifier *models.Notifier) error {
+			return nil
+		}
+
+		notifier := &models.Notifier{
+			SiteId: 1,
+			Config: &models.NotifierConfig{
+				Type: models.NotifierTypeSlack,
+				Config: []byte(`{
+					"webhook_url": "https://hooks.slack.com/test"
+				}`),
+			},
+		}
+
+		err := service.Create(notifier)
+		assert.NoError(t, err)
+	})
+
+	t.Run("creation fails", func(t *testing.T) {
+		mockRepo.createFunc = func(notifier *models.Notifier) error {
+			return fmt.Errorf("db error")
+		}
+
+		err := service.Create(&models.Notifier{})
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create notifier")
+	})
+}
+
+func TestNotifierService_Get(t *testing.T) {
+	mockRepo := &mockNotifierRepository{}
+	service := NewNotifierService(mockRepo, nil)
+
+	t.Run("successful retrieval", func(t *testing.T) {
+		expected := &models.Notifier{
+			ID:     1,
+			SiteId: 1,
+			Config: &models.NotifierConfig{
+				Type: models.NotifierTypeSlack,
+			},
+		}
+
+		mockRepo.getFunc = func(id int64) (*models.Notifier, error) {
+			return expected, nil
+		}
+
+		notifier, err := service.Get(1)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, notifier)
+	})
+
+	t.Run("retrieval fails", func(t *testing.T) {
+		mockRepo.getFunc = func(id int64) (*models.Notifier, error) {
+			return nil, fmt.Errorf("db error")
+		}
+
+		notifier, err := service.Get(1)
+		assert.Error(t, err)
+		assert.Nil(t, notifier)
+		assert.Contains(t, err.Error(), "failed to get notifier")
+	})
+}
+
+func TestNotifierService_Update(t *testing.T) {
+	mockRepo := &mockNotifierRepository{}
+	service := NewNotifierService(mockRepo, nil)
+
+	t.Run("successful update", func(t *testing.T) {
+		config := &models.NotifierConfig{
+			Type: models.NotifierTypeSlack,
+			Config: []byte(`{
+				"webhook_url": "https://hooks.slack.com/new"
+			}`),
+		}
+
+		expected := &models.Notifier{
+			ID:     1,
+			SiteId: 1,
+			Config: config,
+		}
+
+		mockRepo.updateFunc = func(id int, cfg *models.NotifierConfig) (*models.Notifier, error) {
+			return expected, nil
+		}
+
+		notifier, err := service.Update(1, config)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, notifier)
+	})
+
+	t.Run("update fails", func(t *testing.T) {
+		mockRepo.updateFunc = func(id int, cfg *models.NotifierConfig) (*models.Notifier, error) {
+			return nil, fmt.Errorf("db error")
+		}
+
+		notifier, err := service.Update(1, &models.NotifierConfig{})
+		assert.Error(t, err)
+		assert.Nil(t, notifier)
+		assert.Contains(t, err.Error(), "failed to update notifier")
+	})
+}
+
+func TestNotifierService_Delete(t *testing.T) {
+	mockRepo := &mockNotifierRepository{}
+	service := NewNotifierService(mockRepo, nil)
+
+	t.Run("successful deletion", func(t *testing.T) {
+		mockRepo.deleteFunc = func(id int64) error {
+			return nil
+		}
+
+		err := service.Delete(1)
+		assert.NoError(t, err)
+	})
+
+	t.Run("deletion fails", func(t *testing.T) {
+		mockRepo.deleteFunc = func(id int64) error {
+			return fmt.Errorf("db error")
+		}
+
+		err := service.Delete(1)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to delete notifier")
+	})
+}
+
 func TestNotifierService_ConfigureObservers(t *testing.T) {
 	mockRepo := &mockNotifierRepository{}
 	subject := notification.NewSubject()
