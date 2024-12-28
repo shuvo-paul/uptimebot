@@ -34,22 +34,22 @@ func (m *MockHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	return m.response, m.err
 }
 
-func TestSlackNotifier_Send(t *testing.T) {
+func TestSlackObserver_Notify(t *testing.T) {
 	tests := []struct {
 		name        string
-		event       Event
+		state       State
 		statusCode  int
 		err         error
 		wantErr     bool
 		checkFields bool
 	}{
 		{
-			name: "successful send",
-			event: Event{
-				SiteURL:    "https://example.com",
-				Status:     "up",
-				Message:    "Site is up",
-				OccurredAt: time.Now(),
+			name: "successful notification",
+			state: State{
+				Name:      "test-system",
+				Status:    "up",
+				Message:   "System is up",
+				UpdatedAt: time.Now(),
 			},
 			statusCode:  http.StatusOK,
 			err:         nil,
@@ -58,11 +58,11 @@ func TestSlackNotifier_Send(t *testing.T) {
 		},
 		{
 			name: "down status",
-			event: Event{
-				SiteURL:    "https://example.com",
-				Status:     "down",
-				Message:    "Site is down",
-				OccurredAt: time.Now(),
+			state: State{
+				Name:      "test-system",
+				Status:    "down",
+				Message:   "System is down",
+				UpdatedAt: time.Now(),
 			},
 			statusCode:  http.StatusOK,
 			err:         nil,
@@ -71,11 +71,11 @@ func TestSlackNotifier_Send(t *testing.T) {
 		},
 		{
 			name: "api error",
-			event: Event{
-				SiteURL:    "https://example.com",
-				Status:     "up",
-				Message:    "Site is up",
-				OccurredAt: time.Now(),
+			state: State{
+				Name:      "test-system",
+				Status:    "up",
+				Message:   "System is up",
+				UpdatedAt: time.Now(),
 			},
 			statusCode: http.StatusInternalServerError,
 			err:        fmt.Errorf("api error"),
@@ -86,9 +86,9 @@ func TestSlackNotifier_Send(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockClient := NewMockHTTPClient(tt.statusCode, tt.err)
-			notifier := NewSlackNotifier("https://hooks.slack.com/test", mockClient)
+			observer := NewSlackObserver("https://hooks.slack.com/test", mockClient)
 
-			err := notifier.Send(tt.event)
+			err := observer.Notify(tt.state)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -107,14 +107,14 @@ func TestSlackNotifier_Send(t *testing.T) {
 				err := json.NewDecoder(req.Body).Decode(&msg)
 				assert.NoError(t, err)
 
-				assert.Contains(t, msg.Text, tt.event.SiteURL)
+				assert.Contains(t, msg.Text, tt.state.Name)
 				assert.Len(t, msg.Attachments, 1)
 
 				attachment := msg.Attachments[0]
 				expectedColor := "warning"
-				if tt.event.Status == "up" {
+				if tt.state.Status == "up" {
 					expectedColor = "good"
-				} else if tt.event.Status == "down" {
+				} else if tt.state.Status == "down" {
 					expectedColor = "danger"
 				}
 				assert.Equal(t, expectedColor, attachment.Color)
@@ -125,10 +125,10 @@ func TestSlackNotifier_Send(t *testing.T) {
 					fields[f.Title] = f.Value
 				}
 
-				assert.Equal(t, tt.event.SiteURL, fields["Site URL"])
-				assert.Equal(t, tt.event.Status, fields["Status"])
-				assert.Equal(t, tt.event.Message, fields["Message"])
-				assert.Contains(t, fields["Time"], tt.event.OccurredAt.String())
+				assert.Equal(t, tt.state.Name, fields["Name"])
+				assert.Equal(t, tt.state.Status, fields["Status"])
+				assert.Equal(t, tt.state.Message, fields["Message"])
+				assert.Contains(t, fields["Time"], tt.state.UpdatedAt.String())
 			}
 		})
 	}

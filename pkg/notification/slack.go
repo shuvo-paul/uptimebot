@@ -7,8 +7,8 @@ import (
 	"net/http"
 )
 
-// SlackNotifier implements the Notifier interface for Slack
-type SlackNotifier struct {
+// SlackObserver implements the Observer interface for Slack notifications
+type SlackObserver struct {
 	webhookURL string
 	client     HTTPClient
 }
@@ -18,12 +18,12 @@ type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-// NewSlackNotifier creates a new Slack notifier
-func NewSlackNotifier(webhookURL string, client HTTPClient) *SlackNotifier {
+// NewSlackObserver creates a new Slack observer
+func NewSlackObserver(webhookURL string, client HTTPClient) *SlackObserver {
 	if client == nil {
 		client = http.DefaultClient
 	}
-	return &SlackNotifier{
+	return &SlackObserver{
 		webhookURL: webhookURL,
 		client:     client,
 	}
@@ -45,25 +45,25 @@ type field struct {
 	Short bool   `json:"short"`
 }
 
-// Send implements the Notifier interface for Slack
-func (s *SlackNotifier) Send(event Event) error {
+// Notify implements the Observer interface
+func (s *SlackObserver) Notify(state State) error {
 	color := "warning"
-	if event.Status == "up" {
+	if state.Status == "up" {
 		color = "good"
-	} else if event.Status == "down" {
+	} else if state.Status == "down" {
 		color = "danger"
 	}
 
 	msg := slackMessage{
-		Text: fmt.Sprintf("Site Status Alert for %s", event.SiteURL),
+		Text: fmt.Sprintf("Status Update for %s", state.Name),
 		Attachments: []attachment{
 			{
 				Color: color,
 				Fields: []field{
-					{Title: "Site URL", Value: event.SiteURL, Short: true},
-					{Title: "Status", Value: event.Status, Short: true},
-					{Title: "Time", Value: event.OccurredAt.String(), Short: true},
-					{Title: "Message", Value: event.Message, Short: false},
+					{Title: "Name", Value: state.Name, Short: true},
+					{Title: "Status", Value: state.Status, Short: true},
+					{Title: "Time", Value: state.UpdatedAt.String(), Short: true},
+					{Title: "Message", Value: state.Message, Short: false},
 				},
 			},
 		},
