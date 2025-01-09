@@ -5,7 +5,7 @@ CREATE TABLE sites (
     status VARCHAR(50),
     enabled BOOLEAN DEFAULT true,
     interval FLOAT NOT NULL,
-    status_changed_at TEXT
+    status_changed_at TEXT,
 );
 
 -- +migrate Down
