@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/shuvo-paul/sitemonitor/internal/app/models"
 	"github.com/shuvo-paul/sitemonitor/pkg/monitor"
 )
 
@@ -15,7 +16,7 @@ var (
 )
 
 type SiteRepositoryInterface interface {
-	Create(*monitor.Site) (*monitor.Site, error)
+	Create(models.UserSite) (models.UserSite, error)
 	GetByID(int) (*monitor.Site, error)
 	GetAll() ([]*monitor.Site, error)
 	Update(*monitor.Site) (*monitor.Site, error)
@@ -55,39 +56,43 @@ func (r *SiteRepository) parseTime(s string) (time.Time, error) {
 	return time.Parse("2006-01-02 15:04:05.999999999-07:00", s)
 }
 
-func (r *SiteRepository) Create(site *monitor.Site) (*monitor.Site, error) {
+func (r *SiteRepository) Create(userSite models.UserSite) (models.UserSite, error) {
 
-	if site.URL == "" {
-		return nil, fmt.Errorf("URL cannot be empty")
+	if userSite.URL == "" {
+		return models.UserSite{}, fmt.Errorf("URL cannot be empty")
 	}
-	if _, err := url.Parse(site.URL); err != nil {
-		return nil, fmt.Errorf("invalid URL: %w", err)
+	if _, err := url.Parse(userSite.URL); err != nil {
+		return models.UserSite{}, fmt.Errorf("invalid URL: %w", err)
+	}
+	if userSite.UserID <= 0 {
+		return models.UserSite{}, fmt.Errorf("invalid UserID: %d", userSite.UserID)
 	}
 
 	query := `
-		INSERT INTO sites (url, status, enabled, interval, status_changed_at)
-		VALUES (?, ?, ?, ?, ?)`
+		INSERT INTO sites (url, user_id, status, enabled, interval, status_changed_at)
+		VALUES (?, ?, ?, ?, ?, ?)`
 
 	result, err := r.db.Exec(
 		query,
-		site.URL,
-		site.Status,
-		site.Enabled,
-		site.Interval.Seconds(),
-		r.formatTime(site.StatusChangedAt),
+		userSite.URL,
+		userSite.UserID,
+		userSite.Status,
+		userSite.Enabled,
+		userSite.Interval.Seconds(),
+		r.formatTime(userSite.StatusChangedAt),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create site: %w", err)
+		return models.UserSite{}, fmt.Errorf("failed to create site: %w", err)
 	}
 
 	id, err := result.LastInsertId()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get last insert ID: %w", err)
+		return models.UserSite{}, fmt.Errorf("failed to get last insert ID: %w", err)
 	}
 
-	site.ID = int(id)
-	site.StatusChangedAt = site.StatusChangedAt.UTC()
-	return site, nil
+	userSite.ID = int(id)
+	userSite.StatusChangedAt = userSite.StatusChangedAt.UTC()
+	return userSite, nil
 }
 
 func (r *SiteRepository) GetByID(id int) (*monitor.Site, error) {
@@ -126,6 +131,7 @@ func (r *SiteRepository) GetByID(id int) (*monitor.Site, error) {
 }
 
 func (r *SiteRepository) GetAll() ([]*monitor.Site, error) {
+
 	query := `
 		SELECT id, url, status, enabled, interval, status_changed_at
 		FROM sites`

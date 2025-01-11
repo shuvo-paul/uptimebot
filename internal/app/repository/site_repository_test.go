@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/shuvo-paul/sitemonitor/internal/app/models"
 	"github.com/shuvo-paul/sitemonitor/internal/app/testutil"
 	"github.com/shuvo-paul/sitemonitor/pkg/monitor"
 	"github.com/stretchr/testify/assert"
@@ -15,20 +16,23 @@ func TestSiteRepository(t *testing.T) {
 
 	siteRepo := NewSiteRepository(db)
 
-	createTestSite := func() *monitor.Site {
-		return &monitor.Site{
-			URL:             "example.org",
-			Status:          "up",
-			Enabled:         false,
-			Interval:        30 * time.Second,
-			StatusChangedAt: time.Now(),
+	createTestSite := func() models.UserSite {
+		return models.UserSite{
+			UserID: 1,
+			Site: &monitor.Site{
+				URL:             "example.org",
+				Status:          "up",
+				Enabled:         false,
+				Interval:        30 * time.Second,
+				StatusChangedAt: time.Now(),
+			},
 		}
 	}
 
 	t.Run("create", func(t *testing.T) {
 		tests := []struct {
 			name    string
-			site    *monitor.Site
+			site    models.UserSite
 			wantErr bool
 		}{
 			{
@@ -38,11 +42,14 @@ func TestSiteRepository(t *testing.T) {
 			},
 			{
 				name: "invalid site - empty URL",
-				site: &monitor.Site{
-					URL:      "",
-					Status:   "up",
-					Enabled:  false,
-					Interval: 30 * time.Second,
+				site: models.UserSite{
+					UserID: 1,
+					Site: &monitor.Site{
+						URL:      "",
+						Status:   "up",
+						Enabled:  false,
+						Interval: 30 * time.Second,
+					},
 				},
 				wantErr: true,
 			},
@@ -55,6 +62,7 @@ func TestSiteRepository(t *testing.T) {
 					assert.Error(t, err)
 					return
 				}
+				assert.Equal(t, tt.site.UserID, newSite.UserID)
 				assert.NoError(t, err)
 				assert.NotZero(t, newSite.ID)
 				assert.Equal(t, tt.site.URL, newSite.URL)
@@ -70,7 +78,7 @@ func TestSiteRepository(t *testing.T) {
 
 		created.Status = "down"
 		created.Enabled = true
-		updated, err := siteRepo.Update(created)
+		updated, err := siteRepo.Update(created.Site)
 		assert.NoError(t, err)
 		assert.Equal(t, "down", updated.Status)
 		assert.True(t, updated.Enabled)
@@ -95,36 +103,45 @@ func TestSiteRepository(t *testing.T) {
 	t.Run("get all", func(t *testing.T) {
 		testSites := []struct {
 			name string
-			site *monitor.Site
+			site models.UserSite
 		}{
 			{
 				name: "site with minimal interval",
-				site: &monitor.Site{
-					URL:             "example1.org",
-					Status:          "up",
-					Enabled:         true,
-					Interval:        30 * time.Second,
-					StatusChangedAt: time.Now(),
+				site: models.UserSite{
+					UserID: 1,
+					Site: &monitor.Site{
+						URL:             "example1.org",
+						Status:          "up",
+						Enabled:         true,
+						Interval:        30 * time.Second,
+						StatusChangedAt: time.Now(),
+					},
 				},
 			},
 			{
 				name: "site with medium interval",
-				site: &monitor.Site{
-					URL:             "example2.org",
-					Status:          "down",
-					Enabled:         false,
-					Interval:        60 * time.Second,
-					StatusChangedAt: time.Now(),
+				site: models.UserSite{
+					UserID: 1,
+					Site: &monitor.Site{
+						URL:             "example2.org",
+						Status:          "down",
+						Enabled:         false,
+						Interval:        60 * time.Second,
+						StatusChangedAt: time.Now(),
+					},
 				},
 			},
 			{
 				name: "site with large interval",
-				site: &monitor.Site{
-					URL:             "example3.org",
-					Status:          "up",
-					Enabled:         true,
-					Interval:        90 * time.Second,
-					StatusChangedAt: time.Now(),
+				site: models.UserSite{
+					UserID: 1,
+					Site: &monitor.Site{
+						URL:             "example3.org",
+						Status:          "up",
+						Enabled:         true,
+						Interval:        90 * time.Second,
+						StatusChangedAt: time.Now(),
+					},
 				},
 			},
 		}
@@ -133,7 +150,7 @@ func TestSiteRepository(t *testing.T) {
 		for _, tc := range testSites {
 			created, err := siteRepo.Create(tc.site)
 			assert.NoError(t, err)
-			createdSites[tc.name] = created
+			createdSites[tc.name] = created.Site
 		}
 
 		sites, err := siteRepo.GetAll()
