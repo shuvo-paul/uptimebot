@@ -68,7 +68,13 @@ func (c *SiteController) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = c.siteService.Create(url, time.Duration(interval)*time.Second)
+	user, ok := services.GetUser(r.Context())
+	if !ok {
+		http.Error(w, "User not found", http.StatusInternalServerError)
+		return
+	}
+
+	_, err = c.siteService.Create(user.ID, url, time.Duration(interval)*time.Second)
 	if err != nil {
 		flashID := flash.GetFlashIDFromContext(r.Context())
 		c.flash.SetFlash(flashID, "error", "Failed to create site: "+err.Error())

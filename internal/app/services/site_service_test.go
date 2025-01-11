@@ -5,13 +5,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/shuvo-paul/sitemonitor/internal/app/models"
 	"github.com/shuvo-paul/sitemonitor/pkg/monitor"
 	"github.com/stretchr/testify/assert"
 )
 
 // mockSiteRepository is a mock implementation of SiteRepositoryInterface
 type mockSiteRepository struct {
-	createFunc       func(site *monitor.Site) (*monitor.Site, error)
+	createFunc       func(userSite models.UserSite) (models.UserSite, error)
 	getByIDFunc      func(id int) (*monitor.Site, error)
 	getAllFunc       func() ([]*monitor.Site, error)
 	updateFunc       func(site *monitor.Site) (*monitor.Site, error)
@@ -19,8 +20,8 @@ type mockSiteRepository struct {
 	updateStatusFunc func(site *monitor.Site, status string) error
 }
 
-func (m *mockSiteRepository) Create(site *monitor.Site) (*monitor.Site, error) {
-	return m.createFunc(site)
+func (m *mockSiteRepository) Create(userSite models.UserSite) (models.UserSite, error) {
+	return m.createFunc(userSite)
 }
 
 func (m *mockSiteRepository) GetByID(id int) (*monitor.Site, error) {
@@ -45,9 +46,9 @@ func (m *mockSiteRepository) UpdateStatus(site *monitor.Site, status string) err
 
 func TestSiteService_Create(t *testing.T) {
 	mockRepo := &mockSiteRepository{
-		createFunc: func(site *monitor.Site) (*monitor.Site, error) {
-			site.ID = 1
-			return site, nil
+		createFunc: func(userSite models.UserSite) (models.UserSite, error) {
+			userSite.ID = 1
+			return userSite, nil
 		},
 	}
 	service := NewSiteService(mockRepo)
@@ -56,7 +57,7 @@ func TestSiteService_Create(t *testing.T) {
 		url := "https://example.com"
 		interval := time.Second * 30
 
-		site, err := service.Create(url, interval)
+		site, err := service.Create(1, url, interval)
 		assert.NoError(t, err)
 		assert.Equal(t, 1, site.ID)
 		assert.Equal(t, url, site.URL)
@@ -69,11 +70,11 @@ func TestSiteService_Create(t *testing.T) {
 	})
 
 	t.Run("Create fails", func(t *testing.T) {
-		mockRepo.createFunc = func(site *monitor.Site) (*monitor.Site, error) {
-			return nil, fmt.Errorf("database error")
+		mockRepo.createFunc = func(userSite models.UserSite) (models.UserSite, error) {
+			return models.UserSite{}, fmt.Errorf("database error")
 		}
 
-		_, err := service.Create("https://example.com", time.Second*30)
+		_, err := service.Create(1, "https://example.com", time.Second*30)
 		assert.Error(t, err)
 	})
 }

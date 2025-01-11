@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/shuvo-paul/sitemonitor/internal/app/models"
 	"github.com/shuvo-paul/sitemonitor/internal/app/repository"
 	"github.com/shuvo-paul/sitemonitor/pkg/monitor"
 )
 
 type SiteServiceInterface interface {
-	Create(url string, interval time.Duration) (*monitor.Site, error)
+	Create(userID int, url string, interval time.Duration) (*monitor.Site, error)
 	GetByID(id int) (*monitor.Site, error)
 	GetAll() ([]*monitor.Site, error)
 	Update(site *monitor.Site) (*monitor.Site, error)
@@ -35,27 +36,30 @@ func (s *SiteService) handleStatusUpdate(site *monitor.Site, status string) erro
 	return s.repo.UpdateStatus(site, status)
 }
 
-func (s *SiteService) Create(url string, interval time.Duration) (*monitor.Site, error) {
-	site := &monitor.Site{
-		URL:      url,
-		Interval: interval,
-		Enabled:  true,
-		Status:   "pending",
+func (s *SiteService) Create(userID int, url string, interval time.Duration) (*monitor.Site, error) {
+	userSite := models.UserSite{
+		UserID: userID,
+		Site: &monitor.Site{
+			URL:      url,
+			Interval: interval,
+			Enabled:  true,
+			Status:   "pending",
+		},
 	}
 
-	site.OnStatusUpdate = s.handleStatusUpdate
+	userSite.OnStatusUpdate = s.handleStatusUpdate
 
-	site, err := s.repo.Create(site)
+	newUserSite, err := s.repo.Create(userSite)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create site: %w", err)
 	}
 
 	// Create a new site monitor
-	if err := s.manager.RegisterSite(site); err != nil {
+	if err := s.manager.RegisterSite(newUserSite.Site); err != nil {
 		return nil, fmt.Errorf("failed to register site monitor: %w", err)
 	}
 
-	return site, nil
+	return newUserSite.Site, nil
 }
 
 func (s *SiteService) GetByID(id int) (*monitor.Site, error) {
