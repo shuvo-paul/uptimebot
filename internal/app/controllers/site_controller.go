@@ -31,7 +31,13 @@ func NewSiteController(siteService services.SiteServiceInterface, flash flash.Fl
 }
 
 func (c *SiteController) List(w http.ResponseWriter, r *http.Request) {
-	sites, err := c.siteService.GetAll()
+	user, ok := services.GetUser(r.Context())
+	if !ok {
+		http.Error(w, "User not found", http.StatusInternalServerError)
+		return
+	}
+
+	sites, err := c.siteService.GetAllByUserID(user.ID)
 	if err != nil {
 		http.Error(w, "Failed to fetch sites", http.StatusInternalServerError)
 		return

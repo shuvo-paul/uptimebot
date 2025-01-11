@@ -12,12 +12,13 @@ import (
 
 // mockSiteRepository is a mock implementation of SiteRepositoryInterface
 type mockSiteRepository struct {
-	createFunc       func(userSite models.UserSite) (models.UserSite, error)
-	getByIDFunc      func(id int) (*monitor.Site, error)
-	getAllFunc       func() ([]*monitor.Site, error)
-	updateFunc       func(site *monitor.Site) (*monitor.Site, error)
-	deleteFunc       func(id int) error
-	updateStatusFunc func(site *monitor.Site, status string) error
+	createFunc         func(userSite models.UserSite) (models.UserSite, error)
+	getByIDFunc        func(id int) (*monitor.Site, error)
+	getAllFunc         func() ([]*monitor.Site, error)
+	updateFunc         func(site *monitor.Site) (*monitor.Site, error)
+	deleteFunc         func(id int) error
+	updateStatusFunc   func(site *monitor.Site, status string) error
+	getAllByUserIDFunc func(userID int) ([]*monitor.Site, error)
 }
 
 func (m *mockSiteRepository) Create(userSite models.UserSite) (models.UserSite, error) {
@@ -42,6 +43,10 @@ func (m *mockSiteRepository) Delete(id int) error {
 
 func (m *mockSiteRepository) UpdateStatus(site *monitor.Site, status string) error {
 	return m.updateStatusFunc(site, status)
+}
+
+func (m *mockSiteRepository) GetAllByUserID(userID int) ([]*monitor.Site, error) {
+	return m.getAllByUserIDFunc(userID)
 }
 
 func TestSiteService_Create(t *testing.T) {
@@ -161,5 +166,55 @@ func TestSiteService_Delete(t *testing.T) {
 		err := service.Delete(1)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "database error")
+	})
+}
+
+func TestSiteService_GetAllByUserID(t *testing.T) {
+	t.Run("successful retrieval", func(t *testing.T) {
+		expectedSites := []*monitor.Site{
+			{ID: 1, URL: "site1.com", Status: "up"},
+			{ID: 2, URL: "site2.com", Status: "down"},
+		}
+
+		mockRepo := &mockSiteRepository{
+			getAllByUserIDFunc: func(userID int) ([]*monitor.Site, error) {
+				assert.Equal(t, 1, userID)
+				return expectedSites, nil
+			},
+		}
+
+		service := NewSiteService(mockRepo)
+		sites, err := service.GetAllByUserID(1)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedSites, sites)
+	})
+
+	t.Run("no sites found", func(t *testing.T) {
+		mockRepo := &mockSiteRepository{
+			getAllByUserIDFunc: func(userID int) ([]*monitor.Site, error) {
+				return []*monitor.Site{}, nil
+			},
+		}
+
+		service := NewSiteService(mockRepo)
+		sites, err := service.GetAllByUserID(999)
+
+		assert.NoError(t, err)
+		assert.Empty(t, sites)
+	})
+
+	t.Run("repository error", func(t *testing.T) {
+		mockRepo := &mockSiteRepository{
+			getAllByUserIDFunc: func(userID int) ([]*monitor.Site, error) {
+				return nil, fmt.Errorf("database error")
+			},
+		}
+
+		service := NewSiteService(mockRepo)
+		sites, err := service.GetAllByUserID(1)
+
+		assert.Error(t, err)
+		assert.Nil(t, sites)
 	})
 }

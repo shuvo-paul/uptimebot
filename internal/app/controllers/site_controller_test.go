@@ -24,6 +24,7 @@ type mockSiteService struct {
 	createFunc               func(userID int, url string, interval time.Duration) (*monitor.Site, error)
 	updateFunc               func(site *monitor.Site) (*monitor.Site, error)
 	deleteFunc               func(id int) error
+	getAllByUserIDFunc       func(userID int) ([]*monitor.Site, error)
 	initializeMonitoringFunc func() error
 }
 
@@ -47,6 +48,10 @@ func (m *mockSiteService) Delete(id int) error {
 	return m.deleteFunc(id)
 }
 
+func (m *mockSiteService) GetAllByUserID(userID int) ([]*monitor.Site, error) {
+	return m.getAllByUserIDFunc(userID)
+}
+
 func (m *mockSiteService) InitializeMonitoring() error {
 	if m.initializeMonitoringFunc != nil {
 		return m.initializeMonitoringFunc()
@@ -56,7 +61,7 @@ func (m *mockSiteService) InitializeMonitoring() error {
 
 func TestSiteController_List(t *testing.T) {
 	mockService := &mockSiteService{
-		getAllFunc: func() ([]*monitor.Site, error) {
+		getAllByUserIDFunc: func(userID int) ([]*monitor.Site, error) {
 			return []*monitor.Site{{ID: 1, URL: "http://example.com", Interval: 60 * time.Second}}, nil
 		},
 		initializeMonitoringFunc: func() error { return nil },
@@ -67,6 +72,9 @@ func TestSiteController_List(t *testing.T) {
 	controller.Template.List = templateRenderer.Parse("sites/list.html")
 
 	req := httptest.NewRequest(http.MethodGet, "/sites", nil)
+	user := &models.User{ID: 1}
+	ctx := services.WithUser(req.Context(), user)
+	req = req.WithContext(ctx)
 	w := httptest.NewRecorder()
 
 	controller.List(w, req)

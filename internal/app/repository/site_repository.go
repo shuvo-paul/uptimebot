@@ -19,6 +19,7 @@ type SiteRepositoryInterface interface {
 	Create(models.UserSite) (models.UserSite, error)
 	GetByID(int) (*monitor.Site, error)
 	GetAll() ([]*monitor.Site, error)
+	GetAllByUserID(userID int) ([]*monitor.Site, error)
 	Update(*monitor.Site) (*monitor.Site, error)
 	Delete(int) error
 	UpdateStatus(*monitor.Site, string) error
@@ -137,6 +138,52 @@ func (r *SiteRepository) GetAll() ([]*monitor.Site, error) {
 		FROM sites`
 
 	rows, err := r.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query sites: %w", err)
+	}
+	defer rows.Close()
+
+	var sites []*monitor.Site
+	for rows.Next() {
+		site := &monitor.Site{}
+		var intervalSeconds float64
+		var statusChangedAtStr string
+
+		err := rows.Scan(
+			&site.ID,
+			&site.URL,
+			&site.Status,
+			&site.Enabled,
+			&intervalSeconds,
+			&statusChangedAtStr,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan site: %w", err)
+		}
+
+		site.StatusChangedAt, err = r.parseTime(statusChangedAtStr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse status_changed_at: %w", err)
+		}
+
+		site.Interval = time.Duration(intervalSeconds) * time.Second
+		sites = append(sites, site)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating sites: %w", err)
+	}
+
+	return sites, nil
+}
+
+func (r *SiteRepository) GetAllByUserID(userID int) ([]*monitor.Site, error) {
+	query := `
+		SELECT id, url, status, enabled, interval, status_changed_at
+		FROM sites 
+		WHERE user_id = ?`
+
+	rows, err := r.db.Query(query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query sites: %w", err)
 	}

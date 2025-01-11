@@ -13,6 +13,7 @@ type SiteServiceInterface interface {
 	Create(userID int, url string, interval time.Duration) (*monitor.Site, error)
 	GetByID(id int) (*monitor.Site, error)
 	GetAll() ([]*monitor.Site, error)
+	GetAllByUserID(userID int) ([]*monitor.Site, error)
 	Update(site *monitor.Site) (*monitor.Site, error)
 	Delete(id int) error
 	InitializeMonitoring() error
@@ -68,6 +69,10 @@ func (s *SiteService) GetByID(id int) (*monitor.Site, error) {
 
 func (s *SiteService) GetAll() ([]*monitor.Site, error) {
 	return s.repo.GetAll()
+}
+
+func (s *SiteService) GetAllByUserID(userID int) ([]*monitor.Site, error) {
+	return s.repo.GetAllByUserID(userID)
 }
 
 func (s *SiteService) Update(site *monitor.Site) (*monitor.Site, error) {
