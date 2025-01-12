@@ -19,10 +19,11 @@ import (
 var db *sql.DB
 
 type App struct {
-	UserService    *services.UserService
-	SessionService *services.SessionService
-	UserController *controllers.UserController
-	SiteController *controllers.SiteController
+	UserService        *services.UserService
+	SessionService     *services.SessionService
+	UserController     *controllers.UserController
+	SiteController     *controllers.SiteController
+	NotifierController *controllers.NotifierController
 }
 
 func NewApp() *App {
@@ -63,13 +64,19 @@ func NewApp() *App {
 	siteController.Template.List = templateRenderer.Parse("sites/list.html")
 	siteController.Template.Create = templateRenderer.Parse("sites/create.html")
 	siteController.Template.Edit = templateRenderer.Parse("sites/edit.html")
+
+	notifierRepository := repository.NewNotifierRepository(db)
+	notifierService := services.NewNotifierService(notifierRepository, nil)
+	notifierController := controllers.NewNotifierController(notifierService)
+
 	fmt.Println("app initialized")
 
 	return &App{
-		UserService:    userService,
-		SessionService: sessionService,
-		UserController: userController,
-		SiteController: siteController,
+		UserService:        userService,
+		SessionService:     sessionService,
+		UserController:     userController,
+		SiteController:     siteController,
+		NotifierController: notifierController,
 	}
 }
 

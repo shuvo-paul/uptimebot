@@ -16,6 +16,7 @@ func main() {
 		*app.SessionService,
 		*app.UserService,
 		app.SiteController,
+		app.NotifierController,
 	)
 
 	// Start server

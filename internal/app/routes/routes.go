@@ -17,6 +17,7 @@ func SetupRoutes(
 	sessionService services.SessionService,
 	userService services.UserService,
 	siteController *controllers.SiteController,
+	notifierController *controllers.NotifierController,
 ) http.Handler {
 	// Setup routes
 	mux := http.NewServeMux()
@@ -44,6 +45,8 @@ func SetupRoutes(
 	protected.HandleFunc("GET /{id}/edit", siteController.Edit)
 	protected.HandleFunc("POST /{id}/edit", siteController.Edit)
 	protected.HandleFunc("POST /{id}/delete", siteController.Delete)
+
+	protected.HandleFunc("GET /auth/slack/", notifierController.AuthSlack)
 
 	mux.Handle("/sites/", middleware.RequireAuth(
 		http.StripPrefix("/sites", protected),
