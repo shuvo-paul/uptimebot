@@ -1,4 +1,4 @@
-.PHONY: all build test run
+.PHONY: build test run clean
 
 build:
 	pnpm build
