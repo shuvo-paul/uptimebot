@@ -5,3 +5,4 @@ sitemonitor
 !.env.example
 !cmd/**/*
 node_modules
+tmp

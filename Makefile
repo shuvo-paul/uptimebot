@@ -1,11 +1,14 @@
-.PHONY: build test run migrate
+.PHONY: all build test run
 
 build:
 	pnpm build
-	go build -o sitemonitor ./cmd/sitemonitor/sitemonitor.go
+	go build -o ./tmp/main ./cmd/sitemonitor/main.go
 
 test:
 	go test ./...
 
 run:
-	./sitemonitor
+	./tmp/main
+
+clean:
+	rm -rf ./tmp
