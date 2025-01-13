@@ -1,8 +1,12 @@
 package services
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
+	"os"
+	"strconv"
 
 	"github.com/shuvo-paul/sitemonitor/internal/app/models"
 	"github.com/shuvo-paul/sitemonitor/internal/app/repository"
@@ -15,12 +19,19 @@ type NotifierServiceInterface interface {
 	Update(id int, config *models.NotifierConfig) (*models.Notifier, error)
 	Delete(id int64) error
 	ConfigureObservers(siteID int) error
+	HandleSlackCallback(code string, siteId int) (*models.Notifier, error)
+	ParseOAuthState(state string) (int, error)
 }
 
 type NotifierService struct {
 	notifierRepo repository.NotifierRepositoryInterface
 	Subject      *notification.Subject
 }
+
+var (
+	// SlackTokenURL is the Slack OAuth token URL, can be overridden in tests
+	SlackTokenURL = "https://slack.com/api/oauth.v2.access"
+)
 
 func NewNotifierService(
 	notifierRepo repository.NotifierRepositoryInterface,
@@ -95,4 +106,71 @@ func (s *NotifierService) ConfigureObservers(siteID int) error {
 	}
 
 	return nil
+}
+
+func (s *NotifierService) HandleSlackCallback(code string, siteId int) (*models.Notifier, error) {
+	clientId := os.Getenv("SLACK_CLIENT_ID")
+	clientSecret := os.Getenv("SLACK_CLIENT_SECRET")
+
+	if code == "" || clientId == "" || clientSecret == "" {
+		return nil, fmt.Errorf("missing code or client credentials")
+	}
+
+	form := url.Values{
+		"code":          {code},
+		"client_id":     {clientId},
+		"client_secret": {clientSecret},
+	}
+
+	resp, err := http.PostForm(SlackTokenURL, form)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get access token: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var result map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	incomingWebhook, ok := result["incoming_webhook"].(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("failed to get incoming webhook")
+	}
+
+	webhookUrl, ok := incomingWebhook["url"].(string)
+	if !ok {
+		return nil, fmt.Errorf("failed to get incoming webhook url")
+	}
+
+	notifier := &models.Notifier{
+		SiteId: siteId,
+		Config: &models.NotifierConfig{
+			Type:   models.NotifierTypeSlack,
+			Config: json.RawMessage(webhookUrl),
+		},
+	}
+
+	return notifier, nil
+}
+
+func (s *NotifierService) ParseOAuthState(state string) (int, error) {
+	parsedState, err := url.ParseQuery(state)
+
+	if err != nil {
+		return 0, fmt.Errorf("invalid state format: %w", err)
+	}
+
+	siteId, ok := parsedState["site_id"]
+
+	if !ok || len(siteId) <= 0 || siteId[0] == "" {
+		return 0, fmt.Errorf("missing site id in state")
+	}
+
+	siteIdInt, err := strconv.Atoi(siteId[0])
+	if err != nil {
+		return 0, fmt.Errorf("invalid site id format: %w", err)
+	}
+
+	return siteIdInt, nil
 }

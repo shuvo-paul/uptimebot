@@ -47,6 +47,7 @@ func SetupRoutes(
 	protected.HandleFunc("POST /{id}/delete", siteController.Delete)
 
 	protected.HandleFunc("GET /auth/slack/", notifierController.AuthSlack)
+	protected.HandleFunc("GET /auth/slack/callback", notifierController.AuthSlackCallback)
 
 	mux.Handle("/sites/", middleware.RequireAuth(
 		http.StripPrefix("/sites", protected),

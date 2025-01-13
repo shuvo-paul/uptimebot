@@ -1,9 +1,14 @@
 package services
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"os"
 	"testing"
 	"time"
+
+	"net/http/httptest"
 
 	"github.com/shuvo-paul/sitemonitor/internal/app/models"
 	"github.com/shuvo-paul/sitemonitor/pkg/notification"
@@ -246,4 +251,129 @@ func TestNotifierService_Subject(t *testing.T) {
 	assert.Len(t, errors, 1) // One observer should fail
 	assert.Equal(t, state, observer1.state)
 	assert.Empty(t, observer2.state) // Failed observer shouldn't have state
+}
+
+func TestNotifierService_ParseOAuthState(t *testing.T) {
+	mockRepo := &mockNotifierRepository{}
+	service := NewNotifierService(mockRepo, nil)
+
+	t.Run("successful parsing", func(t *testing.T) {
+		state := "site_id=1"
+		siteId, err := service.ParseOAuthState(state)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, siteId)
+	})
+
+	t.Run("invalid state", func(t *testing.T) {
+		state := "%invalid_state"
+		_, err := service.ParseOAuthState(state)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid state format")
+	})
+
+	t.Run("missing site id", func(t *testing.T) {
+		state := "site_id="
+		_, err := service.ParseOAuthState(state)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "missing site id in state")
+	})
+
+	t.Run("invalid site id", func(t *testing.T) {
+		state := "site_id=invalid"
+		_, err := service.ParseOAuthState(state)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid site id format")
+	})
+}
+
+func TestNotifierService_HandleSlackCallback(t *testing.T) {
+	// Create a mock HTTP server to simulate Slack's OAuth API
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("Expected POST request, got %s", r.Method)
+		}
+		if r.URL.Path != "/api/oauth.v2.access" {
+			t.Errorf("Expected /api/oauth.v2.access path, got %s", r.URL.Path)
+		}
+
+		err := r.ParseForm()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Verify required OAuth parameters
+		if code := r.Form.Get("code"); code != "test_code" {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"ok":    false,
+				"error": "invalid_code",
+			})
+			return
+		}
+
+		// Return successful response
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"ok": true,
+			"incoming_webhook": map[string]interface{}{
+				"url": "https://hooks.slack.com/services/TEST/WEBHOOK/URL",
+			},
+		})
+	}))
+	defer mockServer.Close()
+
+	// Set environment variables for testing
+	os.Setenv("SLACK_CLIENT_ID", "test_client_id")
+	os.Setenv("SLACK_CLIENT_SECRET", "test_client_secret")
+
+	tests := []struct {
+		name      string
+		code      string
+		siteID    int
+		wantErr   bool
+		errString string
+	}{
+		{
+			name:    "successful callback",
+			code:    "test_code",
+			siteID:  123,
+			wantErr: false,
+		},
+		{
+			name:      "empty code",
+			code:      "",
+			siteID:    123,
+			wantErr:   true,
+			errString: "missing code or client credentials",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create service with mock repository
+			mockRepo := &mockNotifierRepository{}
+			service := NewNotifierService(mockRepo, nil)
+
+			// Override the Slack API URL to point to our mock server
+			originalURL := SlackTokenURL
+			SlackTokenURL = mockServer.URL + "/api/oauth.v2.access"
+			defer func() { SlackTokenURL = originalURL }()
+
+			notifier, err := service.HandleSlackCallback(tt.code, tt.siteID)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				if tt.errString != "" {
+					assert.Contains(t, err.Error(), tt.errString)
+				}
+				assert.Nil(t, notifier)
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.NotNil(t, notifier)
+			assert.Equal(t, tt.siteID, notifier.SiteId)
+			assert.Equal(t, models.NotifierTypeSlack, notifier.Config.Type)
+			assert.Contains(t, string(notifier.Config.Config), "hooks.slack.com")
+		})
+	}
 }
