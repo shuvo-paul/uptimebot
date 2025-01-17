@@ -2,14 +2,13 @@ package repository
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 
 	"github.com/shuvo-paul/sitemonitor/internal/app/models"
 )
 
 type NotifierRepositoryInterface interface {
-	Create(*models.Notifier) error
+	Create(*models.Notifier) (*models.Notifier, error)
 	Get(int64) (*models.Notifier, error)
 	Update(int, *models.NotifierConfig) (*models.Notifier, error)
 	Delete(int64) error
@@ -29,24 +28,32 @@ func NewNotifierRepository(db *sql.DB) *NotifierRepository {
 }
 
 // Create inserts a new notifier into the database
-func (r *NotifierRepository) Create(notifier *models.Notifier) error {
+func (r *NotifierRepository) Create(notifier *models.Notifier) (*models.Notifier, error) {
 	query := `
 		INSERT INTO notifiers (site_id, config)
 		VALUES (?, ?)
-		RETURNING id
+		RETURNING *
 	`
 
-	configBytes, err := json.Marshal(notifier.Config)
+	configString, err := notifier.Config.ToString()
 	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
+		return nil, err
 	}
 
-	err = r.db.QueryRow(query, notifier.SiteId, configBytes).Scan(&notifier.ID)
+	newNotifier := &models.Notifier{}
+	var savedConfigString string
+
+	err = r.db.QueryRow(query, notifier.SiteId, configString).Scan(&newNotifier.ID, &newNotifier.SiteId, &savedConfigString)
 	if err != nil {
-		return fmt.Errorf("failed to create notifier: %w", err)
+		return nil, fmt.Errorf("failed to create notifier: %w", err)
 	}
 
-	return nil
+	newNotifier.Config = &models.NotifierConfig{}
+	if err = newNotifier.Config.FromString(savedConfigString); err != nil {
+		return nil, err
+	}
+
+	return newNotifier, nil
 }
 
 // Get retrieves a notifier by ID
@@ -58,11 +65,12 @@ func (r *NotifierRepository) Get(id int64) (*models.Notifier, error) {
 	`
 
 	notifier := &models.Notifier{}
+	var configString string
 
 	err := r.db.QueryRow(query, id).Scan(
 		&notifier.ID,
 		&notifier.SiteId,
-		&notifier.Config,
+		&configString,
 	)
 
 	if err == sql.ErrNoRows {
@@ -70,6 +78,11 @@ func (r *NotifierRepository) Get(id int64) (*models.Notifier, error) {
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get notifier: %w", err)
+	}
+
+	notifier.Config = &models.NotifierConfig{}
+	if err = notifier.Config.FromString(configString); err != nil {
+		return nil, err
 	}
 
 	return notifier, nil
@@ -84,17 +97,22 @@ func (r *NotifierRepository) Update(id int, config *models.NotifierConfig) (*mod
 		RETURNING *
 	`
 
-	configBytes, err := json.Marshal(config)
+	configString, err := config.ToString()
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal config: %w", err)
+		return nil, err
 	}
 
 	notifier := &models.Notifier{}
+	var savedConfigString string
 
-	err = r.db.QueryRow(query, configBytes, id).Scan(&notifier.ID, &notifier.SiteId, &notifier.Config)
-
+	err = r.db.QueryRow(query, configString, id).Scan(&notifier.ID, &notifier.SiteId, &savedConfigString)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update: %w", err)
+	}
+
+	notifier.Config = &models.NotifierConfig{}
+	if err = notifier.Config.FromString(savedConfigString); err != nil {
+		return nil, err
 	}
 
 	return notifier, nil
@@ -137,10 +155,17 @@ func (r *NotifierRepository) GetBySiteID(siteID int) ([]*models.Notifier, error)
 	var notifiers []*models.Notifier
 	for rows.Next() {
 		notifier := &models.Notifier{}
-		err := rows.Scan(&notifier.ID, &notifier.SiteId, &notifier.Config)
+		var configString string
+		err := rows.Scan(&notifier.ID, &notifier.SiteId, &configString)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan notifier: %w", err)
 		}
+
+		notifier.Config = &models.NotifierConfig{}
+		if err = notifier.Config.FromString(configString); err != nil {
+			return nil, err
+		}
+
 		notifiers = append(notifiers, notifier)
 	}
 

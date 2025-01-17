@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/shuvo-paul/sitemonitor/internal/app/models"
+	"github.com/shuvo-paul/sitemonitor/pkg/notification"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -49,6 +50,10 @@ func (m *MockNotifierService) ParseOAuthState(state string) (int, error) {
 	return m.parseOAuthStateFunc(state)
 }
 
+func (m *MockNotifierService) GetSubject() *notification.Subject {
+	return nil
+}
+
 func TestNotifierController_AuthSlack(t *testing.T) {
 	mockService := new(MockNotifierService)
 	controller := NewNotifierController(mockService)
@@ -62,6 +67,7 @@ func TestNotifierController_AuthSlack(t *testing.T) {
 		}()
 
 		req := httptest.NewRequest(http.MethodGet, "/oauth/slack/", nil)
+		req.SetPathValue("id", "1")
 		w := httptest.NewRecorder()
 
 		controller.AuthSlack(w, req)
@@ -73,7 +79,8 @@ func TestNotifierController_AuthSlack(t *testing.T) {
 				"scope=incoming-webhook&" +
 				"user_scope=&" +
 				"redirect_uri=http://example.com/callback&" +
-				"client_id=test_client_id",
+				"client_id=test_client_id&" +
+				"state=site_id=1",
 		)
 
 		assert.Equal(t, expectedLocation, w.Header().Get("Location"))
@@ -85,6 +92,7 @@ func TestNotifierController_AuthSlack(t *testing.T) {
 		os.Unsetenv("SLACK_CLIENT_ID")
 
 		req := httptest.NewRequest(http.MethodGet, "/oauth/slack/", nil)
+		req.SetPathValue("id", "1")
 		w := httptest.NewRecorder()
 
 		controller.AuthSlack(w, req)

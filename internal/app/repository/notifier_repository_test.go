@@ -22,8 +22,7 @@ func createNotifier() (*models.Notifier, error) {
 		},
 	}
 
-	err := notifierRepo.Create(notifier)
-	return notifier, err
+	return notifierRepo.Create(notifier)
 }
 
 func TestNotifierRepository_Create(t *testing.T) {
@@ -40,11 +39,12 @@ func TestNotifierRepository_Create(t *testing.T) {
 		},
 	}
 
-	err := notifierRepo.Create(notifier)
-
+	newNotifier, err := notifierRepo.Create(notifier)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, notifier.ID)
-
+	assert.NotEmpty(t, newNotifier.ID)
+	assert.Equal(t, notifier.SiteId, newNotifier.SiteId)
+	assert.Equal(t, notifier.Config.Type, newNotifier.Config.Type)
+	assert.JSONEq(t, string(notifier.Config.Config), string(newNotifier.Config.Config))
 }
 
 func TestNotifierRepository_Get(t *testing.T) {
@@ -67,7 +67,7 @@ func TestNotifierRepository_Get(t *testing.T) {
 				Config: json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test"}`),
 			},
 		}
-		err := notifierRepo.Create(notifier)
+		notifier, err := notifierRepo.Create(notifier)
 
 		assert.NoError(t, err)
 		assert.NotEmpty(t, notifier.ID)
@@ -77,7 +77,7 @@ func TestNotifierRepository_Get(t *testing.T) {
 		assert.NotNil(t, savedNotifier)
 		assert.Equal(t, notifier.ID, savedNotifier.ID)
 		assert.Equal(t, notifier.Config.Type, savedNotifier.Config.Type)
-		assert.JSONEq(t, string(notifier.Config.Config), string(savedNotifier.Config.Config))
+		assert.Equal(t, notifier.Config.Config, savedNotifier.Config.Config)
 	})
 }
 
@@ -107,9 +107,9 @@ func TestNotifierRepository_Update(t *testing.T) {
 				Config: json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test"}`),
 			},
 		}
-		err := notifierRepo.Create(notifier)
+		newNotifier, err := notifierRepo.Create(notifier)
 		assert.NoError(t, err)
-		assert.NotEmpty(t, notifier.ID)
+		assert.NotEmpty(t, newNotifier.ID)
 
 		// Update the config
 		newConfig := &models.NotifierConfig{
@@ -117,11 +117,11 @@ func TestNotifierRepository_Update(t *testing.T) {
 			Config: json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test2"}`),
 		}
 
-		updatedNotifier, err := notifierRepo.Update(int(notifier.ID), newConfig)
+		updatedNotifier, err := notifierRepo.Update(int(newNotifier.ID), newConfig)
 		assert.NoError(t, err)
 		assert.NotNil(t, updatedNotifier)
-		assert.Equal(t, notifier.ID, updatedNotifier.ID)
-		assert.Equal(t, notifier.Config.Type, updatedNotifier.Config.Type)
+		assert.Equal(t, newNotifier.ID, updatedNotifier.ID)
+		assert.Equal(t, newNotifier.Config.Type, updatedNotifier.Config.Type)
 		assert.JSONEq(t, string(newConfig.Config), string(updatedNotifier.Config.Config))
 	})
 }
@@ -187,11 +187,11 @@ func TestNotifierRepository_GetBySiteID(t *testing.T) {
 		}
 
 		// Save all notifiers
-		err := repo.Create(notifier1)
+		_, err := repo.Create(notifier1)
 		assert.NoError(t, err)
-		err = repo.Create(notifier2)
+		_, err = repo.Create(notifier2)
 		assert.NoError(t, err)
-		err = repo.Create(otherNotifier)
+		_, err = repo.Create(otherNotifier)
 		assert.NoError(t, err)
 
 		// Fetch notifiers for the site

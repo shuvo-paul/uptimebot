@@ -19,6 +19,24 @@ type NotifierConfig struct {
 	Config json.RawMessage `db:"config"`
 }
 
+// FromString converts a JSON string to NotifierConfig
+func (n *NotifierConfig) FromString(configString string) error {
+	err := json.Unmarshal([]byte(configString), n)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal config: %w", err)
+	}
+	return nil
+}
+
+// ToString converts NotifierConfig to a JSON string
+func (n *NotifierConfig) ToString() (string, error) {
+	configBytes, err := json.Marshal(n)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal config: %w", err)
+	}
+	return string(configBytes), nil
+}
+
 // Scan implements sql.Scanner interface
 func (n *NotifierConfig) Scan(value any) error {
 	if value == nil {

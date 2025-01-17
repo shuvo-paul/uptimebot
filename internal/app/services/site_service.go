@@ -7,6 +7,7 @@ import (
 	"github.com/shuvo-paul/sitemonitor/internal/app/models"
 	"github.com/shuvo-paul/sitemonitor/internal/app/repository"
 	"github.com/shuvo-paul/sitemonitor/pkg/monitor"
+	"github.com/shuvo-paul/sitemonitor/pkg/notification"
 )
 
 type SiteServiceInterface interface {
@@ -22,19 +23,38 @@ type SiteServiceInterface interface {
 var _ SiteServiceInterface = (*SiteService)(nil)
 
 type SiteService struct {
-	repo    repository.SiteRepositoryInterface
-	manager *monitor.Manager
+	repo            repository.SiteRepositoryInterface
+	manager         *monitor.Manager
+	notifierService NotifierServiceInterface
 }
 
-func NewSiteService(repo repository.SiteRepositoryInterface) *SiteService {
+func NewSiteService(repo repository.SiteRepositoryInterface, notifierService NotifierServiceInterface) *SiteService {
 	return &SiteService{
-		repo:    repo,
-		manager: monitor.NewManager(),
+		repo:            repo,
+		manager:         monitor.NewManager(),
+		notifierService: notifierService,
 	}
 }
 
 func (s *SiteService) handleStatusUpdate(site *monitor.Site, status string) error {
-	return s.repo.UpdateStatus(site, status)
+	if err := s.repo.UpdateStatus(site, status); err != nil {
+		return err
+	}
+
+	if err := s.notifierService.ConfigureObservers(site.ID); err != nil {
+		return fmt.Errorf("failed to configure observers: %w", err)
+	}
+
+	state := notification.State{
+		Name:      site.URL,
+		Status:    status,
+		UpdatedAt: time.Now(),
+		Message:   fmt.Sprintf("Site %s is %s", site.URL, status),
+	}
+
+	s.notifierService.GetSubject().Notify(state)
+
+	return nil
 }
 
 func (s *SiteService) Create(userID int, url string, interval time.Duration) (*monitor.Site, error) {

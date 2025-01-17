@@ -21,11 +21,12 @@ type NotifierServiceInterface interface {
 	ConfigureObservers(siteID int) error
 	HandleSlackCallback(code string, siteId int) (*models.Notifier, error)
 	ParseOAuthState(state string) (int, error)
+	GetSubject() *notification.Subject
 }
 
 type NotifierService struct {
 	notifierRepo repository.NotifierRepositoryInterface
-	Subject      *notification.Subject
+	subject      *notification.Subject
 }
 
 var (
@@ -42,13 +43,13 @@ func NewNotifierService(
 	}
 	return &NotifierService{
 		notifierRepo: notifierRepo,
-		Subject:      subject,
+		subject:      subject,
 	}
 }
 
 // Create adds a new notifier
 func (s *NotifierService) Create(notifier *models.Notifier) error {
-	if err := s.notifierRepo.Create(notifier); err != nil {
+	if _, err := s.notifierRepo.Create(notifier); err != nil {
 		return fmt.Errorf("failed to create notifier: %w", err)
 	}
 	return nil
@@ -84,7 +85,7 @@ func (s *NotifierService) Delete(id int64) error {
 func (s *NotifierService) ConfigureObservers(siteID int) error {
 	// First detach any existing observers
 	// This ensures we don't have duplicate observers if called multiple times
-	s.Subject = notification.NewSubject()
+	s.subject = notification.NewSubject()
 
 	notifiers, err := s.notifierRepo.GetBySiteID(siteID)
 	if err != nil {
@@ -99,7 +100,7 @@ func (s *NotifierService) ConfigureObservers(siteID int) error {
 				return fmt.Errorf("failed to get slack config: %w", err)
 			}
 			observer := notification.NewSlackObserver(config.WebhookURL, http.DefaultClient)
-			s.Subject.Attach(observer)
+			s.subject.Attach(observer)
 		default:
 			return fmt.Errorf("unsupported notifier type: %s", notifier.Config.Type)
 		}
@@ -147,7 +148,7 @@ func (s *NotifierService) HandleSlackCallback(code string, siteId int) (*models.
 		SiteId: siteId,
 		Config: &models.NotifierConfig{
 			Type:   models.NotifierTypeSlack,
-			Config: json.RawMessage(webhookUrl),
+			Config: json.RawMessage(`{"webhook_url": "` + webhookUrl + `"}`),
 		},
 	}
 
@@ -173,4 +174,8 @@ func (s *NotifierService) ParseOAuthState(state string) (int, error) {
 	}
 
 	return siteIdInt, nil
+}
+
+func (s *NotifierService) GetSubject() *notification.Subject {
+	return s.subject
 }

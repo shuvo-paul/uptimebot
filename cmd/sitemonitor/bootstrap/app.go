@@ -50,8 +50,12 @@ func NewApp() *App {
 	userController.Template.Register = templateRenderer.Parse("register.html")
 	userController.Template.Login = templateRenderer.Parse("login.html")
 
+	notifierRepository := repository.NewNotifierRepository(db)
+	notifierService := services.NewNotifierService(notifierRepository, nil)
+	notifierController := controllers.NewNotifierController(notifierService)
+
 	siteRepository := repository.NewSiteRepository(db)
-	siteService := services.NewSiteService(siteRepository)
+	siteService := services.NewSiteService(siteRepository, notifierService)
 
 	// Initialize monitoring for existing sites
 	if err := siteService.InitializeMonitoring(); err != nil {
@@ -64,10 +68,6 @@ func NewApp() *App {
 	siteController.Template.List = templateRenderer.Parse("sites/list.html")
 	siteController.Template.Create = templateRenderer.Parse("sites/create.html")
 	siteController.Template.Edit = templateRenderer.Parse("sites/edit.html")
-
-	notifierRepository := repository.NewNotifierRepository(db)
-	notifierService := services.NewNotifierService(notifierRepository, nil)
-	notifierController := controllers.NewNotifierController(notifierService)
 
 	fmt.Println("app initialized")
 

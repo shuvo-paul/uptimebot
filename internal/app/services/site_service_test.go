@@ -7,6 +7,7 @@ import (
 
 	"github.com/shuvo-paul/sitemonitor/internal/app/models"
 	"github.com/shuvo-paul/sitemonitor/pkg/monitor"
+	"github.com/shuvo-paul/sitemonitor/pkg/notification"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -49,6 +50,42 @@ func (m *mockSiteRepository) GetAllByUserID(userID int) ([]*monitor.Site, error)
 	return m.getAllByUserIDFunc(userID)
 }
 
+type mockNotifierService struct {
+	configureObserversFunc func(siteID int) error
+}
+
+func (m *mockNotifierService) ConfigureObservers(siteID int) error {
+	return m.configureObserversFunc(siteID)
+}
+
+func (m *mockNotifierService) Create(notifier *models.Notifier) error {
+	return nil
+}
+
+func (m *mockNotifierService) Get(id int64) (*models.Notifier, error) {
+	return nil, nil
+}
+
+func (m *mockNotifierService) Update(id int, config *models.NotifierConfig) (*models.Notifier, error) {
+	return nil, nil
+}
+
+func (m *mockNotifierService) Delete(id int64) error {
+	return nil
+}
+
+func (m *mockNotifierService) GetSubject() *notification.Subject {
+	return nil
+}
+
+func (m *mockNotifierService) HandleSlackCallback(code string, siteId int) (*models.Notifier, error) {
+	return nil, nil
+}
+
+func (m *mockNotifierService) ParseOAuthState(state string) (int, error) {
+	return 0, nil
+}
+
 func TestSiteService_Create(t *testing.T) {
 	mockRepo := &mockSiteRepository{
 		createFunc: func(userSite models.UserSite) (models.UserSite, error) {
@@ -56,7 +93,9 @@ func TestSiteService_Create(t *testing.T) {
 			return userSite, nil
 		},
 	}
-	service := NewSiteService(mockRepo)
+	mockNotifierService := &mockNotifierService{}
+
+	service := NewSiteService(mockRepo, mockNotifierService)
 
 	t.Run("Site created successfully", func(t *testing.T) {
 		url := "https://example.com"
@@ -90,7 +129,7 @@ func TestSiteService_Update(t *testing.T) {
 			return site, nil
 		},
 	}
-	service := NewSiteService(mockRepo)
+	service := NewSiteService(mockRepo, &mockNotifierService{})
 
 	t.Run("Update existing site", func(t *testing.T) {
 		// Create and register initial site
@@ -139,7 +178,7 @@ func TestSiteService_Delete(t *testing.T) {
 			return nil
 		},
 	}
-	service := NewSiteService(mockRepo)
+	service := NewSiteService(mockRepo, &mockNotifierService{})
 
 	t.Run("Delete existing site", func(t *testing.T) {
 		// Register a site first
@@ -183,7 +222,7 @@ func TestSiteService_GetAllByUserID(t *testing.T) {
 			},
 		}
 
-		service := NewSiteService(mockRepo)
+		service := NewSiteService(mockRepo, &mockNotifierService{})
 		sites, err := service.GetAllByUserID(1)
 
 		assert.NoError(t, err)
@@ -197,7 +236,7 @@ func TestSiteService_GetAllByUserID(t *testing.T) {
 			},
 		}
 
-		service := NewSiteService(mockRepo)
+		service := NewSiteService(mockRepo, &mockNotifierService{})
 		sites, err := service.GetAllByUserID(999)
 
 		assert.NoError(t, err)
@@ -211,7 +250,7 @@ func TestSiteService_GetAllByUserID(t *testing.T) {
 			},
 		}
 
-		service := NewSiteService(mockRepo)
+		service := NewSiteService(mockRepo, &mockNotifierService{})
 		sites, err := service.GetAllByUserID(1)
 
 		assert.Error(t, err)
