@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -66,7 +67,7 @@ func (m *mockNotifierService) Get(id int64) (*models.Notifier, error) {
 	return nil, nil
 }
 
-func (m *mockNotifierService) Update(id int, config *models.NotifierConfig) (*models.Notifier, error) {
+func (m *mockNotifierService) Update(id int, config json.RawMessage) (*models.Notifier, error) {
 	return nil, nil
 }
 

@@ -16,7 +16,7 @@ import (
 type NotifierServiceInterface interface {
 	Create(notifier *models.Notifier) error
 	Get(id int64) (*models.Notifier, error)
-	Update(id int, config *models.NotifierConfig) (*models.Notifier, error)
+	Update(id int, config json.RawMessage) (*models.Notifier, error)
 	Delete(id int64) error
 	ConfigureObservers(siteID int) error
 	HandleSlackCallback(code string, siteId int) (*models.Notifier, error)
@@ -65,7 +65,7 @@ func (s *NotifierService) Get(id int64) (*models.Notifier, error) {
 }
 
 // Update modifies an existing notifier's configuration
-func (s *NotifierService) Update(id int, config *models.NotifierConfig) (*models.Notifier, error) {
+func (s *NotifierService) Update(id int, config json.RawMessage) (*models.Notifier, error) {
 	notifier, err := s.notifierRepo.Update(id, config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update notifier: %w", err)
@@ -93,16 +93,16 @@ func (s *NotifierService) ConfigureObservers(siteID int) error {
 	}
 
 	for _, notifier := range notifiers {
-		switch notifier.Config.Type {
+		switch notifier.Type {
 		case models.NotifierTypeSlack:
-			config, err := notifier.Config.GetSlackConfig()
+			config, err := notifier.GetSlackConfig()
 			if err != nil {
 				return fmt.Errorf("failed to get slack config: %w", err)
 			}
 			observer := notification.NewSlackObserver(config.WebhookURL, http.DefaultClient)
 			s.subject.Attach(observer)
 		default:
-			return fmt.Errorf("unsupported notifier type: %s", notifier.Config.Type)
+			return fmt.Errorf("unsupported notifier type: %s", notifier.Type)
 		}
 	}
 
@@ -146,10 +146,8 @@ func (s *NotifierService) HandleSlackCallback(code string, siteId int) (*models.
 
 	notifier := &models.Notifier{
 		SiteId: siteId,
-		Config: &models.NotifierConfig{
-			Type:   models.NotifierTypeSlack,
-			Config: json.RawMessage(`{"webhook_url": "` + webhookUrl + `"}`),
-		},
+		Type:   models.NotifierTypeSlack,
+		Config: json.RawMessage(`{"webhook_url": "` + webhookUrl + `"}`),
 	}
 
 	return notifier, nil

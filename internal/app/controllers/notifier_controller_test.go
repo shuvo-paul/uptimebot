@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -15,7 +16,7 @@ import (
 type MockNotifierService struct {
 	createFunc              func(notifier *models.Notifier) error
 	getFunc                 func(id int64) (*models.Notifier, error)
-	updateFunc              func(id int, config *models.NotifierConfig) (*models.Notifier, error)
+	updateFunc              func(id int, config json.RawMessage) (*models.Notifier, error)
 	deleteFunc              func(id int64) error
 	configureObserversFunc  func(siteID int) error
 	handleSlackCallbackFunc func(code string, siteId int) (*models.Notifier, error)
@@ -30,7 +31,7 @@ func (m *MockNotifierService) Get(id int64) (*models.Notifier, error) {
 	return m.getFunc(id)
 }
 
-func (m *MockNotifierService) Update(id int, config *models.NotifierConfig) (*models.Notifier, error) {
+func (m *MockNotifierService) Update(id int, config json.RawMessage) (*models.Notifier, error) {
 	return m.updateFunc(id, config)
 }
 

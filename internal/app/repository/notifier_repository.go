@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 
 	"github.com/shuvo-paul/sitemonitor/internal/app/models"
@@ -10,7 +11,7 @@ import (
 type NotifierRepositoryInterface interface {
 	Create(*models.Notifier) (*models.Notifier, error)
 	Get(int64) (*models.Notifier, error)
-	Update(int, *models.NotifierConfig) (*models.Notifier, error)
+	Update(int, json.RawMessage) (*models.Notifier, error)
 	Delete(int64) error
 	GetBySiteID(int) ([]*models.Notifier, error)
 }
@@ -30,27 +31,20 @@ func NewNotifierRepository(db *sql.DB) *NotifierRepository {
 // Create inserts a new notifier into the database
 func (r *NotifierRepository) Create(notifier *models.Notifier) (*models.Notifier, error) {
 	query := `
-		INSERT INTO notifiers (site_id, config)
-		VALUES (?, ?)
+		INSERT INTO notifiers (site_id, type, config)
+		VALUES (?, ?, ?)
 		RETURNING *
 	`
 
-	configString, err := notifier.Config.ToString()
-	if err != nil {
-		return nil, err
-	}
-
 	newNotifier := &models.Notifier{}
-	var savedConfigString string
-
-	err = r.db.QueryRow(query, notifier.SiteId, configString).Scan(&newNotifier.ID, &newNotifier.SiteId, &savedConfigString)
+	err := r.db.QueryRow(query, notifier.SiteId, notifier.Type, notifier.Config).Scan(
+		&newNotifier.ID,
+		&newNotifier.SiteId,
+		&newNotifier.Type,
+		&newNotifier.Config,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create notifier: %w", err)
-	}
-
-	newNotifier.Config = &models.NotifierConfig{}
-	if err = newNotifier.Config.FromString(savedConfigString); err != nil {
-		return nil, err
 	}
 
 	return newNotifier, nil
@@ -59,18 +53,17 @@ func (r *NotifierRepository) Create(notifier *models.Notifier) (*models.Notifier
 // Get retrieves a notifier by ID
 func (r *NotifierRepository) Get(id int64) (*models.Notifier, error) {
 	query := `
-		SELECT *
+		SELECT id, site_id, type, config
 		FROM notifiers
 		WHERE id = ?
 	`
 
 	notifier := &models.Notifier{}
-	var configString string
-
 	err := r.db.QueryRow(query, id).Scan(
 		&notifier.ID,
 		&notifier.SiteId,
-		&configString,
+		&notifier.Type,
+		&notifier.Config,
 	)
 
 	if err == sql.ErrNoRows {
@@ -80,39 +73,27 @@ func (r *NotifierRepository) Get(id int64) (*models.Notifier, error) {
 		return nil, fmt.Errorf("failed to get notifier: %w", err)
 	}
 
-	notifier.Config = &models.NotifierConfig{}
-	if err = notifier.Config.FromString(configString); err != nil {
-		return nil, err
-	}
-
 	return notifier, nil
 }
 
 // Update updates a notifier's configuration
-func (r *NotifierRepository) Update(id int, config *models.NotifierConfig) (*models.Notifier, error) {
+func (r *NotifierRepository) Update(id int, config json.RawMessage) (*models.Notifier, error) {
 	query := `
 		UPDATE notifiers
 		SET config = ?
 		WHERE id = ?
-		RETURNING *
+		RETURNING id, site_id, type, config
 	`
 
-	configString, err := config.ToString()
-	if err != nil {
-		return nil, err
-	}
-
 	notifier := &models.Notifier{}
-	var savedConfigString string
-
-	err = r.db.QueryRow(query, configString, id).Scan(&notifier.ID, &notifier.SiteId, &savedConfigString)
+	err := r.db.QueryRow(query, config, id).Scan(
+		&notifier.ID,
+		&notifier.SiteId,
+		&notifier.Type,
+		&notifier.Config,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update: %w", err)
-	}
-
-	notifier.Config = &models.NotifierConfig{}
-	if err = notifier.Config.FromString(savedConfigString); err != nil {
-		return nil, err
 	}
 
 	return notifier, nil
@@ -141,7 +122,7 @@ func (r *NotifierRepository) Delete(id int64) error {
 // GetBySiteID retrieves all notifiers for a specific site
 func (r *NotifierRepository) GetBySiteID(siteID int) ([]*models.Notifier, error) {
 	query := `
-		SELECT id, site_id, config
+		SELECT id, site_id, type, config
 		FROM notifiers
 		WHERE site_id = ?
 	`
@@ -155,15 +136,14 @@ func (r *NotifierRepository) GetBySiteID(siteID int) ([]*models.Notifier, error)
 	var notifiers []*models.Notifier
 	for rows.Next() {
 		notifier := &models.Notifier{}
-		var configString string
-		err := rows.Scan(&notifier.ID, &notifier.SiteId, &configString)
+		err := rows.Scan(
+			&notifier.ID,
+			&notifier.SiteId,
+			&notifier.Type,
+			&notifier.Config,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan notifier: %w", err)
-		}
-
-		notifier.Config = &models.NotifierConfig{}
-		if err = notifier.Config.FromString(configString); err != nil {
-			return nil, err
 		}
 
 		notifiers = append(notifiers, notifier)
