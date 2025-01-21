@@ -3,7 +3,7 @@ CREATE TABLE notifiers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     site_id INTEGER NOT NULL,
     type TEXT NOT NULL,
-    config TEXT NOT NULL DEFAULT '{}',
+    config BLOB NOT NULL,
     FOREIGN KEY (site_id) REFERENCES sites (id) ON DELETE CASCADE
 );
 
