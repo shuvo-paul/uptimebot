@@ -1,4 +1,4 @@
-module github.com/shuvo-paul/sitemonitor
+module github.com/shuvo-paul/uptimebot
 
 go 1.23.0
 
