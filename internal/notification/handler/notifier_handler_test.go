@@ -8,8 +8,8 @@ import (
 	"os"
 	"testing"
 
+	notification "github.com/shuvo-paul/uptimebot/internal/notification/core"
 	"github.com/shuvo-paul/uptimebot/internal/notification/model"
-	"github.com/shuvo-paul/uptimebot/internal/notification/provider"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -51,7 +51,7 @@ func (m *MockNotifierService) ParseOAuthState(state string) (int, error) {
 	return m.parseOAuthStateFunc(state)
 }
 
-func (m *MockNotifierService) GetSubject() *provider.Subject {
+func (m *MockNotifierService) GetSubject() *notification.Subject {
 	return nil
 }
 

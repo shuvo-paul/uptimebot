@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
+	core "github.com/shuvo-paul/uptimebot/internal/monitor/engine"
+	"github.com/shuvo-paul/uptimebot/internal/monitor/model"
 	"github.com/shuvo-paul/uptimebot/internal/testutil"
-	"github.com/shuvo-paul/uptimebot/internal/uptime/model"
-	"github.com/shuvo-paul/uptimebot/internal/uptime/monitor"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +21,7 @@ func createTestSites() []testSite {
 			name: "site with minimal interval",
 			site: model.UserTarget{
 				UserID: 1,
-				Target: &monitor.Target{
+				Target: &core.Target{
 					URL:             "example1.org",
 					Status:          "up",
 					Enabled:         true,
@@ -34,7 +34,7 @@ func createTestSites() []testSite {
 			name: "site with medium interval",
 			site: model.UserTarget{
 				UserID: 1,
-				Target: &monitor.Target{
+				Target: &core.Target{
 					URL:             "example2.org",
 					Status:          "down",
 					Enabled:         false,
@@ -47,7 +47,7 @@ func createTestSites() []testSite {
 			name: "site with large interval",
 			site: model.UserTarget{
 				UserID: 2,
-				Target: &monitor.Target{
+				Target: &core.Target{
 					URL:             "example3.org",
 					Status:          "up",
 					Enabled:         true,
@@ -85,7 +85,7 @@ func TestSiteRepository_Create(t *testing.T) {
 			name: "valid site",
 			site: model.UserTarget{
 				UserID: 1,
-				Target: &monitor.Target{
+				Target: &core.Target{
 					URL:             "example.org",
 					Status:          "up",
 					Enabled:         false,
@@ -99,7 +99,7 @@ func TestSiteRepository_Create(t *testing.T) {
 			name: "invalid site - empty URL",
 			site: model.UserTarget{
 				UserID: 1,
-				Target: &monitor.Target{
+				Target: &core.Target{
 					URL:      "",
 					Status:   "up",
 					Enabled:  false,
@@ -112,7 +112,7 @@ func TestSiteRepository_Create(t *testing.T) {
 			name: "invalid site - invalid user ID",
 			site: model.UserTarget{
 				UserID: 0,
-				Target: &monitor.Target{
+				Target: &core.Target{
 					URL:      "example.org",
 					Status:   "up",
 					Enabled:  false,
@@ -149,21 +149,21 @@ func TestSiteRepository_Update(t *testing.T) {
 	tests := []struct {
 		name       string
 		setupSite  model.UserTarget
-		updateFunc func(*monitor.Target)
+		updateFunc func(*core.Target)
 		wantErr    bool
 	}{
 		{
 			name: "update status and enabled",
 			setupSite: model.UserTarget{
 				UserID: 1,
-				Target: &monitor.Target{
+				Target: &core.Target{
 					URL:      "example.org",
 					Status:   "up",
 					Enabled:  false,
 					Interval: 30 * time.Second,
 				},
 			},
-			updateFunc: func(s *monitor.Target) {
+			updateFunc: func(s *core.Target) {
 				s.Status = "down"
 				s.Enabled = true
 			},
@@ -173,7 +173,7 @@ func TestSiteRepository_Update(t *testing.T) {
 			name: "update non-existent site",
 			setupSite: model.UserTarget{
 				UserID: 1,
-				Target: &monitor.Target{
+				Target: &core.Target{
 					ID:       999,
 					URL:      "example.org",
 					Status:   "up",
@@ -181,7 +181,7 @@ func TestSiteRepository_Update(t *testing.T) {
 					Interval: 30 * time.Second,
 				},
 			},
-			updateFunc: func(s *monitor.Target) {
+			updateFunc: func(s *core.Target) {
 				s.Status = "down"
 			},
 			wantErr: true,
@@ -190,7 +190,7 @@ func TestSiteRepository_Update(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var site *monitor.Target
+			var site *core.Target
 			if tt.name == "update non-existent site" {
 				site = tt.setupSite.Target
 			} else {
@@ -232,7 +232,7 @@ func TestSiteRepository_Delete(t *testing.T) {
 			name: "delete existing site",
 			setupSite: model.UserTarget{
 				UserID: 1,
-				Target: &monitor.Target{
+				Target: &core.Target{
 					URL:      "example.org",
 					Status:   "up",
 					Enabled:  false,
@@ -286,7 +286,7 @@ func TestSiteRepository_GetAll(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, sites, len(createdSites))
 
-	siteMap := make(map[int]*monitor.Target)
+	siteMap := make(map[int]*core.Target)
 	for _, s := range sites {
 		siteMap[s.ID] = s
 	}

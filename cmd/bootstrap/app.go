@@ -11,14 +11,14 @@ import (
 	authService "github.com/shuvo-paul/uptimebot/internal/auth/service"
 	"github.com/shuvo-paul/uptimebot/internal/database"
 	"github.com/shuvo-paul/uptimebot/internal/database/migrations"
+	uptimeHandler "github.com/shuvo-paul/uptimebot/internal/monitor/handler"
+	uptimeRepository "github.com/shuvo-paul/uptimebot/internal/monitor/repository"
+	uptimeService "github.com/shuvo-paul/uptimebot/internal/monitor/service"
 	notificationHandler "github.com/shuvo-paul/uptimebot/internal/notification/handler"
 	notificationRepository "github.com/shuvo-paul/uptimebot/internal/notification/repository"
 	notificationService "github.com/shuvo-paul/uptimebot/internal/notification/service"
 	"github.com/shuvo-paul/uptimebot/internal/renderer"
 	"github.com/shuvo-paul/uptimebot/internal/templates"
-	uptimeHandler "github.com/shuvo-paul/uptimebot/internal/uptime/handler"
-	uptimeRepository "github.com/shuvo-paul/uptimebot/internal/uptime/repository"
-	uptimeService "github.com/shuvo-paul/uptimebot/internal/uptime/service"
 	"github.com/shuvo-paul/uptimebot/pkg/flash"
 )
 

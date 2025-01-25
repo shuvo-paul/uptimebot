@@ -10,8 +10,8 @@ import (
 
 	"net/http/httptest"
 
+	notification "github.com/shuvo-paul/uptimebot/internal/notification/core"
 	"github.com/shuvo-paul/uptimebot/internal/notification/model"
-	"github.com/shuvo-paul/uptimebot/internal/notification/provider"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -46,7 +46,7 @@ func (m *mockNotifierRepository) Delete(id int64) error {
 
 // mockObserver is a mock implementation of the Observer interface
 type mockObserver struct {
-	state provider.State
+	state notification.State
 	err   error
 }
 
@@ -54,7 +54,7 @@ func newMockObserver(err error) *mockObserver {
 	return &mockObserver{err: err}
 }
 
-func (m *mockObserver) Notify(state provider.State) error {
+func (m *mockObserver) Notify(state notification.State) error {
 	if m.err != nil {
 		return m.err
 	}
@@ -191,7 +191,7 @@ func TestNotifierService_Delete(t *testing.T) {
 
 func TestNotifierService_ConfigureObservers(t *testing.T) {
 	mockRepo := &mockNotifierRepository{}
-	subject := provider.NewSubject()
+	subject := notification.NewSubject()
 	service := NewNotifierService(mockRepo, subject)
 
 	t.Run("successful configuration with slack observer", func(t *testing.T) {
@@ -223,7 +223,7 @@ func TestNotifierService_ConfigureObservers(t *testing.T) {
 
 func TestNotifierService_Subject(t *testing.T) {
 	mockRepo := &mockNotifierRepository{}
-	subject := provider.NewSubject()
+	subject := notification.NewSubject()
 	service := NewNotifierService(mockRepo, subject)
 
 	// Create and attach mock observers
@@ -233,7 +233,7 @@ func TestNotifierService_Subject(t *testing.T) {
 	service.subject.Attach(observer2)
 
 	// Test notification using Subject directly
-	state := provider.State{
+	state := notification.State{
 		Name:      "test-system",
 		Status:    "up",
 		Message:   "System is up",

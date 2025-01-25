@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 
+	notifCoer "github.com/shuvo-paul/uptimebot/internal/notification/core"
 	"github.com/shuvo-paul/uptimebot/internal/notification/model"
 	"github.com/shuvo-paul/uptimebot/internal/notification/provider"
 	"github.com/shuvo-paul/uptimebot/internal/notification/repository"
@@ -21,12 +22,12 @@ type NotifierServiceInterface interface {
 	ConfigureObservers(siteID int) error
 	HandleSlackCallback(code string, siteId int) (*model.Notifier, error)
 	ParseOAuthState(state string) (int, error)
-	GetSubject() *provider.Subject
+	GetSubject() *notifCoer.Subject
 }
 
 type NotifierService struct {
 	notifierRepo repository.NotifierRepositoryInterface
-	subject      *provider.Subject
+	subject      *notifCoer.Subject
 }
 
 var (
@@ -36,10 +37,10 @@ var (
 
 func NewNotifierService(
 	notifierRepo repository.NotifierRepositoryInterface,
-	subject *provider.Subject,
+	subject *notifCoer.Subject,
 ) *NotifierService {
 	if subject == nil {
-		subject = provider.NewSubject()
+		subject = notifCoer.NewSubject()
 	}
 	return &NotifierService{
 		notifierRepo: notifierRepo,
@@ -85,7 +86,7 @@ func (s *NotifierService) Delete(id int64) error {
 func (s *NotifierService) ConfigureObservers(siteID int) error {
 	// First detach any existing observers
 	// This ensures we don't have duplicate observers if called multiple times
-	s.subject = provider.NewSubject()
+	s.subject = notifCoer.NewSubject()
 
 	notifiers, err := s.notifierRepo.GetBySiteID(siteID)
 	if err != nil {
@@ -174,6 +175,6 @@ func (s *NotifierService) ParseOAuthState(state string) (int, error) {
 	return siteIdInt, nil
 }
 
-func (s *NotifierService) GetSubject() *provider.Subject {
+func (s *NotifierService) GetSubject() *notifCoer.Subject {
 	return s.subject
 }

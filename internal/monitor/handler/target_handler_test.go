@@ -10,10 +10,10 @@ import (
 
 	authModel "github.com/shuvo-paul/uptimebot/internal/auth/model"
 	authService "github.com/shuvo-paul/uptimebot/internal/auth/service"
+	monitor "github.com/shuvo-paul/uptimebot/internal/monitor/engine"
 	"github.com/shuvo-paul/uptimebot/internal/renderer"
 	"github.com/shuvo-paul/uptimebot/internal/templates"
 	"github.com/shuvo-paul/uptimebot/internal/testutil"
-	"github.com/shuvo-paul/uptimebot/internal/uptime/monitor"
 	"github.com/stretchr/testify/assert"
 )
 

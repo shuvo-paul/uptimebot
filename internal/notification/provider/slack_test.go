@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	notification "github.com/shuvo-paul/uptimebot/internal/notification/core"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,7 +38,7 @@ func (m *MockHTTPClient) Do(req *http.Request) (*http.Response, error) {
 func TestSlackObserver_Notify(t *testing.T) {
 	tests := []struct {
 		name        string
-		state       State
+		state       notification.State
 		statusCode  int
 		err         error
 		wantErr     bool
@@ -45,7 +46,7 @@ func TestSlackObserver_Notify(t *testing.T) {
 	}{
 		{
 			name: "successful notification",
-			state: State{
+			state: notification.State{
 				Name:      "test-system",
 				Status:    "up",
 				Message:   "System is up",
@@ -58,7 +59,7 @@ func TestSlackObserver_Notify(t *testing.T) {
 		},
 		{
 			name: "down status",
-			state: State{
+			state: notification.State{
 				Name:      "test-system",
 				Status:    "down",
 				Message:   "System is down",
@@ -71,7 +72,7 @@ func TestSlackObserver_Notify(t *testing.T) {
 		},
 		{
 			name: "api error",
-			state: State{
+			state: notification.State{
 				Name:      "test-system",
 				Status:    "up",
 				Message:   "System is up",

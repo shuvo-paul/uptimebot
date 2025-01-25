@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/shuvo-paul/uptimebot/internal/notification/provider"
+	monitor "github.com/shuvo-paul/uptimebot/internal/monitor/engine"
+	"github.com/shuvo-paul/uptimebot/internal/monitor/model"
+	"github.com/shuvo-paul/uptimebot/internal/monitor/repository"
+	notifCore "github.com/shuvo-paul/uptimebot/internal/notification/core"
 	alertService "github.com/shuvo-paul/uptimebot/internal/notification/service"
-	"github.com/shuvo-paul/uptimebot/internal/uptime/model"
-	"github.com/shuvo-paul/uptimebot/internal/uptime/monitor"
-	"github.com/shuvo-paul/uptimebot/internal/uptime/repository"
 )
 
 type TargetServiceInterface interface {
@@ -46,7 +46,7 @@ func (s *TargetService) handleStatusUpdate(site *monitor.Target, status string) 
 		return fmt.Errorf("failed to configure observers: %w", err)
 	}
 
-	state := provider.State{
+	state := notifCore.State{
 		Name:      site.URL,
 		Status:    status,
 		UpdatedAt: time.Now(),

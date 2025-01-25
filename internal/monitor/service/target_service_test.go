@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
+	monitor "github.com/shuvo-paul/uptimebot/internal/monitor/engine"
+	"github.com/shuvo-paul/uptimebot/internal/monitor/model"
+	notifCore "github.com/shuvo-paul/uptimebot/internal/notification/core"
 	alertModel "github.com/shuvo-paul/uptimebot/internal/notification/model"
-	"github.com/shuvo-paul/uptimebot/internal/notification/provider"
-	"github.com/shuvo-paul/uptimebot/internal/uptime/model"
-	"github.com/shuvo-paul/uptimebot/internal/uptime/monitor"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -76,7 +76,7 @@ func (m *mockNotifierService) Delete(id int64) error {
 	return nil
 }
 
-func (m *mockNotifierService) GetSubject() *provider.Subject {
+func (m *mockNotifierService) GetSubject() *notifCore.Subject {
 	return nil
 }
 

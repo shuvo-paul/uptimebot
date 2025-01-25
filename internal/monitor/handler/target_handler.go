@@ -7,8 +7,8 @@ import (
 	"time"
 
 	authService "github.com/shuvo-paul/uptimebot/internal/auth/service"
+	siteService "github.com/shuvo-paul/uptimebot/internal/monitor/service"
 	"github.com/shuvo-paul/uptimebot/internal/renderer"
-	siteService "github.com/shuvo-paul/uptimebot/internal/uptime/service"
 	"github.com/shuvo-paul/uptimebot/pkg/flash"
 )
 

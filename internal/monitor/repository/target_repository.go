@@ -7,8 +7,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/shuvo-paul/uptimebot/internal/uptime/model"
-	"github.com/shuvo-paul/uptimebot/internal/uptime/monitor"
+	monitor "github.com/shuvo-paul/uptimebot/internal/monitor/engine"
+	"github.com/shuvo-paul/uptimebot/internal/monitor/model"
 )
 
 var (

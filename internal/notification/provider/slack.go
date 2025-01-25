@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	notification "github.com/shuvo-paul/uptimebot/internal/notification/core"
 )
 
 // SlackObserver implements the Observer interface for Slack notifications
@@ -46,7 +48,7 @@ type field struct {
 }
 
 // Notify implements the Observer interface
-func (s *SlackObserver) Notify(state State) error {
+func (s *SlackObserver) Notify(state notification.State) error {
 	color := "warning"
 	if state.Status == "up" {
 		color = "good"
