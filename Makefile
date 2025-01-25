@@ -2,7 +2,7 @@
 
 build:
 	pnpm build
-	go build -o ./tmp/main ./cmd/sitemonitor/main.go
+	go build -o ./tmp/main ./cmd/main.go
 
 test:
 	go test ./...
