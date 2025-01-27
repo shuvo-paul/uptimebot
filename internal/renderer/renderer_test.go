@@ -20,8 +20,8 @@ func TestNew(t *testing.T) {
 		t.Error("filesystem not properly set")
 	}
 
-	if engine.templates == nil {
-		t.Error("templates map not initialized")
+	if len(engine.pages) == 0 {
+		t.Error("no pages found")
 	}
 
 	if engine.funcMap == nil {

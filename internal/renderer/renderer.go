@@ -15,15 +15,15 @@ import (
 )
 
 type Engine struct {
-	fs        embed.FS
-	templates map[string]*template.Template
-	funcMap   template.FuncMap
+	fs      embed.FS
+	pages   map[string]*PageTemplate
+	funcMap template.FuncMap
 }
 
 func New(fs embed.FS) *Engine {
 	e := &Engine{
-		fs:        fs,
-		templates: make(map[string]*template.Template),
+		fs:    fs,
+		pages: make(map[string]*PageTemplate),
 		funcMap: template.FuncMap{
 			"csrfField": func() (template.HTML, error) {
 				return "", fmt.Errorf("csrfField not implemented")
@@ -33,6 +33,26 @@ func New(fs embed.FS) *Engine {
 			},
 		},
 	}
+
+	pagesDir := "pages"
+
+	entries, err := fs.ReadDir(pagesDir)
+	if err != nil {
+		slog.Error("error reading pages directory", "error", err)
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() && entry.Name()[len(entry.Name())-5:] == ".html" {
+			path := pagesDir + "/" + entry.Name()
+			name := entry.Name()[:5]
+			fmt.Println(name)
+			newTmpl := template.New(path)
+			newTmpl.Funcs(e.funcMap)
+			tmpl := template.Must(newTmpl.ParseFS(fs, path))
+			e.pages[name] = &PageTemplate{tmpl: tmpl}
+		}
+	}
+
 	return e
 }
 
