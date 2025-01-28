@@ -16,7 +16,7 @@ func NewSessionRepository(db *sql.DB) *SessionRepository {
 }
 
 func (r *SessionRepository) Create(session *model.Session) error {
-	query := `INSERT INTO sessions (user_id, token, created_at, expires_at) 
+	query := `INSERT INTO session (user_id, token, created_at, expires_at) 
 			  VALUES (?, ?, ?, ?)`
 	_, err := r.db.Exec(query, session.UserID, session.Token,
 		session.CreatedAt, session.ExpiresAt)
@@ -29,7 +29,7 @@ func (r *SessionRepository) Create(session *model.Session) error {
 func (r *SessionRepository) GetByToken(token string) (*model.Session, error) {
 	var session model.Session
 	query := `SELECT user_id, token, created_at, expires_at 
-			  FROM sessions WHERE token = ?`
+			  FROM session WHERE token = ?`
 	err := r.db.QueryRow(query, token).Scan(&session.UserID, &session.Token,
 		&session.CreatedAt, &session.ExpiresAt)
 	if err != nil {
@@ -39,7 +39,7 @@ func (r *SessionRepository) GetByToken(token string) (*model.Session, error) {
 }
 
 func (r *SessionRepository) Delete(token string) error {
-	query := `DELETE FROM sessions WHERE token = ?`
+	query := `DELETE FROM session WHERE token = ?`
 	result, err := r.db.Exec(query, token)
 	if err != nil {
 		return fmt.Errorf("failed to delete session: %w", err)

@@ -1,5 +1,5 @@
 -- +migrate Up
-CREATE TABLE sessions (
+CREATE TABLE session (
     user_id INT NOT NULL,
     token VARCHAR(255) NOT NULL,
     created_at TIMESTAMP NOT NULL,
@@ -9,4 +9,4 @@ CREATE TABLE sessions (
 );
 
 -- +migrate Down
-DROP TABLE sessions;
+DROP TABLE session;
