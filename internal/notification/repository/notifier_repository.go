@@ -30,6 +30,25 @@ func NewNotifierRepository(db *sql.DB) *NotifierRepository {
 
 // Create inserts a new notifier into the database
 func (r *NotifierRepository) Create(notifier *model.Notifier) (*model.Notifier, error) {
+	// Validate config based on notifier type
+	if notifier.Type == model.NotifierTypeSlack {
+		config, err := notifier.GetSlackConfig()
+		if err != nil {
+			return nil, fmt.Errorf("invalid slack config: %w", err)
+		}
+		if config == nil || config.WebhookURL == "" {
+			return nil, fmt.Errorf("webhook URL is required for slack notifier")
+		}
+	} else if notifier.Type == model.NotifierTypeEmail {
+		config, err := notifier.GetEmailConfig()
+		if err != nil {
+			return nil, fmt.Errorf("invalid email config: %w", err)
+		}
+		if config == nil {
+			return nil, fmt.Errorf("email configuration is required")
+		}
+	}
+
 	query := `
 		INSERT INTO notifier (target_id, type, config)
 		VALUES (?, ?, ?)

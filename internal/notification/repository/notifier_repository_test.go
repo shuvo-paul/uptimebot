@@ -30,19 +30,73 @@ func TestNotifierRepository_Create(t *testing.T) {
 
 	notifierRepo := NewNotifierRepository(db)
 
-	config := json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test"}`)
-	notifier := &model.Notifier{
+	slackNotifier := &model.Notifier{
 		SiteId: 1,
 		Type:   model.NotifierTypeSlack,
-		Config: config,
+		Config: json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test"}`),
 	}
 
-	newNotifier, err := notifierRepo.Create(notifier)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, newNotifier.ID)
-	assert.Equal(t, notifier.SiteId, newNotifier.SiteId)
-	assert.Equal(t, notifier.Type, newNotifier.Type)
-	assert.JSONEq(t, string(config), string(newNotifier.Config))
+	emailNotifier := &model.Notifier{
+		SiteId: 1,
+		Type:   model.NotifierTypeEmail,
+		Config: json.RawMessage(`{"recipients": ["EMAIL", "EMAIL", "EMAIL"]}`),
+	}
+
+	tests := []struct {
+		name     string
+		notifier *model.Notifier
+		want     *model.Notifier
+		wantErr  bool
+	}{
+		{
+			name:     "valid slack config",
+			notifier: slackNotifier,
+			want:     slackNotifier,
+			wantErr:  false,
+		},
+		{
+			name: "invalid json",
+			notifier: &model.Notifier{
+				Type:   model.NotifierTypeSlack,
+				Config: json.RawMessage(`invalid json`),
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:     "valid email config",
+			notifier: emailNotifier,
+			want:     emailNotifier,
+			wantErr:  false,
+		},
+		{
+			name: "invalid json",
+			notifier: &model.Notifier{
+				Type:   model.NotifierTypeEmail,
+				Config: json.RawMessage(`invalid json`),
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			newNotifier, err := notifierRepo.Create(tt.notifier)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.NotEmpty(t, newNotifier.ID)
+			assert.Equal(t, tt.want.SiteId, newNotifier.SiteId)
+			assert.Equal(t, tt.want.Type, newNotifier.Type)
+			assert.JSONEq(t, string(tt.want.Config), string(newNotifier.Config))
+		})
+	}
+
 }
 
 func TestNotifierRepository_Get(t *testing.T) {

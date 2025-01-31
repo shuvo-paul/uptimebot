@@ -27,11 +27,6 @@ type SlackConfig struct {
 
 // EmailConfig represents email notifier configuration
 type EmailConfig struct {
-	Host       string   `json:"host"`
-	Port       int      `json:"port"`
-	Username   string   `json:"username"`
-	Password   string   `json:"password"`
-	From       string   `json:"from"`
 	Recipients []string `json:"recipients"`
 }
 

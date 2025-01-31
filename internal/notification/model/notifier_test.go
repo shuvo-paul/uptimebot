@@ -71,21 +71,11 @@ func TestNotifier_GetEmailConfig(t *testing.T) {
 			notifier: &Notifier{
 				Type: NotifierTypeEmail,
 				Config: json.RawMessage(`{
-					"host": "smtp.example.com",
-					"port": 587,
-					"username": "test",
-					"password": "pass",
-					"from": "test@example.com",
-					"recipients": ["user1@example.com"]
+					"recipients": ["user1@example.com", "user2@example.com"]
 				}`),
 			},
 			want: &EmailConfig{
-				Host:       "smtp.example.com",
-				Port:       587,
-				Username:   "test",
-				Password:   "pass",
-				From:       "test@example.com",
-				Recipients: []string{"user1@example.com"},
+				Recipients: []string{"user1@example.com", "user2@example.com"},
 			},
 			wantErr: false,
 		},
