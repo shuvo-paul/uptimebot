@@ -69,17 +69,17 @@ func TestNotifierService_Create(t *testing.T) {
 	t.Run("successful creation", func(t *testing.T) {
 		mockRepo.createFunc = func(notifier *model.Notifier) (*model.Notifier, error) {
 			return &model.Notifier{
-				ID:     1,
-				SiteId: 1,
-				Type:   model.NotifierTypeSlack,
-				Config: json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test"}`),
+				ID:       1,
+				TargetId: 1,
+				Type:     model.NotifierTypeSlack,
+				Config:   json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test"}`),
 			}, nil
 		}
 
 		notifier := &model.Notifier{
-			SiteId: 1,
-			Type:   model.NotifierTypeSlack,
-			Config: json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test"}`),
+			TargetId: 1,
+			Type:     model.NotifierTypeSlack,
+			Config:   json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test"}`),
 		}
 
 		err := service.Create(notifier)
@@ -103,10 +103,10 @@ func TestNotifierService_Get(t *testing.T) {
 
 	t.Run("successful retrieval", func(t *testing.T) {
 		expected := &model.Notifier{
-			ID:     1,
-			SiteId: 1,
-			Type:   model.NotifierTypeSlack,
-			Config: json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test"}`),
+			ID:       1,
+			TargetId: 1,
+			Type:     model.NotifierTypeSlack,
+			Config:   json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test"}`),
 		}
 
 		mockRepo.getFunc = func(id int64) (*model.Notifier, error) {
@@ -138,10 +138,10 @@ func TestNotifierService_Update(t *testing.T) {
 		config := json.RawMessage(`{"webhook_url": "https://hooks.slack.com/new"}`)
 
 		expected := &model.Notifier{
-			ID:     1,
-			SiteId: 1,
-			Type:   model.NotifierTypeSlack,
-			Config: config,
+			ID:       1,
+			TargetId: 1,
+			Type:     model.NotifierTypeSlack,
+			Config:   config,
 		}
 
 		mockRepo.updateFunc = func(id int, cfg json.RawMessage) (*model.Notifier, error) {
@@ -198,10 +198,10 @@ func TestNotifierService_ConfigureObservers(t *testing.T) {
 		mockRepo.getBySiteIDFunc = func(siteID int) ([]*model.Notifier, error) {
 			return []*model.Notifier{
 				{
-					ID:     1,
-					SiteId: 1,
-					Type:   model.NotifierTypeSlack,
-					Config: json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test"}`),
+					ID:       1,
+					TargetId: 1,
+					Type:     model.NotifierTypeSlack,
+					Config:   json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test"}`),
 				},
 			}, nil
 		}
@@ -322,20 +322,20 @@ func TestNotifierService_HandleSlackCallback(t *testing.T) {
 	tests := []struct {
 		name      string
 		code      string
-		siteID    int
+		targetID  int
 		wantErr   bool
 		errString string
 	}{
 		{
-			name:    "successful callback",
-			code:    "test_code",
-			siteID:  123,
-			wantErr: false,
+			name:     "successful callback",
+			code:     "test_code",
+			targetID: 123,
+			wantErr:  false,
 		},
 		{
 			name:      "empty code",
 			code:      "",
-			siteID:    123,
+			targetID:  123,
 			wantErr:   true,
 			errString: "missing code or client credentials",
 		},
@@ -352,7 +352,7 @@ func TestNotifierService_HandleSlackCallback(t *testing.T) {
 			SlackTokenURL = mockServer.URL + "/api/oauth.v2.access"
 			defer func() { SlackTokenURL = originalURL }()
 
-			notifier, err := service.HandleSlackCallback(tt.code, tt.siteID)
+			notifier, err := service.HandleSlackCallback(tt.code, tt.targetID)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -365,7 +365,7 @@ func TestNotifierService_HandleSlackCallback(t *testing.T) {
 
 			assert.NoError(t, err)
 			assert.NotNil(t, notifier)
-			assert.Equal(t, tt.siteID, notifier.SiteId)
+			assert.Equal(t, tt.targetID, notifier.TargetId)
 			assert.Equal(t, model.NotifierTypeSlack, notifier.Type)
 			assert.Contains(t, string(notifier.Config), "hooks.slack.com")
 		})

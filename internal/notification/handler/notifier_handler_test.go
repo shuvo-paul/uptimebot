@@ -18,8 +18,8 @@ type MockNotifierService struct {
 	getFunc                 func(id int64) (*model.Notifier, error)
 	updateFunc              func(id int, config json.RawMessage) (*model.Notifier, error)
 	deleteFunc              func(id int64) error
-	configureObserversFunc  func(siteID int) error
-	handleSlackCallbackFunc func(code string, siteId int) (*model.Notifier, error)
+	configureObserversFunc  func(targetID int) error
+	handleSlackCallbackFunc func(code string, targetId int) (*model.Notifier, error)
 	parseOAuthStateFunc     func(state string) (int, error)
 }
 
@@ -39,12 +39,12 @@ func (m *MockNotifierService) Delete(id int64) error {
 	return m.deleteFunc(id)
 }
 
-func (m *MockNotifierService) ConfigureObservers(siteID int) error {
-	return m.configureObserversFunc(siteID)
+func (m *MockNotifierService) ConfigureObservers(targetID int) error {
+	return m.configureObserversFunc(targetID)
 }
 
-func (m *MockNotifierService) HandleSlackCallback(code string, siteId int) (*model.Notifier, error) {
-	return m.handleSlackCallbackFunc(code, siteId)
+func (m *MockNotifierService) HandleSlackCallback(code string, targetId int) (*model.Notifier, error) {
+	return m.handleSlackCallbackFunc(code, targetId)
 }
 
 func (m *MockNotifierService) ParseOAuthState(state string) (int, error) {
@@ -68,7 +68,7 @@ func TestNotifierHandler_AuthSlack(t *testing.T) {
 		}()
 
 		req := httptest.NewRequest(http.MethodGet, "/oauth/slack/", nil)
-		req.SetPathValue("id", "1")
+		req.SetPathValue("targetId", "1")
 		w := httptest.NewRecorder()
 
 		handler.AuthSlack(w, req)
@@ -93,7 +93,7 @@ func TestNotifierHandler_AuthSlack(t *testing.T) {
 		os.Unsetenv("SLACK_CLIENT_ID")
 
 		req := httptest.NewRequest(http.MethodGet, "/oauth/slack/", nil)
-		req.SetPathValue("id", "1")
+		req.SetPathValue("targetId", "1")
 		w := httptest.NewRecorder()
 
 		handler.AuthSlack(w, req)
@@ -105,8 +105,8 @@ func TestNotifierHandler_AuthSlack(t *testing.T) {
 
 func TestNotifierController_AuthSlackCallback(t *testing.T) {
 	mockService := new(MockNotifierService)
-	mockService.handleSlackCallbackFunc = func(code string, siteId int) (*model.Notifier, error) {
-		return &model.Notifier{ID: 1, SiteId: siteId}, nil
+	mockService.handleSlackCallbackFunc = func(code string, targetId int) (*model.Notifier, error) {
+		return &model.Notifier{ID: 1, TargetId: targetId}, nil
 	}
 	mockService.parseOAuthStateFunc = func(state string) (int, error) {
 		return 1, nil
@@ -127,7 +127,7 @@ func TestNotifierController_AuthSlackCallback(t *testing.T) {
 	})
 
 	t.Run("invalid code", func(t *testing.T) {
-		mockService.handleSlackCallbackFunc = func(code string, siteId int) (*model.Notifier, error) {
+		mockService.handleSlackCallbackFunc = func(code string, targetId int) (*model.Notifier, error) {
 			return nil, fmt.Errorf("invalid code")
 		}
 		req := httptest.NewRequest(http.MethodGet, "/oauth/slack/callback?code=&state=target_id=1", nil)

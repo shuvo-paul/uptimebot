@@ -56,9 +56,9 @@ func (r *NotifierRepository) Create(notifier *model.Notifier) (*model.Notifier, 
 	`
 
 	newNotifier := &model.Notifier{}
-	err := r.db.QueryRow(query, notifier.SiteId, notifier.Type, notifier.Config).Scan(
+	err := r.db.QueryRow(query, notifier.TargetId, notifier.Type, notifier.Config).Scan(
 		&newNotifier.ID,
-		&newNotifier.SiteId,
+		&newNotifier.TargetId,
 		&newNotifier.Type,
 		&newNotifier.Config,
 	)
@@ -80,7 +80,7 @@ func (r *NotifierRepository) Get(id int64) (*model.Notifier, error) {
 	notifier := &model.Notifier{}
 	err := r.db.QueryRow(query, id).Scan(
 		&notifier.ID,
-		&notifier.SiteId,
+		&notifier.TargetId,
 		&notifier.Type,
 		&notifier.Config,
 	)
@@ -107,7 +107,7 @@ func (r *NotifierRepository) Update(id int, config json.RawMessage) (*model.Noti
 	notifier := &model.Notifier{}
 	err := r.db.QueryRow(query, config, id).Scan(
 		&notifier.ID,
-		&notifier.SiteId,
+		&notifier.TargetId,
 		&notifier.Type,
 		&notifier.Config,
 	)
@@ -157,7 +157,7 @@ func (r *NotifierRepository) GetBySiteID(siteID int) ([]*model.Notifier, error) 
 		notifier := &model.Notifier{}
 		err := rows.Scan(
 			&notifier.ID,
-			&notifier.SiteId,
+			&notifier.TargetId,
 			&notifier.Type,
 			&notifier.Config,
 		)

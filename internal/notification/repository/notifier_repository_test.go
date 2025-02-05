@@ -16,9 +16,9 @@ func createNotifier() (*model.Notifier, error) {
 	notifierRepo := NewNotifierRepository(db)
 	config := json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test"}`)
 	notifier := &model.Notifier{
-		SiteId: 1,
-		Type:   model.NotifierTypeSlack,
-		Config: config,
+		TargetId: 1,
+		Type:     model.NotifierTypeSlack,
+		Config:   config,
 	}
 
 	return notifierRepo.Create(notifier)
@@ -31,15 +31,15 @@ func TestNotifierRepository_Create(t *testing.T) {
 	notifierRepo := NewNotifierRepository(db)
 
 	slackNotifier := &model.Notifier{
-		SiteId: 1,
-		Type:   model.NotifierTypeSlack,
-		Config: json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test"}`),
+		TargetId: 1,
+		Type:     model.NotifierTypeSlack,
+		Config:   json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test"}`),
 	}
 
 	emailNotifier := &model.Notifier{
-		SiteId: 1,
-		Type:   model.NotifierTypeEmail,
-		Config: json.RawMessage(`{"recipients": ["EMAIL", "EMAIL", "EMAIL"]}`),
+		TargetId: 1,
+		Type:     model.NotifierTypeEmail,
+		Config:   json.RawMessage(`{"recipients": ["EMAIL", "EMAIL", "EMAIL"]}`),
 	}
 
 	tests := []struct {
@@ -91,7 +91,7 @@ func TestNotifierRepository_Create(t *testing.T) {
 
 			assert.NoError(t, err)
 			assert.NotEmpty(t, newNotifier.ID)
-			assert.Equal(t, tt.want.SiteId, newNotifier.SiteId)
+			assert.Equal(t, tt.want.TargetId, newNotifier.TargetId)
 			assert.Equal(t, tt.want.Type, newNotifier.Type)
 			assert.JSONEq(t, string(tt.want.Config), string(newNotifier.Config))
 		})
@@ -114,9 +114,9 @@ func TestNotifierRepository_Get(t *testing.T) {
 	t.Run("Found", func(t *testing.T) {
 		config := json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test"}`)
 		notifier := &model.Notifier{
-			SiteId: 2,
-			Type:   model.NotifierTypeSlack,
-			Config: config,
+			TargetId: 2,
+			Type:     model.NotifierTypeSlack,
+			Config:   config,
 		}
 		created, err := notifierRepo.Create(notifier)
 		assert.NoError(t, err)
@@ -148,9 +148,9 @@ func TestNotifierRepository_Update(t *testing.T) {
 		// First create a notifier
 		initialConfig := json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test"}`)
 		notifier := &model.Notifier{
-			SiteId: 1,
-			Type:   model.NotifierTypeSlack,
-			Config: initialConfig,
+			TargetId: 1,
+			Type:     model.NotifierTypeSlack,
+			Config:   initialConfig,
 		}
 		created, err := notifierRepo.Create(notifier)
 		assert.NoError(t, err)
@@ -208,19 +208,19 @@ func TestNotifierRepository_GetBySiteID(t *testing.T) {
 		otherConfig := json.RawMessage(`{"webhook_url": "https://hooks.slack.com/other"}`)
 
 		notifier1 := &model.Notifier{
-			SiteId: siteID,
-			Type:   model.NotifierTypeSlack,
-			Config: config1,
+			TargetId: siteID,
+			Type:     model.NotifierTypeSlack,
+			Config:   config1,
 		}
 		notifier2 := &model.Notifier{
-			SiteId: siteID,
-			Type:   model.NotifierTypeSlack,
-			Config: config2,
+			TargetId: siteID,
+			Type:     model.NotifierTypeSlack,
+			Config:   config2,
 		}
 		otherNotifier := &model.Notifier{
-			SiteId: siteID + 1,
-			Type:   model.NotifierTypeSlack,
-			Config: otherConfig,
+			TargetId: siteID + 1,
+			Type:     model.NotifierTypeSlack,
+			Config:   otherConfig,
 		}
 
 		// Save all notifiers
@@ -238,7 +238,7 @@ func TestNotifierRepository_GetBySiteID(t *testing.T) {
 
 		// Verify notifier details
 		for _, n := range notifiers {
-			assert.Equal(t, siteID, n.SiteId)
+			assert.Equal(t, siteID, n.TargetId)
 			assert.Equal(t, model.NotifierTypeSlack, n.Type)
 
 			config, err := n.GetSlackConfig()
@@ -250,6 +250,6 @@ func TestNotifierRepository_GetBySiteID(t *testing.T) {
 		otherNotifiers, err := repo.GetBySiteID(siteID + 1)
 		assert.NoError(t, err)
 		assert.Len(t, otherNotifiers, 1)
-		assert.Equal(t, siteID+1, otherNotifiers[0].SiteId)
+		assert.Equal(t, siteID+1, otherNotifiers[0].TargetId)
 	})
 }

@@ -146,9 +146,9 @@ func (s *NotifierService) HandleSlackCallback(code string, siteId int) (*model.N
 	}
 
 	notifier := &model.Notifier{
-		SiteId: siteId,
-		Type:   model.NotifierTypeSlack,
-		Config: json.RawMessage(`{"webhook_url": "` + webhookUrl + `"}`),
+		TargetId: siteId,
+		Type:     model.NotifierTypeSlack,
+		Config:   json.RawMessage(`{"webhook_url": "` + webhookUrl + `"}`),
 	}
 
 	return notifier, nil

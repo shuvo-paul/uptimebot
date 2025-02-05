@@ -14,10 +14,10 @@ const (
 
 // Notifier represents a notification channel configuration
 type Notifier struct {
-	ID     int64           `db:"id"`
-	SiteId int             `db:"target_id"`
-	Type   NotifierType    `db:"type"`
-	Config json.RawMessage `db:"config"`
+	ID       int64           `db:"id"`
+	TargetId int             `db:"target_id"`
+	Type     NotifierType    `db:"type"`
+	Config   json.RawMessage `db:"config"`
 }
 
 // SlackConfig represents Slack notifier configuration

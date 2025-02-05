@@ -19,8 +19,8 @@ func NewNotifierHandler(notifierService service.NotifierServiceInterface) *Notif
 	}
 }
 
-func (c *NotifierHandler) AuthSlack(w http.ResponseWriter, r *http.Request) {
-	siteId, err := strconv.Atoi(r.PathValue("id"))
+func (nh *NotifierHandler) AuthSlack(w http.ResponseWriter, r *http.Request) {
+	targetId, err := strconv.Atoi(r.PathValue("targetId"))
 	if err != nil {
 		http.Error(w, "Invalid site ID", http.StatusBadRequest)
 		return
@@ -34,31 +34,31 @@ func (c *NotifierHandler) AuthSlack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	oauthLink := fmt.Sprintf("https://slack.com/oauth/v2/authorize?scope=incoming-webhook&user_scope=&redirect_uri=%s&client_id=%s&state=target_id=%d", redirectUri, clientId, siteId)
+	oauthLink := fmt.Sprintf("https://slack.com/oauth/v2/authorize?scope=incoming-webhook&user_scope=&redirect_uri=%s&client_id=%s&state=target_id=%d", redirectUri, clientId, targetId)
 	http.Redirect(w, r, oauthLink, http.StatusSeeOther)
 }
 
-func (c *NotifierHandler) AuthSlackCallback(w http.ResponseWriter, r *http.Request) {
+func (nh *NotifierHandler) AuthSlackCallback(w http.ResponseWriter, r *http.Request) {
 	code := r.URL.Query().Get("code")
 	state := r.URL.Query().Get("state")
 
-	siteId, err := c.notifierService.ParseOAuthState(state)
+	targetId, err := nh.notifierService.ParseOAuthState(state)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	notifier, err := c.notifierService.HandleSlackCallback(code, siteId)
+	notifier, err := nh.notifierService.HandleSlackCallback(code, targetId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	err = c.notifierService.Create(notifier)
+	err = nh.notifierService.Create(notifier)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	http.Redirect(w, r, fmt.Sprintf("/sites/%d", siteId), http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/sites/%d", targetId), http.StatusSeeOther)
 }
