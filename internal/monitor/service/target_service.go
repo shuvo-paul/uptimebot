@@ -16,7 +16,7 @@ type TargetServiceInterface interface {
 	GetByID(id int) (*monitor.Target, error)
 	GetAll() ([]*monitor.Target, error)
 	GetAllByUserID(userID int) ([]*monitor.Target, error)
-	Update(site *monitor.Target) (*monitor.Target, error)
+	Update(*monitor.Target) (*monitor.Target, error)
 	Delete(id int) error
 	InitializeMonitoring() error
 }
@@ -24,12 +24,12 @@ type TargetServiceInterface interface {
 var _ TargetServiceInterface = (*TargetService)(nil)
 
 type TargetService struct {
-	repo            repository.SiteRepositoryInterface
+	repo            repository.TargetRepositoryInterface
 	manager         *monitor.Manager
 	notifierService alertService.NotifierServiceInterface
 }
 
-func NewTargetService(repo repository.SiteRepositoryInterface, notifierService alertService.NotifierServiceInterface) *TargetService {
+func NewTargetService(repo repository.TargetRepositoryInterface, notifierService alertService.NotifierServiceInterface) *TargetService {
 	return &TargetService{
 		repo:            repo,
 		manager:         monitor.NewManager(),
@@ -37,20 +37,20 @@ func NewTargetService(repo repository.SiteRepositoryInterface, notifierService a
 	}
 }
 
-func (s *TargetService) handleStatusUpdate(site *monitor.Target, status string) error {
-	if err := s.repo.UpdateStatus(site, status); err != nil {
+func (s *TargetService) handleStatusUpdate(target *monitor.Target, status string) error {
+	if err := s.repo.UpdateStatus(target, status); err != nil {
 		return err
 	}
 
-	if err := s.notifierService.ConfigureObservers(site.ID); err != nil {
+	if err := s.notifierService.ConfigureObservers(target.ID); err != nil {
 		return fmt.Errorf("failed to configure observers: %w", err)
 	}
 
 	state := notifCore.State{
-		Name:      site.URL,
+		Name:      target.URL,
 		Status:    status,
 		UpdatedAt: time.Now(),
-		Message:   fmt.Sprintf("Target %s is %s", site.URL, status),
+		Message:   fmt.Sprintf("Target %s is %s", target.URL, status),
 	}
 
 	s.notifierService.GetSubject().Notify(state)
@@ -59,7 +59,7 @@ func (s *TargetService) handleStatusUpdate(site *monitor.Target, status string) 
 }
 
 func (s *TargetService) Create(userID int, url string, interval time.Duration) (*monitor.Target, error) {
-	userSite := model.UserTarget{
+	userTarget := model.UserTarget{
 		UserID: userID,
 		Target: &monitor.Target{
 			URL:      url,
@@ -69,19 +69,19 @@ func (s *TargetService) Create(userID int, url string, interval time.Duration) (
 		},
 	}
 
-	userSite.OnStatusUpdate = s.handleStatusUpdate
+	userTarget.Target.OnStatusUpdate = s.handleStatusUpdate
 
-	newUserSite, err := s.repo.Create(userSite)
+	newUserTarget, err := s.repo.Create(userTarget)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create site: %w", err)
+		return nil, fmt.Errorf("failed to create target: %w", err)
 	}
 
-	// Create a new site monitor
-	if err := s.manager.RegisterSite(newUserSite.Target); err != nil {
-		return nil, fmt.Errorf("failed to register site monitor: %w", err)
+	// Create a new targets monitor
+	if err := s.manager.RegisterTarget(newUserTarget.Target); err != nil {
+		return nil, fmt.Errorf("failed to register target monitor: %w", err)
 	}
 
-	return newUserSite.Target, nil
+	return newUserTarget.Target, nil
 }
 
 func (s *TargetService) GetByID(id int) (*monitor.Target, error) {
@@ -96,43 +96,43 @@ func (s *TargetService) GetAllByUserID(userID int) ([]*monitor.Target, error) {
 	return s.repo.GetAllByUserID(userID)
 }
 
-func (s *TargetService) Update(site *monitor.Target) (*monitor.Target, error) {
-	site.OnStatusUpdate = s.handleStatusUpdate
+func (s *TargetService) Update(target *monitor.Target) (*monitor.Target, error) {
+	target.OnStatusUpdate = s.handleStatusUpdate
 
-	// First update the site in the database
-	updatedSite, err := s.repo.Update(site)
+	// First update the target in the database
+	updatedTarget, err := s.repo.Update(target)
 	if err != nil {
-		return nil, fmt.Errorf("failed to update site: %w", err)
+		return nil, fmt.Errorf("failed to update target: %w", err)
 	}
 
-	if existingSite, exists := s.manager.Targets[site.ID]; exists {
-		existingSite.Update(updatedSite)
+	if existingTarget, exists := s.manager.Targets[target.ID]; exists {
+		existingTarget.Update(updatedTarget)
 	} else {
 		// Register new monitor if it doesn't exist
-		if err := s.manager.RegisterSite(updatedSite); err != nil {
-			return nil, fmt.Errorf("failed to register site monitor: %w", err)
+		if err := s.manager.RegisterTarget(updatedTarget); err != nil {
+			return nil, fmt.Errorf("failed to register target monitor: %w", err)
 		}
 	}
 
-	return updatedSite, nil
+	return updatedTarget, nil
 }
 
 func (s *TargetService) Delete(id int) error {
-	s.manager.RevokeSite(id)
+	s.manager.RevokeTarget(id)
 	return s.repo.Delete(id)
 }
 
 func (s *TargetService) InitializeMonitoring() error {
-	sites, err := s.repo.GetAll()
+	targets, err := s.repo.GetAll()
 	if err != nil {
-		return fmt.Errorf("failed to fetch sites: %w", err)
+		return fmt.Errorf("failed to fetch targets: %w", err)
 	}
 
-	for _, site := range sites {
-		site.OnStatusUpdate = s.handleStatusUpdate
+	for _, target := range targets {
+		target.OnStatusUpdate = s.handleStatusUpdate
 
-		if err := s.manager.RegisterSite(site); err != nil {
-			return fmt.Errorf("failed to register site %s: %w", site.URL, err)
+		if err := s.manager.RegisterTarget(target); err != nil {
+			return fmt.Errorf("failed to register target %s: %w", target.URL, err)
 		}
 	}
 

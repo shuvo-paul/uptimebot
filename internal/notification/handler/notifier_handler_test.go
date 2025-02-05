@@ -123,7 +123,7 @@ func TestNotifierController_AuthSlackCallback(t *testing.T) {
 		controller.AuthSlackCallback(w, req)
 
 		assert.Equal(t, http.StatusSeeOther, w.Code)
-		assert.Equal(t, "/sites/1", w.Header().Get("Location"))
+		assert.Equal(t, "/targets/1", w.Header().Get("Location"))
 	})
 
 	t.Run("invalid code", func(t *testing.T) {

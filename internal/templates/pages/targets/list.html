@@ -17,15 +17,15 @@
     {{ end }}
 
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">Monitored Sites</h1>
-        <a href="/sites/create" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-            Add New Site
+        <h1 class="text-2xl font-bold">Monitored Targets</h1>
+        <a href="/targets/create" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+            Add New Target
         </a>
     </div>
 
-    {{ if .sites }}
+    {{ if .targets }}
         <div class="grid gap-4">
-            {{ range .sites }}
+            {{ range .targets }}
             <div class="bg-white shadow rounded-lg p-6">
                 <div class="flex justify-between items-center">
                     <div>
@@ -34,18 +34,18 @@
                         <p class="text-gray-600">Check Interval: {{ .Interval.Seconds }} Seconds</p>
                     </div>
                     <div class="flex space-x-2">
-                        <form method="POST" action="/sites/{{ .ID }}/{{ if .Enabled }}disable{{ else }}enable{{ end }}">
+                        <form method="POST" action="/targets/{{ .ID }}/{{ if .Enabled }}disable{{ else }}enable{{ end }}">
                             <button type="submit" 
                                 class="{{ if .Enabled }}bg-yellow-500 hover:bg-yellow-700{{ else }}bg-green-500 hover:bg-green-700{{ end }} text-white font-bold py-2 px-4 rounded">
                                 {{ if .Enabled }}Disable{{ else }}Enable{{ end }}
                             </button>
                         </form>
-                        <a href="/sites/{{ .ID }}/edit" 
+                        <a href="/targets/{{ .ID }}/edit" 
                             class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                             Edit
                         </a>
-                        <form method="POST" action="/sites/{{ .ID }}/delete" 
-                            onsubmit="return confirm('Are you sure you want to delete this site?');">
+                        <form method="POST" action="/targets/{{ .ID }}/delete" 
+                            onsubmit="return confirm('Are you sure you want to delete this target?');">
                             {{csrfField}}
                             <input type="hidden" name="_method" value="DELETE">
                             <button type="submit" 
@@ -60,7 +60,7 @@
         </div>
     {{ else }}
         <div class="text-center py-8">
-            <p class="text-gray-600">No sites are being monitored yet.</p>
+            <p class="text-gray-600">No targets are being monitored yet.</p>
         </div>
     {{ end }}
 </div>

@@ -10,16 +10,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type testSite struct {
-	name string
-	site model.UserTarget
+type testTarget struct {
+	name   string
+	target model.UserTarget
 }
 
-func createTestSites() []testSite {
-	return []testSite{
+func createTestTargets() []testTarget {
+	return []testTarget{
 		{
-			name: "site with minimal interval",
-			site: model.UserTarget{
+			name: "target with minimal interval",
+			target: model.UserTarget{
 				UserID: 1,
 				Target: &core.Target{
 					URL:             "example1.org",
@@ -31,8 +31,8 @@ func createTestSites() []testSite {
 			},
 		},
 		{
-			name: "site with medium interval",
-			site: model.UserTarget{
+			name: "target with medium interval",
+			target: model.UserTarget{
 				UserID: 1,
 				Target: &core.Target{
 					URL:             "example2.org",
@@ -44,8 +44,8 @@ func createTestSites() []testSite {
 			},
 		},
 		{
-			name: "site with large interval",
-			site: model.UserTarget{
+			name: "target with large interval",
+			target: model.UserTarget{
 				UserID: 2,
 				Target: &core.Target{
 					URL:             "example3.org",
@@ -59,31 +59,31 @@ func createTestSites() []testSite {
 	}
 }
 
-func setupTestSites(t *testing.T, repo *SiteRepository) map[string]model.UserTarget {
-	createdSites := make(map[string]model.UserTarget)
-	for _, tc := range createTestSites() {
-		created, err := repo.Create(tc.site)
+func setupTestTargets(t *testing.T, repo *TargetRepository) map[string]model.UserTarget {
+	createdTargets := make(map[string]model.UserTarget)
+	for _, tc := range createTestTargets() {
+		created, err := repo.Create(tc.target)
 		if err != nil {
-			t.Fatalf("Failed to create test site %s: %v", tc.name, err)
+			t.Fatalf("Failed to create test target %s: %v", tc.name, err)
 		}
-		createdSites[tc.name] = created
+		createdTargets[tc.name] = created
 	}
-	return createdSites
+	return createdTargets
 }
 
-func TestSiteRepository_Create(t *testing.T) {
+func TestTargetRepository_Create(t *testing.T) {
 	db := testutil.NewInMemoryDB()
 	defer db.Close()
-	repo := NewSiteRepository(db)
+	repo := NewTargetRepository(db)
 
 	tests := []struct {
 		name    string
-		site    model.UserTarget
+		target  model.UserTarget
 		wantErr bool
 	}{
 		{
-			name: "valid site",
-			site: model.UserTarget{
+			name: "valid target",
+			target: model.UserTarget{
 				UserID: 1,
 				Target: &core.Target{
 					URL:             "example.org",
@@ -96,8 +96,8 @@ func TestSiteRepository_Create(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "invalid site - empty URL",
-			site: model.UserTarget{
+			name: "invalid target - empty URL",
+			target: model.UserTarget{
 				UserID: 1,
 				Target: &core.Target{
 					URL:      "",
@@ -109,8 +109,8 @@ func TestSiteRepository_Create(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "invalid site - invalid user ID",
-			site: model.UserTarget{
+			name: "invalid target - invalid user ID",
+			target: model.UserTarget{
 				UserID: 0,
 				Target: &core.Target{
 					URL:      "example.org",
@@ -125,36 +125,36 @@ func TestSiteRepository_Create(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			newSite, err := repo.Create(tt.site)
+			newTarget, err := repo.Create(tt.target)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
 			}
 			assert.NoError(t, err)
-			assert.Equal(t, tt.site.UserID, newSite.UserID)
-			assert.NotZero(t, newSite.ID)
-			assert.Equal(t, tt.site.URL, newSite.URL)
-			if !tt.site.StatusChangedAt.IsZero() {
-				assert.WithinDuration(t, tt.site.StatusChangedAt, newSite.StatusChangedAt, time.Second)
+			assert.Equal(t, tt.target.UserID, newTarget.UserID)
+			assert.NotZero(t, newTarget.ID)
+			assert.Equal(t, tt.target.URL, newTarget.URL)
+			if !tt.target.StatusChangedAt.IsZero() {
+				assert.WithinDuration(t, tt.target.StatusChangedAt, newTarget.StatusChangedAt, time.Second)
 			}
 		})
 	}
 }
 
-func TestSiteRepository_Update(t *testing.T) {
+func TestTargetRepository_Update(t *testing.T) {
 	db := testutil.NewInMemoryDB()
 	defer db.Close()
-	repo := NewSiteRepository(db)
+	repo := NewTargetRepository(db)
 
 	tests := []struct {
-		name       string
-		setupSite  model.UserTarget
-		updateFunc func(*core.Target)
-		wantErr    bool
+		name        string
+		setupTarget model.UserTarget
+		updateFunc  func(*core.Target)
+		wantErr     bool
 	}{
 		{
 			name: "update status and enabled",
-			setupSite: model.UserTarget{
+			setupTarget: model.UserTarget{
 				UserID: 1,
 				Target: &core.Target{
 					URL:      "example.org",
@@ -170,8 +170,8 @@ func TestSiteRepository_Update(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "update non-existent site",
-			setupSite: model.UserTarget{
+			name: "update non-existent target",
+			setupTarget: model.UserTarget{
 				UserID: 1,
 				Target: &core.Target{
 					ID:       999,
@@ -190,19 +190,19 @@ func TestSiteRepository_Update(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var site *core.Target
-			if tt.name == "update non-existent site" {
-				site = tt.setupSite.Target
+			var target *core.Target
+			if tt.name == "update non-existent target" {
+				target = tt.setupTarget.Target
 			} else {
-				created, err := repo.Create(tt.setupSite)
+				created, err := repo.Create(tt.setupTarget)
 				if err != nil {
-					t.Fatalf("Failed to create test site: %v", err)
+					t.Fatalf("Failed to create test target: %v", err)
 				}
-				site = created.Target
+				target = created.Target
 			}
 
-			tt.updateFunc(site)
-			updated, err := repo.Update(site)
+			tt.updateFunc(target)
+			updated, err := repo.Update(target)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -210,27 +210,27 @@ func TestSiteRepository_Update(t *testing.T) {
 			}
 
 			assert.NoError(t, err)
-			fetched, err := repo.GetByID(site.ID)
+			fetched, err := repo.GetByID(target.ID)
 			assert.NoError(t, err)
 			assert.Equal(t, updated, fetched)
 		})
 	}
 }
 
-func TestSiteRepository_Delete(t *testing.T) {
+func TestTargetRepository_Delete(t *testing.T) {
 	db := testutil.NewInMemoryDB()
 	defer db.Close()
-	repo := NewSiteRepository(db)
+	repo := NewTargetRepository(db)
 
 	tests := []struct {
-		name      string
-		setupSite model.UserTarget
-		siteID    int
-		wantErr   bool
+		name        string
+		setupTarget model.UserTarget
+		targetID    int
+		wantErr     bool
 	}{
 		{
-			name: "delete existing site",
-			setupSite: model.UserTarget{
+			name: "delete existing target",
+			setupTarget: model.UserTarget{
 				UserID: 1,
 				Target: &core.Target{
 					URL:      "example.org",
@@ -242,58 +242,58 @@ func TestSiteRepository_Delete(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "delete non-existent site",
-			siteID:  999,
-			wantErr: true,
+			name:     "delete non-existent target",
+			targetID: 999,
+			wantErr:  true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var siteID int
-			if tt.setupSite.Target != nil {
-				created, err := repo.Create(tt.setupSite)
+			var targetID int
+			if tt.setupTarget.Target != nil {
+				created, err := repo.Create(tt.setupTarget)
 				if err != nil {
-					t.Fatalf("Failed to create test site: %v", err)
+					t.Fatalf("Failed to create test target: %v", err)
 				}
-				siteID = created.ID
+				targetID = created.ID
 			} else {
-				siteID = tt.siteID
+				targetID = tt.targetID
 			}
 
-			err := repo.Delete(siteID)
+			err := repo.Delete(targetID)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
 			}
 
 			assert.NoError(t, err)
-			_, err = repo.GetByID(siteID)
+			_, err = repo.GetByID(targetID)
 			assert.Error(t, err)
 			assert.ErrorIs(t, err, ErrTargetNotFound)
 		})
 	}
 }
 
-func TestSiteRepository_GetAll(t *testing.T) {
+func TestTargetRepository_GetAll(t *testing.T) {
 	db := testutil.NewInMemoryDB()
 	defer db.Close()
-	repo := NewSiteRepository(db)
+	repo := NewTargetRepository(db)
 
-	createdSites := setupTestSites(t, repo)
+	createdTargets := setupTestTargets(t, repo)
 
-	sites, err := repo.GetAll()
+	targets, err := repo.GetAll()
 	assert.NoError(t, err)
-	assert.Len(t, sites, len(createdSites))
+	assert.Len(t, targets, len(createdTargets))
 
-	siteMap := make(map[int]*core.Target)
-	for _, s := range sites {
-		siteMap[s.ID] = s
+	targetMap := make(map[int]*core.Target)
+	for _, t := range targets {
+		targetMap[t.ID] = t
 	}
 
-	for name, created := range createdSites {
-		found, exists := siteMap[created.ID]
-		assert.True(t, exists, "Site '%s' should exist", name)
+	for name, created := range createdTargets {
+		found, exists := targetMap[created.ID]
+		assert.True(t, exists, "Target '%s' should exist", name)
 		if exists {
 			assert.Equal(t, created.URL, found.URL, "URL mismatch for %s", name)
 			assert.Equal(t, created.Status, found.Status, "Status mismatch for %s", name)
@@ -303,12 +303,12 @@ func TestSiteRepository_GetAll(t *testing.T) {
 	}
 }
 
-func TestSiteRepository_GetAllByUserID(t *testing.T) {
+func TestTargetRepository_GetAllByUserID(t *testing.T) {
 	db := testutil.NewInMemoryDB()
 	defer db.Close()
-	repo := NewSiteRepository(db)
+	repo := NewTargetRepository(db)
 
-	setupTestSites(t, repo)
+	setupTestTargets(t, repo)
 
 	tests := []struct {
 		name          string
@@ -317,19 +317,19 @@ func TestSiteRepository_GetAllByUserID(t *testing.T) {
 		expectedCount int
 	}{
 		{
-			name:          "user with multiple sites",
+			name:          "user with multiple targets",
 			userID:        1,
 			expectedURLs:  []string{"example1.org", "example2.org"},
 			expectedCount: 2,
 		},
 		{
-			name:          "user with single site",
+			name:          "user with single target",
 			userID:        2,
 			expectedURLs:  []string{"example3.org"},
 			expectedCount: 1,
 		},
 		{
-			name:          "user with no sites",
+			name:          "user with no targets",
 			userID:        999,
 			expectedURLs:  []string{},
 			expectedCount: 0,
@@ -338,14 +338,14 @@ func TestSiteRepository_GetAllByUserID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			sites, err := repo.GetAllByUserID(tt.userID)
+			targets, err := repo.GetAllByUserID(tt.userID)
 			assert.NoError(t, err)
-			assert.Len(t, sites, tt.expectedCount)
+			assert.Len(t, targets, tt.expectedCount)
 
 			if tt.expectedCount > 0 {
-				urls := make([]string, len(sites))
-				for i, site := range sites {
-					urls[i] = site.URL
+				urls := make([]string, len(targets))
+				for i, target := range targets {
+					urls[i] = target.URL
 				}
 				for _, expectedURL := range tt.expectedURLs {
 					assert.Contains(t, urls, expectedURL)

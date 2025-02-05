@@ -188,37 +188,37 @@ func TestNotifierRepository_Delete(t *testing.T) {
 	})
 }
 
-func TestNotifierRepository_GetBySiteID(t *testing.T) {
+func TestNotifierRepository_GetByTargetID(t *testing.T) {
 	db := testutil.NewInMemoryDB()
 	defer db.Close()
 
 	repo := NewNotifierRepository(db)
 
 	t.Run("NoNotifiers", func(t *testing.T) {
-		notifiers, err := repo.GetBySiteID(999)
+		notifiers, err := repo.GetByTargetID(999)
 		assert.NoError(t, err)
 		assert.Empty(t, notifiers)
 	})
 
 	t.Run("MultipleNotifiers", func(t *testing.T) {
-		// Create multiple notifiers for the same site
-		siteID := 1
+		// Create multiple notifiers for the same target
+		targetID := 1
 		config1 := json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test1"}`)
 		config2 := json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test2"}`)
 		otherConfig := json.RawMessage(`{"webhook_url": "https://hooks.slack.com/other"}`)
 
 		notifier1 := &model.Notifier{
-			TargetId: siteID,
+			TargetId: targetID,
 			Type:     model.NotifierTypeSlack,
 			Config:   config1,
 		}
 		notifier2 := &model.Notifier{
-			TargetId: siteID,
+			TargetId: targetID,
 			Type:     model.NotifierTypeSlack,
 			Config:   config2,
 		}
 		otherNotifier := &model.Notifier{
-			TargetId: siteID + 1,
+			TargetId: targetID + 1,
 			Type:     model.NotifierTypeSlack,
 			Config:   otherConfig,
 		}
@@ -231,14 +231,14 @@ func TestNotifierRepository_GetBySiteID(t *testing.T) {
 		_, err = repo.Create(otherNotifier)
 		assert.NoError(t, err)
 
-		// Fetch notifiers for the site
-		notifiers, err := repo.GetBySiteID(siteID)
+		// Fetch notifiers for the target
+		notifiers, err := repo.GetByTargetID(targetID)
 		assert.NoError(t, err)
 		assert.Len(t, notifiers, 2)
 
 		// Verify notifier details
 		for _, n := range notifiers {
-			assert.Equal(t, siteID, n.TargetId)
+			assert.Equal(t, targetID, n.TargetId)
 			assert.Equal(t, model.NotifierTypeSlack, n.Type)
 
 			config, err := n.GetSlackConfig()
@@ -246,10 +246,10 @@ func TestNotifierRepository_GetBySiteID(t *testing.T) {
 			assert.Contains(t, config.WebhookURL, "https://hooks.slack.com/test")
 		}
 
-		// Verify other site's notifier is not included
-		otherNotifiers, err := repo.GetBySiteID(siteID + 1)
+		// Verify other target's notifier is not included
+		otherNotifiers, err := repo.GetByTargetID(targetID + 1)
 		assert.NoError(t, err)
 		assert.Len(t, otherNotifiers, 1)
-		assert.Equal(t, siteID+1, otherNotifiers[0].TargetId)
+		assert.Equal(t, targetID+1, otherNotifiers[0].TargetId)
 	})
 }

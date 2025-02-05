@@ -14,8 +14,8 @@ func TestTargetCheck(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	// Create site using DefaultClient
-	site := &Target{
+	// Create target using DefaultClient
+	target := &Target{
 		ID:       1,
 		URL:      ts.URL,
 		Interval: time.Minute,
@@ -23,30 +23,30 @@ func TestTargetCheck(t *testing.T) {
 		Client:   DefaultClient,
 	}
 
-	err := site.Check()
+	err := target.Check()
 	if err != nil {
 		t.Errorf("Expected successful check, got error: %v", err)
 	}
 
-	if site.Status != statusUp {
-		t.Errorf("Expected status %s, got %s", statusUp, site.Status)
+	if target.Status != statusUp {
+		t.Errorf("Expected status %s, got %s", statusUp, target.Status)
 	}
 }
 
 func TestTarget_updateStatus(t *testing.T) {
-	site := &Target{
+	target := &Target{
 		Status:          statusUp,
 		StatusChangedAt: time.Now().Add(-10 * time.Minute),
 	}
 
 	newStatus := statusDown
-	site.updateStatus(newStatus)
+	target.updateStatus(newStatus)
 
-	if site.Status != newStatus {
-		t.Errorf("expected status %q, got %q", newStatus, site.Status)
+	if target.Status != newStatus {
+		t.Errorf("expected status %q, got %q", newStatus, target.Status)
 	}
 
-	if time.Since(site.StatusChangedAt) > time.Second {
+	if time.Since(target.StatusChangedAt) > time.Second {
 		t.Errorf("StatusChangedAt was not updated correctly")
 	}
 }

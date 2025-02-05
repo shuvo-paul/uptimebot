@@ -7,25 +7,25 @@ import (
 	"time"
 
 	authService "github.com/shuvo-paul/uptimebot/internal/auth/service"
-	siteService "github.com/shuvo-paul/uptimebot/internal/monitor/service"
+	targetService "github.com/shuvo-paul/uptimebot/internal/monitor/service"
 	"github.com/shuvo-paul/uptimebot/internal/renderer"
 	"github.com/shuvo-paul/uptimebot/pkg/flash"
 )
 
 type TargetHandler struct {
-	siteService siteService.TargetServiceInterface
-	flash       flash.FlashStoreInterface
-	Template    struct {
+	targetService targetService.TargetServiceInterface
+	flash         flash.FlashStoreInterface
+	Template      struct {
 		List   renderer.PageTemplate
 		Create renderer.PageTemplate
 		Edit   renderer.PageTemplate
 	}
 }
 
-func NewTargetHandler(siteService siteService.TargetServiceInterface, flash flash.FlashStoreInterface) *TargetHandler {
+func NewTargetHandler(targetService targetService.TargetServiceInterface, flash flash.FlashStoreInterface) *TargetHandler {
 	c := &TargetHandler{
-		siteService: siteService,
-		flash:       flash,
+		targetService: targetService,
+		flash:         flash,
 	}
 
 	return c
@@ -38,17 +38,17 @@ func (c *TargetHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sites, err := c.siteService.GetAllByUserID(user.ID)
+	targets, err := c.targetService.GetAllByUserID(user.ID)
 	if err != nil {
-		http.Error(w, "Failed to fetch sites", http.StatusInternalServerError)
+		http.Error(w, "Failed to fetch targets", http.StatusInternalServerError)
 		return
 	}
 
 	flashId := flash.GetFlashIDFromContext(r.Context())
 
 	data := map[string]any{
-		"title":   "all sites",
-		"sites":   sites,
+		"title":   "all targets",
+		"targets": targets,
 		"success": c.flash.GetFlash(flashId, "success"),
 	}
 
@@ -58,7 +58,7 @@ func (c *TargetHandler) List(w http.ResponseWriter, r *http.Request) {
 func (c *TargetHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		data := map[string]any{
-			"title": "add a sites",
+			"title": "add a target",
 		}
 		c.Template.Create.Render(w, r, data)
 		return
@@ -71,7 +71,7 @@ func (c *TargetHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		flashID := flash.GetFlashIDFromContext(r.Context())
 		c.flash.SetFlash(flashID, "error", "Invalid interval value")
-		http.Redirect(w, r, "/sites/create", http.StatusSeeOther)
+		http.Redirect(w, r, "/targets/create", http.StatusSeeOther)
 		return
 	}
 
@@ -81,88 +81,88 @@ func (c *TargetHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = c.siteService.Create(user.ID, url, time.Duration(interval)*time.Second)
+	_, err = c.targetService.Create(user.ID, url, time.Duration(interval)*time.Second)
 	if err != nil {
 		flashID := flash.GetFlashIDFromContext(r.Context())
-		c.flash.SetFlash(flashID, "error", "Failed to create site: "+err.Error())
-		http.Redirect(w, r, "/sites/create", http.StatusSeeOther)
+		c.flash.SetFlash(flashID, "error", "Failed to create target: "+err.Error())
+		http.Redirect(w, r, "/targets/create", http.StatusSeeOther)
 		return
 	}
 
 	flashID := flash.GetFlashIDFromContext(r.Context())
-	c.flash.SetFlash(flashID, "success", "Site created successfully")
-	http.Redirect(w, r, "/sites", http.StatusSeeOther)
+	c.flash.SetFlash(flashID, "success", "Target created successfully")
+	http.Redirect(w, r, "/targets", http.StatusSeeOther)
 }
 
 func (c *TargetHandler) Edit(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
-		http.Error(w, "Invalid site ID", http.StatusBadRequest)
-		slog.Error("Invalid site ID", "error", err)
+		http.Error(w, "Invalid target ID", http.StatusBadRequest)
+		slog.Error("Invalid target ID", "error", err)
 		return
 	}
 
 	if r.Method == http.MethodGet {
-		site, err := c.siteService.GetByID(id)
+		target, err := c.targetService.GetByID(id)
 		if err != nil {
-			http.Error(w, "Site not found", http.StatusNotFound)
+			http.Error(w, "Target not found", http.StatusNotFound)
 			return
 		}
 
 		data := map[string]any{
-			"Title": "Edit Site",
-			"site":  site,
+			"Title":  "Edit Target",
+			"target": target,
 		}
 
 		c.Template.Edit.Render(w, r, data)
 		return
 	}
 
-	site, err := c.siteService.GetByID(id)
+	target, err := c.targetService.GetByID(id)
 	if err != nil {
-		http.Error(w, "Site not found", http.StatusNotFound)
+		http.Error(w, "Target not found", http.StatusNotFound)
 		return
 	}
 
-	site.URL = r.FormValue("url")
+	target.URL = r.FormValue("url")
 	intervalStr := r.FormValue("interval")
 	interval, err := strconv.Atoi(intervalStr)
 	if err != nil {
 		flashID := flash.GetFlashIDFromContext(r.Context())
 		c.flash.SetFlash(flashID, "error", "Invalid interval value")
-		http.Redirect(w, r, "/sites/"+strconv.Itoa(id)+"/edit", http.StatusSeeOther)
+		http.Redirect(w, r, "/targets/"+strconv.Itoa(id)+"/edit", http.StatusSeeOther)
 		return
 	}
-	site.Interval = time.Duration(interval) * time.Second
+	target.Interval = time.Duration(interval) * time.Second
 
-	_, err = c.siteService.Update(site)
+	_, err = c.targetService.Update(target)
 	if err != nil {
 		flashID := flash.GetFlashIDFromContext(r.Context())
-		c.flash.SetFlash(flashID, "error", "Failed to update site: "+err.Error())
-		http.Redirect(w, r, "/sites/"+strconv.Itoa(id)+"/edit", http.StatusSeeOther)
+		c.flash.SetFlash(flashID, "error", "Failed to update target: "+err.Error())
+		http.Redirect(w, r, "/targets/"+strconv.Itoa(id)+"/edit", http.StatusSeeOther)
 		return
 	}
 
 	flashID := flash.GetFlashIDFromContext(r.Context())
-	c.flash.SetFlash(flashID, "success", "Site updated successfully")
-	http.Redirect(w, r, "/sites", http.StatusSeeOther)
+	c.flash.SetFlash(flashID, "success", "Target updated successfully")
+	http.Redirect(w, r, "/targets", http.StatusSeeOther)
 }
 
 func (c *TargetHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 
 	if err != nil {
-		http.Error(w, "Invalid site ID", http.StatusBadRequest)
+		http.Error(w, "Invalid target ID", http.StatusBadRequest)
 		return
 	}
 
-	err = c.siteService.Delete(id)
+	err = c.targetService.Delete(id)
 	flashID := flash.GetFlashIDFromContext(r.Context())
 	if err != nil {
-		c.flash.SetFlash(flashID, "error", "Failed to delete site: "+err.Error())
+		c.flash.SetFlash(flashID, "error", "Failed to delete target: "+err.Error())
 	} else {
-		c.flash.SetFlash(flashID, "success", "Site deleted successfully")
+		c.flash.SetFlash(flashID, "success", "Target deleted successfully")
 	}
 
-	http.Redirect(w, r, "/sites", http.StatusSeeOther)
+	http.Redirect(w, r, "/targets", http.StatusSeeOther)
 }

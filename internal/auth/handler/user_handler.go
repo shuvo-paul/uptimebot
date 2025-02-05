@@ -115,7 +115,7 @@ func (c *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteStrictMode,
 	})
 
-	http.Redirect(w, r, "sites", http.StatusSeeOther)
+	http.Redirect(w, r, "/targets", http.StatusSeeOther)
 }
 
 func (c *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {

@@ -61,20 +61,20 @@ func NewApp() *App {
 	notifierService := notificationService.NewNotifierService(notifierRepository, nil)
 	notifierHandler := notificationHandler.NewNotifierHandler(notifierService)
 
-	siteRepository := uptimeRepository.NewSiteRepository(db)
-	siteService := uptimeService.NewTargetService(siteRepository, notifierService)
+	targetRepository := uptimeRepository.NewTargetRepository(db)
+	targetService := uptimeService.NewTargetService(targetRepository, notifierService)
 
-	// Initialize monitoring for existing sites
-	if err := siteService.InitializeMonitoring(); err != nil {
-		log.Printf("Failed to initialize site monitoring: %v", err)
+	// Initialize monitoring for existing targets
+	if err := targetService.InitializeMonitoring(); err != nil {
+		log.Printf("Failed to initialize target monitoring: %v", err)
 		// Don't fatal here, allow the app to continue even if some monitors fail
 	}
 
-	// Initialize site controller
-	targetHandler := uptimeHandler.NewTargetHandler(siteService, flashStore)
-	targetHandler.Template.List = templateRenderer.Parse("sites/list.html")
-	targetHandler.Template.Create = templateRenderer.Parse("sites/create.html")
-	targetHandler.Template.Edit = templateRenderer.Parse("sites/edit.html")
+	// Initialize target controller
+	targetHandler := uptimeHandler.NewTargetHandler(targetService, flashStore)
+	targetHandler.Template.List = templateRenderer.Parse("targets/list.html")
+	targetHandler.Template.Create = templateRenderer.Parse("targets/create.html")
+	targetHandler.Template.Edit = templateRenderer.Parse("targets/edit.html")
 
 	fmt.Println("app initialized")
 

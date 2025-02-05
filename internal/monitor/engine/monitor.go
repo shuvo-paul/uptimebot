@@ -87,19 +87,19 @@ func (s *Target) updateStatus(status string) {
 
 		if s.OnStatusUpdate != nil {
 			if err := s.OnStatusUpdate(s, status); err != nil {
-				slog.Error("Failed to persist status update", "site", s.URL, "error", err)
+				slog.Error("Failed to persist status update", "Target", s.URL, "error", err)
 			}
 		}
 	}
 }
 
-func (s *Target) Update(updatedSite *Target) {
+func (s *Target) Update(updatedTarget *Target) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.URL = updatedSite.URL
-	s.Interval = updatedSite.Interval
-	s.Enabled = updatedSite.Enabled
+	s.URL = updatedTarget.URL
+	s.Interval = updatedTarget.Interval
+	s.Enabled = updatedTarget.Enabled
 }
 
 type Manager struct {
@@ -113,12 +113,12 @@ func NewManager() *Manager {
 	}
 }
 
-func (m *Manager) RegisterSite(target *Target) error {
+func (m *Manager) RegisterTarget(target *Target) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	if _, ok := m.Targets[target.ID]; ok {
-		return fmt.Errorf("site %s already being monitored", target.URL)
+		return fmt.Errorf("Target %s already being monitored", target.URL)
 	}
 
 	if target.Client == nil {
@@ -137,7 +137,7 @@ func (m *Manager) RegisterSite(target *Target) error {
 		for {
 			select {
 			case <-ctx.Done():
-				slog.Info("Monitoring stopperd", "site", target.URL)
+				slog.Info("Monitoring stopped", "Target", target.URL)
 				m.mu.Lock()
 				delete(m.Targets, target.ID)
 				m.mu.Unlock()
@@ -147,25 +147,25 @@ func (m *Manager) RegisterSite(target *Target) error {
 					continue
 				}
 				if err := target.Check(); err != nil {
-					slog.Error("Site check failed", "site", target.URL, "error", err)
+					slog.Error("Target check failed", "Target", target.URL, "error", err)
 				}
 			}
 		}
 
 	}()
 
-	slog.Info("Monitoring started", "site", target.URL)
+	slog.Info("Monitoring started", "Target", target.URL)
 	return nil
 }
 
-func (m *Manager) RevokeSite(siteID int) {
+func (m *Manager) RevokeTarget(targetID int) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if site, exist := m.Targets[siteID]; exist {
-		site.cancelFunc()
-		delete(m.Targets, siteID)
-		slog.Info("Monitoring Stopped", "Site", site.URL)
+	if target, exist := m.Targets[targetID]; exist {
+		target.cancelFunc()
+		delete(m.Targets, targetID)
+		slog.Info("Monitoring Stopped", "Target", target.URL)
 	} else {
-		slog.Info("Site removed, but no monitoring was active", "siteID", siteID)
+		slog.Info("Target removed, but no monitoring was active", "targetID", targetID)
 	}
 }

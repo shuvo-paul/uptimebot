@@ -13,7 +13,7 @@ type NotifierRepositoryInterface interface {
 	Get(int64) (*model.Notifier, error)
 	Update(int, json.RawMessage) (*model.Notifier, error)
 	Delete(int64) error
-	GetBySiteID(int) ([]*model.Notifier, error)
+	GetByTargetID(int) ([]*model.Notifier, error)
 }
 
 var _ NotifierRepositoryInterface = (*NotifierRepository)(nil)
@@ -138,15 +138,15 @@ func (r *NotifierRepository) Delete(id int64) error {
 	return nil
 }
 
-// GetBySiteID retrieves all notifiers for a specific site
-func (r *NotifierRepository) GetBySiteID(siteID int) ([]*model.Notifier, error) {
+// GetByTargetID retrieves all notifiers for a specific target
+func (r *NotifierRepository) GetByTargetID(targetID int) ([]*model.Notifier, error) {
 	query := `
 		SELECT id, target_id, type, config
 		FROM notifier
 		WHERE target_id = ?
 	`
 
-	rows, err := r.db.Query(query, siteID)
+	rows, err := r.db.Query(query, targetID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query notifiers: %w", err)
 	}

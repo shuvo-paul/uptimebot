@@ -15,7 +15,7 @@ var (
 	ErrTargetNotFound = errors.New("target not found")
 )
 
-type SiteRepositoryInterface interface {
+type TargetRepositoryInterface interface {
 	Create(model.UserTarget) (model.UserTarget, error)
 	GetByID(int) (*monitor.Target, error)
 	GetAll() ([]*monitor.Target, error)
@@ -25,24 +25,24 @@ type SiteRepositoryInterface interface {
 	UpdateStatus(*monitor.Target, string) error
 }
 
-var _ SiteRepositoryInterface = (*SiteRepository)(nil)
+var _ TargetRepositoryInterface = (*TargetRepository)(nil)
 
-type SiteRepository struct {
+type TargetRepository struct {
 	db *sql.DB
 }
 
-func NewSiteRepository(db *sql.DB) *SiteRepository {
-	return &SiteRepository{db: db}
+func NewTargetRepository(db *sql.DB) *TargetRepository {
+	return &TargetRepository{db: db}
 }
 
-func (r *SiteRepository) formatTime(t time.Time) string {
+func (r *TargetRepository) formatTime(t time.Time) string {
 	if t.IsZero() {
 		return ""
 	}
 	return t.UTC().Format(time.RFC3339Nano)
 }
 
-func (r *SiteRepository) parseTime(s string) (time.Time, error) {
+func (r *TargetRepository) parseTime(s string) (time.Time, error) {
 	if s == "" {
 		return time.Time{}, nil
 	}
@@ -57,16 +57,16 @@ func (r *SiteRepository) parseTime(s string) (time.Time, error) {
 	return time.Parse("2006-01-02 15:04:05.999999999-07:00", s)
 }
 
-func (r *SiteRepository) Create(userSite model.UserTarget) (model.UserTarget, error) {
+func (r *TargetRepository) Create(userTarget model.UserTarget) (model.UserTarget, error) {
 
-	if userSite.URL == "" {
+	if userTarget.URL == "" {
 		return model.UserTarget{}, fmt.Errorf("URL cannot be empty")
 	}
-	if _, err := url.Parse(userSite.URL); err != nil {
+	if _, err := url.Parse(userTarget.URL); err != nil {
 		return model.UserTarget{}, fmt.Errorf("invalid URL: %w", err)
 	}
-	if userSite.UserID <= 0 {
-		return model.UserTarget{}, fmt.Errorf("invalid UserID: %d", userSite.UserID)
+	if userTarget.UserID <= 0 {
+		return model.UserTarget{}, fmt.Errorf("invalid UserID: %d", userTarget.UserID)
 	}
 
 	query := `
@@ -75,15 +75,15 @@ func (r *SiteRepository) Create(userSite model.UserTarget) (model.UserTarget, er
 
 	result, err := r.db.Exec(
 		query,
-		userSite.URL,
-		userSite.UserID,
-		userSite.Status,
-		userSite.Enabled,
-		userSite.Interval.Seconds(),
-		r.formatTime(userSite.StatusChangedAt),
+		userTarget.URL,
+		userTarget.UserID,
+		userTarget.Status,
+		userTarget.Enabled,
+		userTarget.Interval.Seconds(),
+		r.formatTime(userTarget.StatusChangedAt),
 	)
 	if err != nil {
-		return model.UserTarget{}, fmt.Errorf("failed to create site: %w", err)
+		return model.UserTarget{}, fmt.Errorf("failed to create target: %w", err)
 	}
 
 	id, err := result.LastInsertId()
@@ -91,26 +91,26 @@ func (r *SiteRepository) Create(userSite model.UserTarget) (model.UserTarget, er
 		return model.UserTarget{}, fmt.Errorf("failed to get last insert ID: %w", err)
 	}
 
-	userSite.ID = int(id)
-	userSite.StatusChangedAt = userSite.StatusChangedAt.UTC()
-	return userSite, nil
+	userTarget.ID = int(id)
+	userTarget.StatusChangedAt = userTarget.StatusChangedAt.UTC()
+	return userTarget, nil
 }
 
-func (r *SiteRepository) GetByID(id int) (*monitor.Target, error) {
+func (r *TargetRepository) GetByID(id int) (*monitor.Target, error) {
 	query := `
 		SELECT id, url, status, enabled, interval, status_changed_at
 		FROM target
 		WHERE id = ?`
 
-	site := &monitor.Target{}
+	target := &monitor.Target{}
 	var intervalSeconds float64
 	var statusChangedAtStr string
 
 	err := r.db.QueryRow(query, id).Scan(
-		&site.ID,
-		&site.URL,
-		&site.Status,
-		&site.Enabled,
+		&target.ID,
+		&target.URL,
+		&target.Status,
+		&target.Enabled,
 		&intervalSeconds,
 		&statusChangedAtStr,
 	)
@@ -119,19 +119,19 @@ func (r *SiteRepository) GetByID(id int) (*monitor.Target, error) {
 		return nil, ErrTargetNotFound
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to get site: %w", err)
+		return nil, fmt.Errorf("failed to get target: %w", err)
 	}
 
-	site.Interval = time.Duration(intervalSeconds) * time.Second
-	site.StatusChangedAt, err = r.parseTime(statusChangedAtStr)
+	target.Interval = time.Duration(intervalSeconds) * time.Second
+	target.StatusChangedAt, err = r.parseTime(statusChangedAtStr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse status_changed_at: %w", err)
 	}
 
-	return site, nil
+	return target, nil
 }
 
-func (r *SiteRepository) GetAll() ([]*monitor.Target, error) {
+func (r *TargetRepository) GetAll() ([]*monitor.Target, error) {
 
 	query := `
 		SELECT id, url, status, enabled, interval, status_changed_at
@@ -139,45 +139,45 @@ func (r *SiteRepository) GetAll() ([]*monitor.Target, error) {
 
 	rows, err := r.db.Query(query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query sites: %w", err)
+		return nil, fmt.Errorf("failed to query targets: %w", err)
 	}
 	defer rows.Close()
 
-	var sites []*monitor.Target
+	var targets []*monitor.Target
 	for rows.Next() {
-		site := &monitor.Target{}
+		target := &monitor.Target{}
 		var intervalSeconds float64
 		var statusChangedAtStr string
 
 		err := rows.Scan(
-			&site.ID,
-			&site.URL,
-			&site.Status,
-			&site.Enabled,
+			&target.ID,
+			&target.URL,
+			&target.Status,
+			&target.Enabled,
 			&intervalSeconds,
 			&statusChangedAtStr,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan site: %w", err)
+			return nil, fmt.Errorf("failed to scan target: %w", err)
 		}
 
-		site.StatusChangedAt, err = r.parseTime(statusChangedAtStr)
+		target.StatusChangedAt, err = r.parseTime(statusChangedAtStr)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse status_changed_at: %w", err)
 		}
 
-		site.Interval = time.Duration(intervalSeconds) * time.Second
-		sites = append(sites, site)
+		target.Interval = time.Duration(intervalSeconds) * time.Second
+		targets = append(targets, target)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating sites: %w", err)
+		return nil, fmt.Errorf("error iterating targets: %w", err)
 	}
 
-	return sites, nil
+	return targets, nil
 }
 
-func (r *SiteRepository) GetAllByUserID(userID int) ([]*monitor.Target, error) {
+func (r *TargetRepository) GetAllByUserID(userID int) ([]*monitor.Target, error) {
 	query := `
 		SELECT id, url, status, enabled, interval, status_changed_at
 		FROM target 
@@ -185,45 +185,45 @@ func (r *SiteRepository) GetAllByUserID(userID int) ([]*monitor.Target, error) {
 
 	rows, err := r.db.Query(query, userID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query sites: %w", err)
+		return nil, fmt.Errorf("failed to query targets: %w", err)
 	}
 	defer rows.Close()
 
-	var sites []*monitor.Target
+	var targets []*monitor.Target
 	for rows.Next() {
-		site := &monitor.Target{}
+		target := &monitor.Target{}
 		var intervalSeconds float64
 		var statusChangedAtStr string
 
 		err := rows.Scan(
-			&site.ID,
-			&site.URL,
-			&site.Status,
-			&site.Enabled,
+			&target.ID,
+			&target.URL,
+			&target.Status,
+			&target.Enabled,
 			&intervalSeconds,
 			&statusChangedAtStr,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan site: %w", err)
+			return nil, fmt.Errorf("failed to scan target: %w", err)
 		}
 
-		site.StatusChangedAt, err = r.parseTime(statusChangedAtStr)
+		target.StatusChangedAt, err = r.parseTime(statusChangedAtStr)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse status_changed_at: %w", err)
 		}
 
-		site.Interval = time.Duration(intervalSeconds) * time.Second
-		sites = append(sites, site)
+		target.Interval = time.Duration(intervalSeconds) * time.Second
+		targets = append(targets, target)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating sites: %w", err)
+		return nil, fmt.Errorf("error iterating targets: %w", err)
 	}
 
-	return sites, nil
+	return targets, nil
 }
 
-func (r *SiteRepository) Update(site *monitor.Target) (*monitor.Target, error) {
+func (r *TargetRepository) Update(target *monitor.Target) (*monitor.Target, error) {
 	query := `
 		UPDATE target
 		SET url = ?, status = ?, enabled = ?, interval = ?, status_changed_at = ?
@@ -231,15 +231,15 @@ func (r *SiteRepository) Update(site *monitor.Target) (*monitor.Target, error) {
 
 	result, err := r.db.Exec(
 		query,
-		site.URL,
-		site.Status,
-		site.Enabled,
-		site.Interval.Seconds(),
-		r.formatTime(site.StatusChangedAt),
-		site.ID,
+		target.URL,
+		target.Status,
+		target.Enabled,
+		target.Interval.Seconds(),
+		r.formatTime(target.StatusChangedAt),
+		target.ID,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to update site: %w", err)
+		return nil, fmt.Errorf("failed to update target: %w", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
@@ -251,19 +251,19 @@ func (r *SiteRepository) Update(site *monitor.Target) (*monitor.Target, error) {
 		return nil, ErrTargetNotFound
 	}
 
-	site.StatusChangedAt = site.StatusChangedAt.UTC()
-	return site, nil
+	target.StatusChangedAt = target.StatusChangedAt.UTC()
+	return target, nil
 }
 
-func (r *SiteRepository) UpdateStatus(site *monitor.Target, status string) error {
+func (r *TargetRepository) UpdateStatus(target *monitor.Target, status string) error {
 	query := `
 		UPDATE target
 		SET status = ?, status_changed_at = ?
 		WHERE id = ?`
 
-	result, err := r.db.Exec(query, status, site.StatusChangedAt, site.ID)
+	result, err := r.db.Exec(query, status, target.StatusChangedAt, target.ID)
 	if err != nil {
-		return fmt.Errorf("failed to update site status: %w", err)
+		return fmt.Errorf("failed to update target status: %w", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
@@ -278,10 +278,10 @@ func (r *SiteRepository) UpdateStatus(site *monitor.Target, status string) error
 	return nil
 }
 
-func (r *SiteRepository) Delete(siteId int) error {
+func (r *TargetRepository) Delete(targetId int) error {
 	query := `DELETE FROM target WHERE id = ?`
 
-	result, err := r.db.Exec(query, siteId)
+	result, err := r.db.Exec(query, targetId)
 	if err != nil {
 		return err
 	}

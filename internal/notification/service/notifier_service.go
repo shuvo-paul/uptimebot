@@ -19,8 +19,8 @@ type NotifierServiceInterface interface {
 	Get(id int64) (*model.Notifier, error)
 	Update(id int, config json.RawMessage) (*model.Notifier, error)
 	Delete(id int64) error
-	ConfigureObservers(siteID int) error
-	HandleSlackCallback(code string, siteId int) (*model.Notifier, error)
+	ConfigureObservers(targetID int) error
+	HandleSlackCallback(code string, targetID int) (*model.Notifier, error)
 	ParseOAuthState(state string) (int, error)
 	GetSubject() *notifCoer.Subject
 }
@@ -82,13 +82,13 @@ func (s *NotifierService) Delete(id int64) error {
 	return nil
 }
 
-// ConfigureObservers configures observers for a specific site
-func (s *NotifierService) ConfigureObservers(siteID int) error {
+// ConfigureObservers configures observers for a specific target
+func (s *NotifierService) ConfigureObservers(targetID int) error {
 	// First detach any existing observers
 	// This ensures we don't have duplicate observers if called multiple times
 	s.subject = notifCoer.NewSubject()
 
-	notifiers, err := s.notifierRepo.GetBySiteID(siteID)
+	notifiers, err := s.notifierRepo.GetByTargetID(targetID)
 	if err != nil {
 		return fmt.Errorf("failed to get notifiers: %w", err)
 	}
@@ -110,7 +110,7 @@ func (s *NotifierService) ConfigureObservers(siteID int) error {
 	return nil
 }
 
-func (s *NotifierService) HandleSlackCallback(code string, siteId int) (*model.Notifier, error) {
+func (s *NotifierService) HandleSlackCallback(code string, targetID int) (*model.Notifier, error) {
 	clientId := os.Getenv("SLACK_CLIENT_ID")
 	clientSecret := os.Getenv("SLACK_CLIENT_SECRET")
 
@@ -146,7 +146,7 @@ func (s *NotifierService) HandleSlackCallback(code string, siteId int) (*model.N
 	}
 
 	notifier := &model.Notifier{
-		TargetId: siteId,
+		TargetId: targetID,
 		Type:     model.NotifierTypeSlack,
 		Config:   json.RawMessage(`{"webhook_url": "` + webhookUrl + `"}`),
 	}
@@ -161,18 +161,18 @@ func (s *NotifierService) ParseOAuthState(state string) (int, error) {
 		return 0, fmt.Errorf("invalid state format: %w", err)
 	}
 
-	siteId, ok := parsedState["target_id"]
+	targetId, ok := parsedState["target_id"]
 
-	if !ok || len(siteId) <= 0 || siteId[0] == "" {
-		return 0, fmt.Errorf("missing site id in state")
+	if !ok || len(targetId) <= 0 || targetId[0] == "" {
+		return 0, fmt.Errorf("missing target id in state")
 	}
 
-	siteIdInt, err := strconv.Atoi(siteId[0])
+	targetIdInt, err := strconv.Atoi(targetId[0])
 	if err != nil {
-		return 0, fmt.Errorf("invalid site id format: %w", err)
+		return 0, fmt.Errorf("invalid target id format: %w", err)
 	}
 
-	return siteIdInt, nil
+	return targetIdInt, nil
 }
 
 func (s *NotifierService) GetSubject() *notifCoer.Subject {

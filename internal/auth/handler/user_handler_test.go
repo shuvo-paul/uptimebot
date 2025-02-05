@@ -131,7 +131,7 @@ func TestLogin(t *testing.T) {
 				return &model.Session{}, "session-token", nil
 			},
 			expectedStatus: http.StatusSeeOther,
-			expectedPath:   "/sites",
+			expectedPath:   "/targets",
 		},
 		// Add more test cases for invalid credentials, service errors, etc.
 	}

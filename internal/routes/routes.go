@@ -40,7 +40,7 @@ func SetupRoutes(
 
 	// Protected routes
 	protected := http.NewServeMux()
-	// Add site monitoring routes
+	// Add target monitoring routes
 	protected.HandleFunc("GET /", targetHandler.List)
 	protected.HandleFunc("GET /create", targetHandler.Create)
 	protected.HandleFunc("POST /create", targetHandler.Create)
@@ -51,8 +51,8 @@ func SetupRoutes(
 	protected.HandleFunc("GET /auth/slack/{targetId}", notifierHandler.AuthSlack)
 	protected.HandleFunc("GET /auth/slack/callback", notifierHandler.AuthSlackCallback)
 
-	mux.Handle("/sites/", middleware.RequireAuth(
-		http.StripPrefix("/sites", protected),
+	mux.Handle("/targets/", middleware.RequireAuth(
+		http.StripPrefix("/targets", protected),
 		sessionService,
 		authService,
 	))

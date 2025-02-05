@@ -22,7 +22,7 @@ func NewNotifierHandler(notifierService service.NotifierServiceInterface) *Notif
 func (nh *NotifierHandler) AuthSlack(w http.ResponseWriter, r *http.Request) {
 	targetId, err := strconv.Atoi(r.PathValue("targetId"))
 	if err != nil {
-		http.Error(w, "Invalid site ID", http.StatusBadRequest)
+		http.Error(w, "Invalid target ID", http.StatusBadRequest)
 		return
 	}
 
@@ -60,5 +60,5 @@ func (nh *NotifierHandler) AuthSlackCallback(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	http.Redirect(w, r, fmt.Sprintf("/sites/%d", targetId), http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/targets/%d", targetId), http.StatusSeeOther)
 }

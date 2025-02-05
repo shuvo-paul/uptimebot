@@ -17,50 +17,50 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Mock SiteService
-type mockSiteService struct {
+// Mock TargetService
+type mockTargetService struct {
 	getAllFunc               func() ([]*monitor.Target, error)
 	getByIDFunc              func(id int) (*monitor.Target, error)
 	createFunc               func(userID int, url string, interval time.Duration) (*monitor.Target, error)
-	updateFunc               func(site *monitor.Target) (*monitor.Target, error)
+	updateFunc               func(target *monitor.Target) (*monitor.Target, error)
 	deleteFunc               func(id int) error
 	getAllByUserIDFunc       func(userID int) ([]*monitor.Target, error)
 	initializeMonitoringFunc func() error
 }
 
-func (m *mockSiteService) GetAll() ([]*monitor.Target, error) {
+func (m *mockTargetService) GetAll() ([]*monitor.Target, error) {
 	return m.getAllFunc()
 }
 
-func (m *mockSiteService) GetByID(id int) (*monitor.Target, error) {
+func (m *mockTargetService) GetByID(id int) (*monitor.Target, error) {
 	return m.getByIDFunc(id)
 }
 
-func (m *mockSiteService) Create(userID int, url string, interval time.Duration) (*monitor.Target, error) {
+func (m *mockTargetService) Create(userID int, url string, interval time.Duration) (*monitor.Target, error) {
 	return m.createFunc(userID, url, interval)
 }
 
-func (m *mockSiteService) Update(site *monitor.Target) (*monitor.Target, error) {
-	return m.updateFunc(site)
+func (m *mockTargetService) Update(target *monitor.Target) (*monitor.Target, error) {
+	return m.updateFunc(target)
 }
 
-func (m *mockSiteService) Delete(id int) error {
+func (m *mockTargetService) Delete(id int) error {
 	return m.deleteFunc(id)
 }
 
-func (m *mockSiteService) GetAllByUserID(userID int) ([]*monitor.Target, error) {
+func (m *mockTargetService) GetAllByUserID(userID int) ([]*monitor.Target, error) {
 	return m.getAllByUserIDFunc(userID)
 }
 
-func (m *mockSiteService) InitializeMonitoring() error {
+func (m *mockTargetService) InitializeMonitoring() error {
 	if m.initializeMonitoringFunc != nil {
 		return m.initializeMonitoringFunc()
 	}
 	return nil
 }
 
-func TestSiteHandler_List(t *testing.T) {
-	mockService := &mockSiteService{
+func TestTargetHandler_List(t *testing.T) {
+	mockService := &mockTargetService{
 		getAllByUserIDFunc: func(userID int) ([]*monitor.Target, error) {
 			return []*monitor.Target{{ID: 1, URL: "http://example.com", Interval: 60 * time.Second}}, nil
 		},
@@ -69,9 +69,9 @@ func TestSiteHandler_List(t *testing.T) {
 
 	handler := NewTargetHandler(mockService, &testutil.MockFlashStore{})
 	templateRenderer := renderer.New(templates.TemplateFS)
-	handler.Template.List = templateRenderer.Parse("sites/list.html")
+	handler.Template.List = templateRenderer.Parse("targets/list.html")
 
-	req := httptest.NewRequest(http.MethodGet, "/sites", nil)
+	req := httptest.NewRequest(http.MethodGet, "/targets", nil)
 	user := &authModel.User{ID: 1}
 	ctx := authService.WithUser(req.Context(), user)
 	req = req.WithContext(ctx)
@@ -82,16 +82,16 @@ func TestSiteHandler_List(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
-func TestSiteHandler_Create(t *testing.T) {
+func TestTargetHandler_Create(t *testing.T) {
 	t.Run("GET request", func(t *testing.T) {
-		mockService := &mockSiteService{
+		mockService := &mockTargetService{
 			initializeMonitoringFunc: func() error { return nil },
 		}
 		handler := NewTargetHandler(mockService, &testutil.MockFlashStore{})
 		templateRenderer := renderer.New(templates.TemplateFS)
-		handler.Template.Create = templateRenderer.Parse("sites/create.html")
+		handler.Template.Create = templateRenderer.Parse("targets/create.html")
 
-		req := httptest.NewRequest(http.MethodGet, "/sites/create", nil)
+		req := httptest.NewRequest(http.MethodGet, "/targets/create", nil)
 		w := httptest.NewRecorder()
 
 		handler.Create(w, req)
@@ -100,7 +100,7 @@ func TestSiteHandler_Create(t *testing.T) {
 	})
 
 	t.Run("POST request - success", func(t *testing.T) {
-		mockService := &mockSiteService{
+		mockService := &mockTargetService{
 			createFunc: func(userID int, url string, interval time.Duration) (*monitor.Target, error) {
 				return &monitor.Target{ID: 1, URL: url, Interval: interval}, nil
 			},
@@ -113,7 +113,7 @@ func TestSiteHandler_Create(t *testing.T) {
 		form.Add("url", "http://example.com")
 		form.Add("interval", "60")
 
-		req := httptest.NewRequest(http.MethodPost, "/sites/create", strings.NewReader(form.Encode()))
+		req := httptest.NewRequest(http.MethodPost, "/targets/create", strings.NewReader(form.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 		// Add user to context
@@ -126,11 +126,11 @@ func TestSiteHandler_Create(t *testing.T) {
 		handler.Create(w, req)
 
 		assert.Equal(t, http.StatusSeeOther, w.Code)
-		assert.Equal(t, "/sites", w.Header().Get("Location"))
+		assert.Equal(t, "/targets", w.Header().Get("Location"))
 	})
 
 	t.Run("POST request - no user in context", func(t *testing.T) {
-		mockService := &mockSiteService{
+		mockService := &mockTargetService{
 			createFunc: func(userID int, url string, interval time.Duration) (*monitor.Target, error) {
 				return &monitor.Target{ID: 1, URL: url, Interval: interval}, nil
 			},
@@ -143,7 +143,7 @@ func TestSiteHandler_Create(t *testing.T) {
 		form.Add("url", "http://example.com")
 		form.Add("interval", "60")
 
-		req := httptest.NewRequest(http.MethodPost, "/sites/create", strings.NewReader(form.Encode()))
+		req := httptest.NewRequest(http.MethodPost, "/targets/create", strings.NewReader(form.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		w := httptest.NewRecorder()
 
@@ -153,9 +153,9 @@ func TestSiteHandler_Create(t *testing.T) {
 	})
 }
 
-func TestSiteHandler_Edit(t *testing.T) {
+func TestTargetHandler_Edit(t *testing.T) {
 	t.Run("GET request", func(t *testing.T) {
-		mockService := &mockSiteService{
+		mockService := &mockTargetService{
 			getByIDFunc: func(id int) (*monitor.Target, error) {
 				return &monitor.Target{ID: id, URL: "http://example.com", Interval: 60 * time.Second}, nil
 			},
@@ -164,9 +164,9 @@ func TestSiteHandler_Edit(t *testing.T) {
 
 		handler := NewTargetHandler(mockService, &testutil.MockFlashStore{})
 		templateRenderer := renderer.New(templates.TemplateFS)
-		handler.Template.Edit = templateRenderer.Parse("sites/edit.html")
+		handler.Template.Edit = templateRenderer.Parse("targets/edit.html")
 
-		req := httptest.NewRequest(http.MethodGet, "/sites/1/edit", nil)
+		req := httptest.NewRequest(http.MethodGet, "/targets/1/edit", nil)
 		req.SetPathValue("id", "1")
 		w := httptest.NewRecorder()
 
@@ -176,13 +176,13 @@ func TestSiteHandler_Edit(t *testing.T) {
 	})
 
 	t.Run("POST request - success", func(t *testing.T) {
-		site := &monitor.Target{ID: 1, URL: "http://example.com", Interval: 60 * time.Second}
-		mockService := &mockSiteService{
+		target := &monitor.Target{ID: 1, URL: "http://example.com", Interval: 60 * time.Second}
+		mockService := &mockTargetService{
 			getByIDFunc: func(id int) (*monitor.Target, error) {
-				return site, nil
+				return target, nil
 			},
-			updateFunc: func(site *monitor.Target) (*monitor.Target, error) {
-				return site, nil
+			updateFunc: func(t *monitor.Target) (*monitor.Target, error) {
+				return t, nil
 			},
 			initializeMonitoringFunc: func() error { return nil },
 		}
@@ -193,7 +193,7 @@ func TestSiteHandler_Edit(t *testing.T) {
 		form.Add("url", "http://example.com")
 		form.Add("interval", "60")
 
-		req := httptest.NewRequest(http.MethodPost, "/sites/1/edit", strings.NewReader(form.Encode()))
+		req := httptest.NewRequest(http.MethodPost, "/targets/1/edit", strings.NewReader(form.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		req.SetPathValue("id", "1")
 		w := httptest.NewRecorder()
@@ -201,13 +201,13 @@ func TestSiteHandler_Edit(t *testing.T) {
 		handler.Edit(w, req)
 
 		assert.Equal(t, http.StatusSeeOther, w.Code)
-		assert.Equal(t, "/sites", w.Header().Get("Location"))
+		assert.Equal(t, "/targets", w.Header().Get("Location"))
 	})
 }
 
-func TestSitehandler_Delete(t *testing.T) {
+func TestTargetHandler_Delete(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		mockService := &mockSiteService{
+		mockService := &mockTargetService{
 			deleteFunc: func(id int) error {
 				return nil
 			},
@@ -216,23 +216,23 @@ func TestSitehandler_Delete(t *testing.T) {
 
 		handler := NewTargetHandler(mockService, &testutil.MockFlashStore{})
 
-		req := httptest.NewRequest(http.MethodPost, "/sites/1/delete", nil)
+		req := httptest.NewRequest(http.MethodPost, "/targets/1/delete", nil)
 		req.SetPathValue("id", "1")
 		w := httptest.NewRecorder()
 
 		handler.Delete(w, req)
 
 		assert.Equal(t, http.StatusSeeOther, w.Code)
-		assert.Equal(t, "/sites", w.Header().Get("Location"))
+		assert.Equal(t, "/targets", w.Header().Get("Location"))
 	})
 
 	t.Run("invalid ID", func(t *testing.T) {
-		mockService := &mockSiteService{
+		mockService := &mockTargetService{
 			initializeMonitoringFunc: func() error { return nil },
 		}
 		handler := NewTargetHandler(mockService, &testutil.MockFlashStore{})
 
-		req := httptest.NewRequest(http.MethodPost, "/sites/invalid/delete", nil)
+		req := httptest.NewRequest(http.MethodPost, "/targets/invalid/delete", nil)
 		req.SetPathValue("id", "invalid")
 		w := httptest.NewRecorder()
 

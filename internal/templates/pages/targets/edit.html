@@ -1,31 +1,31 @@
 {{ define "content" }}
 <div class="container mx-auto px-4 py-8">
     <div class="max-w-xl mx-auto bg-white rounded-lg shadow-md p-6">
-        <h1 class="text-2xl font-bold mb-6">Edit Site</h1>
+        <h1 class="text-2xl font-bold mb-6">Edit Target</h1>
         <div class="flex gap-6">
             <div class="flex-grow">
-                <form method="POST" action="/sites/{{ .site.ID }}/edit">
+                <form method="POST" action="/targets/{{ .target.ID }}/edit">
                     {{csrfField}}
                     <div class="mb-4">
                         <label for="url" class="block text-gray-700 text-sm font-bold mb-2">URL</label>
                         <input type="url" id="url" name="url" required
                             class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                            value="{{ .site.URL }}">
+                            value="{{ .target.URL }}">
                     </div>
 
                     <div class="mb-6">
                         <label for="interval" class="block text-gray-700 text-sm font-bold mb-2">Check Interval (seconds)</label>
                         <input type="number" id="interval" name="interval" required min="30"
                             class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                            value="{{ .site.Interval.Seconds }}">
+                            value="{{ .target.Interval.Seconds }}">
                     </div>
 
                     <div class="flex items-center justify-between">
                         <button type="submit"
                             class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                            Update Site
+                            Update Target
                         </button>
-                        <a href="/sites"
+                        <a href="/targets"
                             class="text-blue-500 hover:text-blue-800">
                             Cancel
                         </a>
@@ -34,7 +34,7 @@
             </div>
 
             <div class="flex-shrink-0">
-                <a href="/sites/auth/slack/{{ .site.ID }}" class="text-black border inline-flex py-4 px-4 rounded-md" >
+                <a href="/targets/auth/slack/{{ .target.ID }}" class="text-black border inline-flex py-4 px-4 rounded-md" >
                     <svg
                         xmlns="http://www.w3.org/2000/svg" style="height:20px;width:20px;" viewBox="0 0 122.8 122.8">
                         <path

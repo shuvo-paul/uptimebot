@@ -17,15 +17,15 @@ import (
 
 // mockNotifierRepository is a mock implementation of NotifierRepositoryInterface
 type mockNotifierRepository struct {
-	getBySiteIDFunc func(siteID int) ([]*model.Notifier, error)
-	createFunc      func(notifier *model.Notifier) (*model.Notifier, error)
-	getFunc         func(id int64) (*model.Notifier, error)
-	updateFunc      func(id int, config json.RawMessage) (*model.Notifier, error)
-	deleteFunc      func(id int64) error
+	getByTargetIDFunc func(targetID int) ([]*model.Notifier, error)
+	createFunc        func(notifier *model.Notifier) (*model.Notifier, error)
+	getFunc           func(id int64) (*model.Notifier, error)
+	updateFunc        func(id int, config json.RawMessage) (*model.Notifier, error)
+	deleteFunc        func(id int64) error
 }
 
-func (m *mockNotifierRepository) GetBySiteID(siteID int) ([]*model.Notifier, error) {
-	return m.getBySiteIDFunc(siteID)
+func (m *mockNotifierRepository) GetByTargetID(targetID int) ([]*model.Notifier, error) {
+	return m.getByTargetIDFunc(targetID)
 }
 
 func (m *mockNotifierRepository) Create(notifier *model.Notifier) (*model.Notifier, error) {
@@ -195,7 +195,7 @@ func TestNotifierService_ConfigureObservers(t *testing.T) {
 	service := NewNotifierService(mockRepo, subject)
 
 	t.Run("successful configuration with slack observer", func(t *testing.T) {
-		mockRepo.getBySiteIDFunc = func(siteID int) ([]*model.Notifier, error) {
+		mockRepo.getByTargetIDFunc = func(targetID int) ([]*model.Notifier, error) {
 			return []*model.Notifier{
 				{
 					ID:       1,
@@ -211,7 +211,7 @@ func TestNotifierService_ConfigureObservers(t *testing.T) {
 	})
 
 	t.Run("repository error", func(t *testing.T) {
-		mockRepo.getBySiteIDFunc = func(siteID int) ([]*model.Notifier, error) {
+		mockRepo.getByTargetIDFunc = func(targetID int) ([]*model.Notifier, error) {
 			return nil, fmt.Errorf("db error")
 		}
 
@@ -253,9 +253,9 @@ func TestNotifierService_ParseOAuthState(t *testing.T) {
 
 	t.Run("successful parsing", func(t *testing.T) {
 		state := "target_id=1"
-		siteId, err := service.ParseOAuthState(state)
+		targetId, err := service.ParseOAuthState(state)
 		assert.NoError(t, err)
-		assert.Equal(t, 1, siteId)
+		assert.Equal(t, 1, targetId)
 	})
 
 	t.Run("invalid state", func(t *testing.T) {
@@ -265,18 +265,18 @@ func TestNotifierService_ParseOAuthState(t *testing.T) {
 		assert.Contains(t, err.Error(), "invalid state format")
 	})
 
-	t.Run("missing site id", func(t *testing.T) {
+	t.Run("missing target id", func(t *testing.T) {
 		state := "target_id="
 		_, err := service.ParseOAuthState(state)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "missing site id in state")
+		assert.Contains(t, err.Error(), "missing target id in state")
 	})
 
-	t.Run("invalid site id", func(t *testing.T) {
+	t.Run("invalid target id", func(t *testing.T) {
 		state := "target_id=invalid"
 		_, err := service.ParseOAuthState(state)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid site id format")
+		assert.Contains(t, err.Error(), "invalid target id format")
 	})
 }
 
