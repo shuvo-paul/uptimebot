@@ -7,7 +7,7 @@ CREATE TABLE target (
     enabled BOOLEAN DEFAULT true,
     interval FLOAT NOT NULL,
     status_changed_at TEXT,
-    FOREIGN KEY (user_id) REFERENCES users (id)
+    FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE CASCADE
 );
 
 -- +migrate Down
