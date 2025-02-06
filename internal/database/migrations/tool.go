@@ -69,7 +69,7 @@ func migrateTool(db *sql.DB) {
 		fmt.Printf("Applied %d migrations!\n", n)
 
 	case "fresh":
-		n, err := migrate.ExecMax(db, "sqlite3", migrations, migrate.Down, 0)
+		n, err := migrate.ExecMax(db, "sqlite3", migrations, migrate.Down, -1)
 		if err != nil {
 			fmt.Printf("Failed to drop all migrations: %v\n", err)
 		}
