@@ -16,7 +16,7 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 }
 
 func (r *UserRepository) SaveUser(user *model.User) (*model.User, error) {
-	query := `INSERT INTO users (name, email, password) VALUES (?, ?, ?)`
+	query := `INSERT INTO user (name, email, password) VALUES (?, ?, ?)`
 	result, err := r.db.Exec(query, user.Name, user.Email, user.Password)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save user: %w", err)
@@ -33,7 +33,7 @@ func (r *UserRepository) SaveUser(user *model.User) (*model.User, error) {
 
 func (r *UserRepository) EmailExists(email string) (bool, error) {
 	var exists bool
-	query := "SELECT EXISTS(SELECT 1 FROM users WHERE email = ?)"
+	query := "SELECT EXISTS(SELECT 1 FROM user WHERE email = ?)"
 	err := r.db.QueryRow(query, email).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("error checking email existence: %w", err)
@@ -43,7 +43,7 @@ func (r *UserRepository) EmailExists(email string) (bool, error) {
 
 func (r *UserRepository) GetUserByEmail(email string) (*model.User, error) {
 	user := &model.User{}
-	query := `SELECT id, name, email, password FROM users WHERE email = ?`
+	query := `SELECT id, name, email, password FROM user WHERE email = ?`
 	err := r.db.QueryRow(query, email).Scan(&user.ID, &user.Name, &user.Email, &user.Password)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find user: %w", err)
@@ -53,7 +53,7 @@ func (r *UserRepository) GetUserByEmail(email string) (*model.User, error) {
 
 func (r *UserRepository) GetUserByID(id int) (*model.User, error) {
 	user := &model.User{}
-	query := `SELECT id, name, email from users WHERE id = ?`
+	query := `SELECT id, name, email from user WHERE id = ?`
 	err := r.db.QueryRow(query, id).Scan(&user.ID, &user.Name, &user.Email)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find user: %w", err)

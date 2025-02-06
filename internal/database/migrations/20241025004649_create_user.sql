@@ -1,5 +1,5 @@
 -- +migrate Up
-CREATE TABLE users (
+CREATE TABLE user (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     email TEXT NOT NULL,
@@ -7,8 +7,8 @@ CREATE TABLE users (
     UNIQUE(email)
 );
 
-CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_user_email ON user(email);
 
 -- +migrate Down
-DROP INDEX IF EXISTS idx_users_email;
-DROP TABLE users;
+DROP INDEX IF EXISTS idx_user_email;
+DROP TABLE user;
