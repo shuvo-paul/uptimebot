@@ -4,7 +4,7 @@ CREATE TABLE session (
     token VARCHAR(255) NOT NULL,
     created_at TIMESTAMP NOT NULL,
     expires_at TIMESTAMP NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES user(id),
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
     UNIQUE (token)
 );
 
