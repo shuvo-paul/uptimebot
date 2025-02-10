@@ -12,8 +12,8 @@ import (
 
 type UserHandler struct {
 	Template struct {
-		Register renderer.PageTemplate
-		Login    renderer.PageTemplate
+		Register *renderer.Template
+		Login    *renderer.Template
 	}
 	sessionService service.SessionServiceInterface
 	authService    service.AuthServiceInterface

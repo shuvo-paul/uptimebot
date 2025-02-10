@@ -88,7 +88,7 @@ func TestRegister(t *testing.T) {
 			mockFlash := &testutil.MockFlashStore{}
 
 			controller := NewUserHandler(mockUser, mockSession, mockFlash)
-			controller.Template.Register = templateRenderer.Parse("register.html")
+			controller.Template.Register = templateRenderer.GetTemplate("pages:register")
 
 			req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader(tt.formData.Encode()))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -148,7 +148,7 @@ func TestLogin(t *testing.T) {
 			mockFlash := &testutil.MockFlashStore{}
 
 			controller := NewUserHandler(mockUser, mockSession, mockFlash)
-			controller.Template.Login = templateRenderer.Parse("login.html")
+			controller.Template.Login = templateRenderer.GetTemplate("pages:login")
 
 			req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(tt.formData.Encode()))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")

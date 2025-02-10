@@ -8,60 +8,170 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"path"
+	"strings"
 
 	"github.com/shuvo-paul/uptimebot/internal/auth/model"
 	"github.com/shuvo-paul/uptimebot/internal/auth/service"
 	"github.com/shuvo-paul/uptimebot/pkg/csrf"
 )
 
+const layoutDir = "layouts"
+
 type Engine struct {
 	fs        embed.FS
-	templates map[string]*template.Template
-	funcMap   template.FuncMap
+	templates map[string]*Template
+	layouts   []string // List of layout files
 }
 
 func New(fs embed.FS) *Engine {
 	e := &Engine{
 		fs:        fs,
-		templates: make(map[string]*template.Template),
-		funcMap: template.FuncMap{
-			"csrfField": func() (template.HTML, error) {
-				return "", fmt.Errorf("csrfField not implemented")
-			},
-			"currentUser": func() (*model.User, error) {
-				return &model.User{}, fmt.Errorf("currentUser not implemented")
-			},
-		},
+		templates: make(map[string]*Template),
+		layouts:   make([]string, 0),
 	}
+
+	if err := e.parseAllTemplates(); err != nil {
+		slog.Error("failed to parse templates", "error", err)
+	}
+
 	return e
 }
 
-func (rndr *Engine) Parse(files string) PageTemplate {
-	if files == "" {
-		panic("template: no files provided to parse")
+func (e *Engine) parseAllTemplates() error {
+	// Discover all templates recursively
+	if err := e.discoverTemplates("."); err != nil {
+		return fmt.Errorf("failed to discover templates: %w", err)
 	}
 
-	tpl := template.New("base.html").Funcs(rndr.funcMap)
-	paths := append([]string{"layouts/base.html"}, "pages/"+files)
-	tmpl := template.Must(tpl.ParseFS(rndr.fs, paths...))
-	return PageTemplate{
-		tmpl: tmpl,
+	if len(e.layouts) == 0 {
+		return fmt.Errorf("no layout templates found in %s", layoutDir)
 	}
+
+	return nil
 }
 
-type PageTemplate struct {
+// discoverTemplates recursively finds all template files
+// For layouts directory, it collects layout files
+// For other directories, it parses the templates
+func (e *Engine) discoverTemplates(dir string) error {
+	entries, err := e.fs.ReadDir(dir)
+	if err != nil {
+		return fmt.Errorf("failed to read directory %s: %w", dir, err)
+	}
+
+	for _, entry := range entries {
+		fullPath := path.Join(dir, entry.Name())
+
+		if entry.IsDir() {
+			// Special handling for layouts directory
+			if entry.Name() == layoutDir {
+				layouts, err := e.findLayoutFiles(fullPath)
+				if err != nil {
+					return err
+				}
+				e.layouts = layouts
+				continue
+			}
+
+			// Recursively discover templates in other directories
+			if err := e.discoverTemplates(fullPath); err != nil {
+				return err
+			}
+			continue
+		}
+
+		// Skip non-html files and files in root directory
+		if !strings.HasSuffix(entry.Name(), ".html") || dir == "." {
+			continue
+		}
+
+		// Skip layout files as they are handled separately
+		if strings.HasPrefix(dir, layoutDir) {
+			continue
+		}
+
+		if err := e.parseTemplate(dir, fullPath); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// findLayoutFiles finds all HTML files in the layouts directory
+func (e *Engine) findLayoutFiles(dir string) ([]string, error) {
+	entries, err := e.fs.ReadDir(dir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read layouts directory: %w", err)
+	}
+
+	var layouts []string
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".html") {
+			layouts = append(layouts, path.Join(dir, entry.Name()))
+		}
+	}
+
+	return layouts, nil
+}
+
+// parseTemplate creates and parses a single template with its layouts
+func (e *Engine) parseTemplate(dir, fullPath string) error {
+	templateName := path.Base(fullPath)
+	prefix := strings.Split(dir, "/")[0] // Get root directory (emails or pages)
+	relativePath := strings.TrimPrefix(fullPath, prefix+"/")
+	relativePath = strings.TrimSuffix(relativePath, ".html")
+	key := fmt.Sprintf("%s:%s", prefix, relativePath)
+
+	// Create a new template set with the filename as name
+	tmpl := template.New(templateName)
+	// Add template functions for all templates
+	tmpl = tmpl.Funcs(template.FuncMap{
+		"csrfField": func() template.HTML {
+			return "" // This will be replaced at render time
+		},
+		"currentUser": func() *model.User {
+			return nil // This will be replaced at render time
+		},
+	})
+
+	pattern := []string{fullPath}
+	pattern = append(pattern, e.layouts...)
+	// First parse the content template
+	tmpl = template.Must(tmpl.ParseFS(e.fs, pattern...))
+
+	e.templates[key] = &Template{tmpl: tmpl}
+	return nil
+}
+
+// GetTemplate returns a template by its full key
+// Examples:
+//   - GetTemplate("pages:index")
+//   - GetTemplate("pages:targets/list")
+//   - GetTemplate("emails:verify_email")
+func (e *Engine) GetTemplate(key string) *Template {
+	tmpl, ok := e.templates[key]
+	if !ok {
+		slog.Error("template not found", "key", key)
+		panic(fmt.Sprintf("template not found: %s", key))
+	}
+	return tmpl
+}
+
+type Template struct {
 	tmpl *template.Template
 }
 
-func (t *PageTemplate) Render(w http.ResponseWriter, r *http.Request, data any) {
-	tpl, err := t.tmpl.Clone()
+// Render executes a template and writes the output to w
+func (t *Template) Render(w http.ResponseWriter, r *http.Request, data any) error {
+	// Create a new template with updated funcMap
+	newTmpl, err := t.tmpl.Clone()
 	if err != nil {
-		slog.Error("cloning template", "error", err)
-		http.Error(w, "There was an error rendering the page", http.StatusInternalServerError)
-		return
+		return fmt.Errorf("failed to clone template: %w", err)
 	}
 
-	tpl.Funcs(template.FuncMap{
+	newTmpl.Funcs(template.FuncMap{
 		"csrfField": func() template.HTML {
 			return csrf.GenerateCsrfField(r)
 		},
@@ -71,14 +181,13 @@ func (t *PageTemplate) Render(w http.ResponseWriter, r *http.Request, data any) 
 		},
 	})
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-
-	var buf bytes.Buffer
-	if err := tpl.Execute(&buf, data); err != nil {
-		slog.Error("executing template", "error", err)
-		http.Error(w, "There was an error executing the template.", http.StatusInternalServerError)
-		return
+	buf := &bytes.Buffer{}
+	// Execute the template with the full template name including layout
+	if err := newTmpl.Execute(buf, data); err != nil {
+		return fmt.Errorf("failed to execute template: %w", err)
 	}
 
-	io.Copy(w, &buf)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, err = io.Copy(w, buf)
+	return err
 }

@@ -54,8 +54,8 @@ func NewApp() *App {
 
 	sessionService := authService.NewSessionService(sessionRepository)
 	authHandler := authHandler.NewUserHandler(authService2, sessionService, flashStore)
-	authHandler.Template.Register = templateRenderer.Parse("register.html")
-	authHandler.Template.Login = templateRenderer.Parse("login.html")
+	authHandler.Template.Register = templateRenderer.GetTemplate("pages:register")
+	authHandler.Template.Login = templateRenderer.GetTemplate("pages:login")
 
 	notifierRepository := notificationRepository.NewNotifierRepository(db)
 	notifierService := notificationService.NewNotifierService(notifierRepository, nil)
@@ -72,9 +72,9 @@ func NewApp() *App {
 
 	// Initialize target controller
 	targetHandler := uptimeHandler.NewTargetHandler(targetService, flashStore)
-	targetHandler.Template.List = templateRenderer.Parse("targets/list.html")
-	targetHandler.Template.Create = templateRenderer.Parse("targets/create.html")
-	targetHandler.Template.Edit = templateRenderer.Parse("targets/edit.html")
+	targetHandler.Template.List = templateRenderer.GetTemplate("pages:targets/list")
+	targetHandler.Template.Create = templateRenderer.GetTemplate("pages:targets/create")
+	targetHandler.Template.Edit = templateRenderer.GetTemplate("pages:targets/edit")
 
 	fmt.Println("app initialized")
 

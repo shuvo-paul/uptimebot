@@ -1,0 +1,11 @@
+{{define "base"}}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{with .title}}{{.}} - {{end}}Uptime Bot</title>
+</head>
+<body>
+    {{template "content" .}}
+</body>
+</html>
+{{end}}

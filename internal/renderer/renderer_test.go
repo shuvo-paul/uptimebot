@@ -1,51 +1,86 @@
 package renderer
 
 import (
+	"embed"
+	"html/template"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
-	"github.com/shuvo-paul/uptimebot/internal/templates"
+	"github.com/shuvo-paul/uptimebot/internal/auth/model"
+	"github.com/shuvo-paul/uptimebot/internal/auth/service"
+	"github.com/shuvo-paul/uptimebot/internal/renderer/testdata"
+	"github.com/stretchr/testify/assert"
 )
 
+var testFS = testdata.FS
+
 func TestNew(t *testing.T) {
-	engine := New(templates.TemplateFS)
-
-	if engine == nil {
-		t.Fatal("New() returned nil")
+	tests := []struct {
+		name    string
+		fs      embed.FS
+		wantErr bool
+	}{
+		{
+			name:    "valid filesystem with templates",
+			fs:      testFS,
+			wantErr: false,
+		},
 	}
 
-	if engine.fs != templates.TemplateFS {
-		t.Error("filesystem not properly set")
-	}
-
-	if engine.templates == nil {
-		t.Error("templates map not initialized")
-	}
-
-	if engine.funcMap == nil {
-		t.Error("funcMap not initialized")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			engine := New(tt.fs)
+			assert.NotNil(t, engine)
+			assert.NotEmpty(t, engine.templates)
+			assert.NotEmpty(t, engine.layouts)
+		})
 	}
 }
 
-func TestParse(t *testing.T) {
-	engine := New(templates.TemplateFS)
+func TestEngine_parseAllTemplates(t *testing.T) {
+	engine := &Engine{
+		fs:        testFS,
+		templates: make(map[string]*Template),
+		layouts:   make([]string, 0),
+	}
+
+	// Add template functions for testing
+	tmpl := template.New("").Funcs(template.FuncMap{
+		"csrfField": func() template.HTML {
+			return template.HTML(`<input type="hidden" name="csrf_token" value="test-token">`)
+		},
+		"currentUser": func() *model.User {
+			return nil
+		},
+	})
+
+	// Set the template functions
+	engine.templates["test"] = &Template{tmpl: tmpl}
+
+	err := engine.parseAllTemplates()
+	assert.NoError(t, err)
+	assert.NotEmpty(t, engine.layouts)
+	assert.NotEmpty(t, engine.templates)
+}
+
+func TestEngine_GetTemplate(t *testing.T) {
+	engine := New(testFS)
 
 	tests := []struct {
-		name        string
-		files       string
-		shouldPanic bool
+		name      string
+		key       string
+		wantPanic bool
 	}{
 		{
-			name:        "empty files",
-			files:       "",
-			shouldPanic: true,
+			name:      "existing template",
+			key:       "pages:index",
+			wantPanic: false,
 		},
 		{
-			name:        "valid template",
-			files:       "test.html",
-			shouldPanic: false,
+			name:      "non-existent template",
+			key:       "pages:nonexistent",
+			wantPanic: true,
 		},
 	}
 
@@ -53,31 +88,48 @@ func TestParse(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			defer func() {
 				r := recover()
-				if (r != nil) != tt.shouldPanic {
-					t.Errorf("Parse() panic = %v, shouldPanic = %v", r, tt.shouldPanic)
+				if tt.wantPanic {
+					assert.NotNil(t, r)
+					assert.Contains(t, r.(string), "template not found")
+				} else {
+					assert.Nil(t, r)
 				}
 			}()
 
-			_ = engine.Parse(tt.files)
+			tmpl := engine.GetTemplate(tt.key)
+			if !tt.wantPanic {
+				assert.NotNil(t, tmpl)
+			}
 		})
 	}
 }
 
-func TestPageTemplate_Render(t *testing.T) {
-	engine := New(templates.TemplateFS)
-	tmpl := engine.Parse("test.html")
+func TestTemplate_Render(t *testing.T) {
+	engine := New(testFS)
 
 	tests := []struct {
 		name     string
-		data     any
+		key      string
+		data     interface{}
+		setUser  bool
 		wantCode int
 		wantBody string
 	}{
 		{
 			name:     "successful render",
-			data:     map[string]string{"title": "Test Page"},
+			key:      "pages:index",
+			data:     map[string]string{"title": "This is a title", "Name": "Test User"},
+			setUser:  false,
 			wantCode: http.StatusOK,
-			wantBody: "Test Page",
+			wantBody: "Welcome Test User",
+		},
+		{
+			name:     "successful render with user context",
+			key:      "pages:index",
+			data:     map[string]string{"title": "This is a title", "Name": "Test User"},
+			setUser:  true,
+			wantCode: http.StatusOK,
+			wantBody: "Welcome Test User",
 		},
 	}
 
@@ -86,14 +138,24 @@ func TestPageTemplate_Render(t *testing.T) {
 			w := httptest.NewRecorder()
 			r := httptest.NewRequest(http.MethodGet, "/", nil)
 
-			tmpl.Render(w, r, tt.data)
-
-			if w.Code != tt.wantCode {
-				t.Errorf("Render() status code = %v, want %v", w.Code, tt.wantCode)
+			// Set user context if required
+			if tt.setUser {
+				ctx := service.WithUser(r.Context(), &model.User{
+					ID:    1,
+					Email: "test@example.com",
+				})
+				r = r.WithContext(ctx)
 			}
 
-			if !strings.Contains(w.Body.String(), tt.wantBody) {
-				t.Errorf("Render() body = %v, want to contain %v", w.Body.String(), tt.wantBody)
+			tmpl := engine.GetTemplate(tt.key)
+			assert.NotNil(t, tmpl)
+
+			err := tmpl.Render(w, r, tt.data)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.wantCode, w.Code)
+
+			if tt.wantBody != "" {
+				assert.Contains(t, w.Body.String(), tt.wantBody)
 			}
 		})
 	}

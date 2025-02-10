@@ -69,7 +69,7 @@ func TestTargetHandler_List(t *testing.T) {
 
 	handler := NewTargetHandler(mockService, &testutil.MockFlashStore{})
 	templateRenderer := renderer.New(templates.TemplateFS)
-	handler.Template.List = templateRenderer.Parse("targets/list.html")
+	handler.Template.List = templateRenderer.GetTemplate("pages:targets/list")
 
 	req := httptest.NewRequest(http.MethodGet, "/targets", nil)
 	user := &authModel.User{ID: 1}
@@ -89,7 +89,7 @@ func TestTargetHandler_Create(t *testing.T) {
 		}
 		handler := NewTargetHandler(mockService, &testutil.MockFlashStore{})
 		templateRenderer := renderer.New(templates.TemplateFS)
-		handler.Template.Create = templateRenderer.Parse("targets/create.html")
+		handler.Template.Create = templateRenderer.GetTemplate("targets/create")
 
 		req := httptest.NewRequest(http.MethodGet, "/targets/create", nil)
 		w := httptest.NewRecorder()
@@ -164,7 +164,7 @@ func TestTargetHandler_Edit(t *testing.T) {
 
 		handler := NewTargetHandler(mockService, &testutil.MockFlashStore{})
 		templateRenderer := renderer.New(templates.TemplateFS)
-		handler.Template.Edit = templateRenderer.Parse("targets/edit.html")
+		handler.Template.Edit = templateRenderer.GetTemplate("pages:targets/edit")
 
 		req := httptest.NewRequest(http.MethodGet, "/targets/1/edit", nil)
 		req.SetPathValue("id", "1")

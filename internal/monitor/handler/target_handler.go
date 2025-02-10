@@ -16,9 +16,9 @@ type TargetHandler struct {
 	targetService targetService.TargetServiceInterface
 	flash         flash.FlashStoreInterface
 	Template      struct {
-		List   renderer.PageTemplate
-		Create renderer.PageTemplate
-		Edit   renderer.PageTemplate
+		List   *renderer.Template
+		Create *renderer.Template
+		Edit   *renderer.Template
 	}
 }
 
