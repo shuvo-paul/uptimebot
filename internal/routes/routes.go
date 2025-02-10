@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"fmt"
 	"net/http"
 
 	authHandler "github.com/shuvo-paul/uptimebot/internal/auth/handler"
@@ -35,7 +34,7 @@ func SetupRoutes(
 		if r.Method != "GET" {
 			return
 		}
-		fmt.Fprint(w, "Wellcome")
+		http.Redirect(w, r, "/targets", http.StatusFound)
 	})
 
 	// Protected routes
