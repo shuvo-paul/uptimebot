@@ -163,6 +163,11 @@ type Template struct {
 	tmpl *template.Template
 }
 
+// GetTmpl returns the underlying template.Template
+func (t *Template) Raw() *template.Template {
+	return t.tmpl
+}
+
 // Render executes a template and writes the output to w
 func (t *Template) Render(w http.ResponseWriter, r *http.Request, data any) error {
 	// Create a new template with updated funcMap
