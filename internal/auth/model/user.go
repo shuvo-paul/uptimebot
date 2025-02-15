@@ -10,7 +10,8 @@ type User struct {
 	ID       int
 	Name     string
 	Email    string
-	Password string // This will store the hashed password
+	Password string
+	Verified bool
 }
 
 func (u *User) HashPassword() error {

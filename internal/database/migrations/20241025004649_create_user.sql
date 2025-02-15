@@ -4,6 +4,7 @@ CREATE TABLE user (
     name TEXT NOT NULL,
     email TEXT NOT NULL,
     password TEXT NOT NULL,
+    verified BOOLEAN NOT NULL DEFAULT FALSE,
     UNIQUE(email)
 );
 
