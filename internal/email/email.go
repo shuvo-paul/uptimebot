@@ -2,9 +2,8 @@ package email
 
 import (
 	"fmt"
-	"os"
-	"strconv"
 
+	"github.com/shuvo-paul/uptimebot/internal/config"
 	mail "github.com/xhit/go-simple-mail/v2"
 )
 
@@ -17,36 +16,30 @@ type Mailer interface {
 
 var _ Mailer = (*MailService)(nil)
 
-func NewEmailService() (*MailService, error) {
+func NewEmailService(config *config.EmailConfig) (*MailService, error) {
+	if config == nil {
+		return nil, fmt.Errorf("email configuration cannot be nil")
+	}
+
+	if config.Port <= 0 || config.Port > 65535 {
+		return nil, fmt.Errorf("invalid port number: port must be between 1 and 65535")
+	}
+
 	server := mail.NewSMTPClient()
 
-	host := os.Getenv("SMTP_HOST")
-	port := os.Getenv("SMTP_PORT")
-	username := os.Getenv("SMTP_USERNAME")
-	password := os.Getenv("SMTP_PASSWORD")
-	if host == "" || port == "" || username == "" || password == "" {
-		return nil, fmt.Errorf("missing email config")
-
-	}
-	server.Host = host
-	portNum, err := strconv.Atoi(port)
-	if err != nil {
-		return nil, fmt.Errorf("invalid port number: %v", err)
-	}
-	server.Port = portNum
-	server.Username = username
-	server.Password = password
+	server.Host = config.Host
+	server.Port = config.Port
+	server.Username = config.Username
+	server.Password = config.Password
 	server.Encryption = mail.EncryptionSTARTTLS
 
 	return &MailService{
 		server: server,
-		mail:   NewEmail(),
+		mail:   NewEmail(config.From),
 	}, nil
 }
 
-func NewEmail() *mail.Email {
-	from := os.Getenv("SMTP_EMAIL_FROM")
-
+func NewEmail(from string) *mail.Email {
 	mail := mail.NewMSG()
 
 	if from != "" {

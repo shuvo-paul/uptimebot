@@ -1,27 +1,24 @@
 package email
 
 import (
-	"os"
 	"testing"
 
+	"github.com/shuvo-paul/uptimebot/internal/config"
 	"github.com/stretchr/testify/assert"
 	mail "github.com/xhit/go-simple-mail/v2"
 )
 
 func TestNewEmailService(t *testing.T) {
-	// Set up test environment variables
-	os.Setenv("SMTP_HOST", "smtp.example.com")
-	os.Setenv("SMTP_PORT", "587")
-	os.Setenv("SMTP_USERNAME", "test@example.com")
-	os.Setenv("SMTP_PASSWORD", "password")
-	defer func() {
-		os.Unsetenv("SMTP_HOST")
-		os.Unsetenv("SMTP_PORT")
-		os.Unsetenv("SMTP_USERNAME")
-		os.Unsetenv("SMTP_PASSWORD")
-	}()
+	// Create test config
+	emailConfig := &config.EmailConfig{
+		Host:     "smtp.example.com",
+		Port:     587,
+		Username: "test@example.com",
+		Password: "password",
+		From:     "sender@example.com",
+	}
 
-	service, err := NewEmailService()
+	service, err := NewEmailService(emailConfig)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, service)
@@ -34,36 +31,38 @@ func TestNewEmailService(t *testing.T) {
 	assert.Equal(t, mail.EncryptionSTARTTLS, service.server.Encryption)
 
 	// Test missing configuration
-	os.Unsetenv("SMTP_HOST")
-	service, err = NewEmailService()
+	service, err = NewEmailService(nil)
 	assert.Error(t, err)
 	assert.Nil(t, service)
+	assert.Equal(t, "email configuration cannot be nil", err.Error())
 
 	// Test invalid port
-	os.Setenv("SMTP_HOST", "smtp.example.com")
-	os.Setenv("SMTP_PORT", "invalid")
-	service, err = NewEmailService()
+	invalidPortConfig := &config.EmailConfig{
+		Host:     "smtp.example.com",
+		Port:     0, // Invalid port number
+		Username: "test@example.com",
+		Password: "password",
+		From:     "sender@example.com",
+	}
+	service, err = NewEmailService(invalidPortConfig)
 	assert.Error(t, err)
 	assert.Nil(t, service)
+	assert.Equal(t, "invalid port number: port must be between 1 and 65535", err.Error())
 }
 
 func TestNewEmail(t *testing.T) {
-	// Test with SMTP_EMAIL_FROM environment variable set
-	os.Setenv("SMTP_EMAIL_FROM", "sender@example.com")
-	defer os.Unsetenv("SMTP_EMAIL_FROM")
-
-	email := NewEmail()
+	// Test with from address
+	email := NewEmail("sender@example.com")
 	assert.NotNil(t, email)
 
-	// Test with no SMTP_EMAIL_FROM environment variable
-	os.Unsetenv("SMTP_EMAIL_FROM")
-	email = NewEmail()
+	// Test with empty from address
+	email = NewEmail("")
 	assert.NotNil(t, email)
 }
 
 func TestEmailService_SetTo(t *testing.T) {
 	service := &MailService{
-		mail: NewEmail(),
+		mail: NewEmail("sender@example.com"),
 	}
 
 	recipient := "recipient@example.com"
@@ -75,7 +74,7 @@ func TestEmailService_SetTo(t *testing.T) {
 
 func TestEmailService_SetSubject(t *testing.T) {
 	service := &MailService{
-		mail: NewEmail(),
+		mail: NewEmail("sender@example.com"),
 	}
 
 	subject := "Test Subject"
@@ -90,7 +89,7 @@ func TestEmailService_SetSubject(t *testing.T) {
 
 func TestEmailService_SetBody(t *testing.T) {
 	service := &MailService{
-		mail: NewEmail(),
+		mail: NewEmail("sender@example.com"),
 	}
 
 	body := "<h1>Test Body</h1>"
@@ -104,20 +103,17 @@ func TestEmailService_SetBody(t *testing.T) {
 }
 
 func TestEmailService_SendEmail(t *testing.T) {
-	// Set up test environment variables
-	os.Setenv("SMTP_HOST", "localhost")
-	os.Setenv("SMTP_PORT", "587")
-	os.Setenv("SMTP_USERNAME", "test@example.com")
-	os.Setenv("SMTP_PASSWORD", "password")
-	defer func() {
-		os.Unsetenv("SMTP_HOST")
-		os.Unsetenv("SMTP_PORT")
-		os.Unsetenv("SMTP_USERNAME")
-		os.Unsetenv("SMTP_PASSWORD")
-	}()
+	// Create test config
+	emailConfig := &config.EmailConfig{
+		Host:     "localhost",
+		Port:     587,
+		Username: "test@example.com",
+		Password: "password",
+		From:     "sender@example.com",
+	}
 
 	// Create email service
-	service, err := NewEmailService()
+	service, err := NewEmailService(emailConfig)
 	assert.NoError(t, err)
 
 	// Set up email content
@@ -132,7 +128,7 @@ func TestEmailService_SendEmail(t *testing.T) {
 
 func TestEmailService_SetToMultiple(t *testing.T) {
 	service := &MailService{
-		mail: NewEmail(),
+		mail: NewEmail("sender@example.com"),
 	}
 
 	recipients := []string{"recipient1@example.com", "recipient2@example.com"}
@@ -147,19 +143,16 @@ func TestEmailService_SetToMultiple(t *testing.T) {
 }
 
 func TestEmailService_SendEmailWithConnectionError(t *testing.T) {
-	// Set up test environment variables with invalid host to force connection error
-	os.Setenv("SMTP_HOST", "invalid.host")
-	os.Setenv("SMTP_PORT", "587")
-	os.Setenv("SMTP_USERNAME", "test@example.com")
-	os.Setenv("SMTP_PASSWORD", "password")
-	defer func() {
-		os.Unsetenv("SMTP_HOST")
-		os.Unsetenv("SMTP_PORT")
-		os.Unsetenv("SMTP_USERNAME")
-		os.Unsetenv("SMTP_PASSWORD")
-	}()
+	// Create test config with invalid host
+	emailConfig := &config.EmailConfig{
+		Host:     "invalid.host",
+		Port:     587,
+		Username: "test@example.com",
+		Password: "password",
+		From:     "sender@example.com",
+	}
 
-	service, err := NewEmailService()
+	service, err := NewEmailService(emailConfig)
 	assert.NoError(t, err)
 
 	service.SetTo("recipient@example.com")
