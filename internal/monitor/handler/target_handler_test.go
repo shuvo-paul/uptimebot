@@ -89,7 +89,7 @@ func TestTargetHandler_Create(t *testing.T) {
 		}
 		handler := NewTargetHandler(mockService, &testutil.MockFlashStore{})
 		templateRenderer := renderer.New(templates.TemplateFS)
-		handler.Template.Create = templateRenderer.GetTemplate("targets/create")
+		handler.Template.Create = templateRenderer.GetTemplate("pages:targets/create")
 
 		req := httptest.NewRequest(http.MethodGet, "/targets/create", nil)
 		w := httptest.NewRecorder()
