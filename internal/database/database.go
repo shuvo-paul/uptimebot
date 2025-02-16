@@ -4,23 +4,20 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"os"
 
+	"github.com/shuvo-paul/uptimebot/internal/config"
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
 
-func InitDatabase() (*sql.DB, error) {
-	dbURL := os.Getenv("TURSO_DATABASE_URL")
-	dbToken := os.Getenv("TURSO_AUTH_TOKEN")
-	if dbToken == "" {
-		return nil, fmt.Errorf("TURSO_AUTH_TOKEN environment variable is not set")
-	}
-	if dbURL == "" {
-		return nil, fmt.Errorf("TURSO_DATABASE_URL environment variable is not set")
+func InitDatabase(config config.DatabaseConfig) (*sql.DB, error) {
+	if config.URL == "" {
+		return nil, fmt.Errorf("database URL is empty")
 	}
 
-	var err error
-	db, err := sql.Open("libsql", dbURL+"?authToken="+dbToken)
+	if config.Token == "" {
+		return nil, fmt.Errorf("database token is empty")
+	}
+	db, err := sql.Open("libsql", config.URL+"?authToken="+config.Token)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}

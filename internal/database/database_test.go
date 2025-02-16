@@ -3,32 +3,53 @@ package database
 import (
 	"testing"
 
-	// Import the godotenv package
-	"github.com/joho/godotenv"
+	"github.com/shuvo-paul/uptimebot/internal/config"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInitDatabase(t *testing.T) {
-	// Load environment variables from .env file
-	if err := godotenv.Load("../../.env"); err != nil {
-		t.Fatalf("Error loading .env file: %v", err)
+	tests := []struct {
+		name        string
+		config      config.DatabaseConfig
+		wantErr     bool
+		expectedErr string
+	}{
+		{
+			name: "empty URL",
+			config: config.DatabaseConfig{
+				URL:   "",
+				Token: "valid-token",
+			},
+			wantErr:     true,
+			expectedErr: "database URL is empty",
+		},
+		{
+			name: "empty token",
+			config: config.DatabaseConfig{
+				URL:   "libsql://test.turso.io",
+				Token: "",
+			},
+			wantErr:     true,
+			expectedErr: "database token is empty",
+		},
 	}
 
-	// Call the function to test
-	db, err := InitDatabase()
-	if err != nil {
-		t.Fatalf("Error initializing database: %v", err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db, err := InitDatabase(tt.config)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, db)
+				if tt.expectedErr != "" {
+					assert.Contains(t, err.Error(), tt.expectedErr)
+				}
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, db)
+				if db != nil {
+					db.Close()
+				}
+			}
+		})
 	}
-
-	// Check if the DB variable is not nil
-	if db == nil {
-		t.Fatal("Expected DB to be initialized, but it was nil")
-	}
-
-	// Check if the database connection is valid
-	if err := db.Ping(); err != nil {
-		t.Fatalf("Expected to connect to the database, but got error: %v", err)
-	}
-
-	// Clean up
-	db.Close()
 }

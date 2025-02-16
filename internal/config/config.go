@@ -7,7 +7,13 @@ import (
 )
 
 type Config struct {
-	Email EmailConfig
+	Email    EmailConfig
+	Database DatabaseConfig
+}
+
+type DatabaseConfig struct {
+	URL   string
+	Token string
 }
 
 type EmailConfig struct {
@@ -24,8 +30,28 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to load email config: %v", err)
 	}
 
+	dbConfig, err := loadDatabaseConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load database config: %v", err)
+	}
+
 	return &Config{
-		Email: emailConfig,
+		Email:    emailConfig,
+		Database: dbConfig,
+	}, nil
+}
+
+func loadDatabaseConfig() (DatabaseConfig, error) {
+	url := os.Getenv("TURSO_DATABASE_URL")
+	token := os.Getenv("TURSO_AUTH_TOKEN")
+
+	if url == "" || token == "" {
+		return DatabaseConfig{}, fmt.Errorf("missing required database configuration")
+	}
+
+	return DatabaseConfig{
+		URL:   url,
+		Token: token,
 	}, nil
 }
 

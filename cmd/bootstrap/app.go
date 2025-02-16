@@ -9,6 +9,7 @@ import (
 	authHandler "github.com/shuvo-paul/uptimebot/internal/auth/handler"
 	authRepository "github.com/shuvo-paul/uptimebot/internal/auth/repository"
 	authService "github.com/shuvo-paul/uptimebot/internal/auth/service"
+	"github.com/shuvo-paul/uptimebot/internal/config"
 	"github.com/shuvo-paul/uptimebot/internal/database"
 	"github.com/shuvo-paul/uptimebot/internal/database/migrations"
 	uptimeHandler "github.com/shuvo-paul/uptimebot/internal/monitor/handler"
@@ -36,7 +37,12 @@ func NewApp() *App {
 	if err := godotenv.Load(); err != nil {
 		log.Fatalf("Error loading .env file: %v", err)
 	}
-	db, err := database.InitDatabase()
+	config, err := config.Load()
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
+	}
+
+	db, err := database.InitDatabase(config.Database)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}

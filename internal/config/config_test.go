@@ -17,11 +17,13 @@ func TestLoad(t *testing.T) {
 		{
 			name: "valid configuration",
 			envVars: map[string]string{
-				"SMTP_HOST":       "smtp.example.com",
-				"SMTP_PORT":       "587",
-				"SMTP_USERNAME":   "test@example.com",
-				"SMTP_PASSWORD":   "password123",
-				"SMTP_EMAIL_FROM": "sender@example.com",
+				"SMTP_HOST":          "smtp.example.com",
+				"SMTP_PORT":          "587",
+				"SMTP_USERNAME":      "test@example.com",
+				"SMTP_PASSWORD":      "password123",
+				"SMTP_EMAIL_FROM":    "sender@example.com",
+				"TURSO_DATABASE_URL": "libsql://test.turso.io",
+				"TURSO_AUTH_TOKEN":   "valid-token",
 			},
 			want: &Config{
 				Email: EmailConfig{
@@ -30,6 +32,10 @@ func TestLoad(t *testing.T) {
 					Username: "test@example.com",
 					Password: "password123",
 					From:     "sender@example.com",
+				},
+				Database: DatabaseConfig{
+					URL:   "libsql://test.turso.io",
+					Token: "valid-token",
 				},
 			},
 			wantErr: false,
