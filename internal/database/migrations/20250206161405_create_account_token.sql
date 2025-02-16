@@ -7,7 +7,7 @@ CREATE TABLE account_token (
     expires_at TIMESTAMP NOT NULL,
     used BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT (datetime('now')),
-    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY(user_id) REFERENCES user(id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_account_token_token ON account_token(token);

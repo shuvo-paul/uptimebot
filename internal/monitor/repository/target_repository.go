@@ -70,7 +70,7 @@ func (r *TargetRepository) Create(userTarget model.UserTarget) (model.UserTarget
 	}
 
 	query := `
-		INSERT INTO target (url, user_id, status, enabled, interval, status_changed_at)
+		INSERT INTO target (url, user_id, status, enabled, interval, changed_at)
 		VALUES (?, ?, ?, ?, ?, ?)`
 
 	result, err := r.db.Exec(
@@ -98,7 +98,7 @@ func (r *TargetRepository) Create(userTarget model.UserTarget) (model.UserTarget
 
 func (r *TargetRepository) GetByID(id int) (*monitor.Target, error) {
 	query := `
-		SELECT id, url, status, enabled, interval, status_changed_at
+		SELECT id, url, status, enabled, interval, changed_at
 		FROM target
 		WHERE id = ?`
 
@@ -125,7 +125,7 @@ func (r *TargetRepository) GetByID(id int) (*monitor.Target, error) {
 	target.Interval = time.Duration(intervalSeconds) * time.Second
 	target.StatusChangedAt, err = r.parseTime(statusChangedAtStr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse status_changed_at: %w", err)
+		return nil, fmt.Errorf("failed to parse changed_at: %w", err)
 	}
 
 	return target, nil
@@ -134,7 +134,7 @@ func (r *TargetRepository) GetByID(id int) (*monitor.Target, error) {
 func (r *TargetRepository) GetAll() ([]*monitor.Target, error) {
 
 	query := `
-		SELECT id, url, status, enabled, interval, status_changed_at
+		SELECT id, url, status, enabled, interval, changed_at
 		FROM target`
 
 	rows, err := r.db.Query(query)
@@ -163,7 +163,7 @@ func (r *TargetRepository) GetAll() ([]*monitor.Target, error) {
 
 		target.StatusChangedAt, err = r.parseTime(statusChangedAtStr)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse status_changed_at: %w", err)
+			return nil, fmt.Errorf("failed to parse changed_at: %w", err)
 		}
 
 		target.Interval = time.Duration(intervalSeconds) * time.Second
@@ -179,7 +179,7 @@ func (r *TargetRepository) GetAll() ([]*monitor.Target, error) {
 
 func (r *TargetRepository) GetAllByUserID(userID int) ([]*monitor.Target, error) {
 	query := `
-		SELECT id, url, status, enabled, interval, status_changed_at
+		SELECT id, url, status, enabled, interval, changed_at
 		FROM target 
 		WHERE user_id = ?`
 
@@ -209,7 +209,7 @@ func (r *TargetRepository) GetAllByUserID(userID int) ([]*monitor.Target, error)
 
 		target.StatusChangedAt, err = r.parseTime(statusChangedAtStr)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse status_changed_at: %w", err)
+			return nil, fmt.Errorf("failed to parse changed_at: %w", err)
 		}
 
 		target.Interval = time.Duration(intervalSeconds) * time.Second
@@ -226,7 +226,7 @@ func (r *TargetRepository) GetAllByUserID(userID int) ([]*monitor.Target, error)
 func (r *TargetRepository) Update(target *monitor.Target) (*monitor.Target, error) {
 	query := `
 		UPDATE target
-		SET url = ?, status = ?, enabled = ?, interval = ?, status_changed_at = ?
+		SET url = ?, status = ?, enabled = ?, interval = ?, changed_at = ?
 		WHERE id = ?`
 
 	result, err := r.db.Exec(
@@ -258,7 +258,7 @@ func (r *TargetRepository) Update(target *monitor.Target) (*monitor.Target, erro
 func (r *TargetRepository) UpdateStatus(target *monitor.Target, status string) error {
 	query := `
 		UPDATE target
-		SET status = ?, status_changed_at = ?
+		SET status = ?, changed_at = ?
 		WHERE id = ?`
 
 	result, err := r.db.Exec(query, status, target.StatusChangedAt, target.ID)
