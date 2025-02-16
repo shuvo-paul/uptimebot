@@ -24,7 +24,7 @@ type VerificationTokenRepositoryInterface interface {
 }
 
 func (r *VerificationTokenRepository) SaveToken(token *model.AccountToken) (*model.AccountToken, error) {
-	query := `INSERT INTO account_tokens (user_id, token, type, expires_at, used) 
+	query := `INSERT INTO account_token (user_id, token, type, expires_at, used) 
 			  VALUES (?, ?, ?, ?, ?)`
 	result, err := r.db.Exec(query, token.UserID, token.Token, token.Type, token.ExpiresAt, token.Used)
 	if err != nil {
@@ -43,7 +43,7 @@ func (r *VerificationTokenRepository) SaveToken(token *model.AccountToken) (*mod
 func (r *VerificationTokenRepository) GetTokenByValue(tokenValue string) (*model.AccountToken, error) {
 	var token model.AccountToken
 	query := `SELECT id, user_id, token, type, expires_at, used 
-			  FROM account_tokens WHERE token = ?`
+			  FROM account_token WHERE token = ?`
 	err := r.db.QueryRow(query, tokenValue).Scan(
 		&token.ID,
 		&token.UserID,
@@ -62,7 +62,7 @@ func (r *VerificationTokenRepository) GetTokenByValue(tokenValue string) (*model
 }
 
 func (r *VerificationTokenRepository) MarkTokenUsed(tokenID int) error {
-	query := `UPDATE account_tokens SET used = TRUE WHERE id = ?`
+	query := `UPDATE account_token SET used = TRUE WHERE id = ?`
 	result, err := r.db.Exec(query, tokenID)
 	if err != nil {
 		return fmt.Errorf("failed to mark token as used: %w", err)
@@ -80,7 +80,7 @@ func (r *VerificationTokenRepository) MarkTokenUsed(tokenID int) error {
 
 func (r *VerificationTokenRepository) GetTokensByUserID(userID int) ([]*model.AccountToken, error) {
 	query := `SELECT id, user_id, token, type, expires_at, used 
-			  FROM account_tokens WHERE user_id = ?`
+			  FROM account_token WHERE user_id = ?`
 	rows, err := r.db.Query(query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get verification tokens: %w", err)
@@ -110,7 +110,7 @@ func (r *VerificationTokenRepository) GetTokensByUserID(userID int) ([]*model.Ac
 }
 
 func (r *VerificationTokenRepository) InvalidateExistingTokens(userID int, tokenType model.TokenType) error {
-	query := `UPDATE account_tokens 
+	query := `UPDATE account_token 
 			  SET used = TRUE 
 			  WHERE user_id = ? AND type = ? AND used = FALSE AND expires_at > datetime('now')`
 	_, err := r.db.Exec(query, userID, string(tokenType))
