@@ -9,6 +9,7 @@ import (
 type Config struct {
 	Email    EmailConfig
 	Database DatabaseConfig
+	BaseURL  string
 }
 
 type DatabaseConfig struct {
@@ -35,9 +36,15 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to load database config: %v", err)
 	}
 
+	baseURL := os.Getenv("BASE_URL")
+	if baseURL == "" {
+		return nil, fmt.Errorf("missing required base URL configuration")
+	}
+
 	return &Config{
 		Email:    emailConfig,
 		Database: dbConfig,
+		BaseURL:  baseURL,
 	}, nil
 }
 

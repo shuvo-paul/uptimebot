@@ -24,6 +24,7 @@ func TestLoad(t *testing.T) {
 				"SMTP_EMAIL_FROM":    "sender@example.com",
 				"TURSO_DATABASE_URL": "libsql://test.turso.io",
 				"TURSO_AUTH_TOKEN":   "valid-token",
+				"BASE_URL":          "https://example.com",
 			},
 			want: &Config{
 				Email: EmailConfig{
@@ -37,6 +38,7 @@ func TestLoad(t *testing.T) {
 					URL:   "libsql://test.turso.io",
 					Token: "valid-token",
 				},
+				BaseURL: "https://example.com",
 			},
 			wantErr: false,
 		},
@@ -45,6 +47,20 @@ func TestLoad(t *testing.T) {
 			envVars: map[string]string{
 				"SMTP_HOST": "smtp.example.com",
 				"SMTP_PORT": "587",
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "missing base URL",
+			envVars: map[string]string{
+				"SMTP_HOST":          "smtp.example.com",
+				"SMTP_PORT":          "587",
+				"SMTP_USERNAME":      "test@example.com",
+				"SMTP_PASSWORD":      "password123",
+				"SMTP_EMAIL_FROM":    "sender@example.com",
+				"TURSO_DATABASE_URL": "libsql://test.turso.io",
+				"TURSO_AUTH_TOKEN":   "valid-token",
 			},
 			want:    nil,
 			wantErr: true,
