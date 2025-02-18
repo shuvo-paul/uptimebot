@@ -13,7 +13,7 @@ func TestVerificationTokenRepository(t *testing.T) {
 	db := testutil.NewInMemoryDB()
 	defer db.Close()
 
-	repo := NewVerificationTokenRepository(db)
+	repo := NewTokenRepository(db)
 
 	t.Run("SaveToken", func(t *testing.T) {
 		token := &model.AccountToken{

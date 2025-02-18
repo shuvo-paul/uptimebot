@@ -1,5 +1,5 @@
 -- +migrate Up
-CREATE TABLE account_token (
+CREATE TABLE token (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     token TEXT NOT NULL UNIQUE,
@@ -10,8 +10,8 @@ CREATE TABLE account_token (
     FOREIGN KEY(user_id) REFERENCES user(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_account_token_token ON account_token(token);
+CREATE INDEX idx_token_token ON token(token);
 
 -- +migrate Down
-DROP INDEX idx_account_token_token;
-DROP TABLE account_token;
+DROP INDEX idx_token_token;
+DROP TABLE token;

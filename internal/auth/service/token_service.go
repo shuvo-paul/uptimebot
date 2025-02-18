@@ -13,14 +13,14 @@ import (
 )
 
 type AccountTokenService struct {
-	tokenRepo    repository.VerificationTokenRepositoryInterface
+	tokenRepo    repository.TokenRepositoryInterface
 	emailService email.Mailer
 	baseURL      string
 	template     *template.Template
 }
 
 func NewAccountTokenService(
-	tokenRepo repository.VerificationTokenRepositoryInterface,
+	tokenRepo repository.TokenRepositoryInterface,
 	emailService email.Mailer,
 	baseURL string,
 	template *template.Template,

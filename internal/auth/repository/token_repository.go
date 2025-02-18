@@ -7,15 +7,15 @@ import (
 	"github.com/shuvo-paul/uptimebot/internal/auth/model"
 )
 
-type VerificationTokenRepository struct {
+type TokenRepository struct {
 	db *sql.DB
 }
 
-func NewVerificationTokenRepository(db *sql.DB) *VerificationTokenRepository {
-	return &VerificationTokenRepository{db: db}
+func NewTokenRepository(db *sql.DB) *TokenRepository {
+	return &TokenRepository{db: db}
 }
 
-type VerificationTokenRepositoryInterface interface {
+type TokenRepositoryInterface interface {
 	SaveToken(token *model.AccountToken) (*model.AccountToken, error)
 	GetTokenByValue(token string) (*model.AccountToken, error)
 	MarkTokenUsed(tokenID int) error
@@ -23,12 +23,12 @@ type VerificationTokenRepositoryInterface interface {
 	InvalidateExistingTokens(userID int, tokenType model.TokenType) error
 }
 
-func (r *VerificationTokenRepository) SaveToken(token *model.AccountToken) (*model.AccountToken, error) {
-	query := `INSERT INTO account_token (user_id, token, type, expires_at, used) 
+func (r *TokenRepository) SaveToken(token *model.AccountToken) (*model.AccountToken, error) {
+	query := `INSERT INTO token (user_id, token, type, expires_at, used) 
 			  VALUES (?, ?, ?, ?, ?)`
 	result, err := r.db.Exec(query, token.UserID, token.Token, token.Type, token.ExpiresAt, token.Used)
 	if err != nil {
-		return nil, fmt.Errorf("failed to save verification token: %w", err)
+		return nil, fmt.Errorf("failed to save  token: %w", err)
 	}
 
 	id, err := result.LastInsertId()
@@ -40,10 +40,10 @@ func (r *VerificationTokenRepository) SaveToken(token *model.AccountToken) (*mod
 	return token, nil
 }
 
-func (r *VerificationTokenRepository) GetTokenByValue(tokenValue string) (*model.AccountToken, error) {
+func (r *TokenRepository) GetTokenByValue(tokenValue string) (*model.AccountToken, error) {
 	var token model.AccountToken
 	query := `SELECT id, user_id, token, type, expires_at, used 
-			  FROM account_token WHERE token = ?`
+			  FROM token WHERE token = ?`
 	err := r.db.QueryRow(query, tokenValue).Scan(
 		&token.ID,
 		&token.UserID,
@@ -61,8 +61,8 @@ func (r *VerificationTokenRepository) GetTokenByValue(tokenValue string) (*model
 	return &token, nil
 }
 
-func (r *VerificationTokenRepository) MarkTokenUsed(tokenID int) error {
-	query := `UPDATE account_token SET used = TRUE WHERE id = ?`
+func (r *TokenRepository) MarkTokenUsed(tokenID int) error {
+	query := `UPDATE token SET used = TRUE WHERE id = ?`
 	result, err := r.db.Exec(query, tokenID)
 	if err != nil {
 		return fmt.Errorf("failed to mark token as used: %w", err)
@@ -78,9 +78,9 @@ func (r *VerificationTokenRepository) MarkTokenUsed(tokenID int) error {
 	return nil
 }
 
-func (r *VerificationTokenRepository) GetTokensByUserID(userID int) ([]*model.AccountToken, error) {
+func (r *TokenRepository) GetTokensByUserID(userID int) ([]*model.AccountToken, error) {
 	query := `SELECT id, user_id, token, type, expires_at, used 
-			  FROM account_token WHERE user_id = ?`
+			  FROM token WHERE user_id = ?`
 	rows, err := r.db.Query(query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get verification tokens: %w", err)
@@ -109,8 +109,8 @@ func (r *VerificationTokenRepository) GetTokensByUserID(userID int) ([]*model.Ac
 	return tokens, nil
 }
 
-func (r *VerificationTokenRepository) InvalidateExistingTokens(userID int, tokenType model.TokenType) error {
-	query := `UPDATE account_token 
+func (r *TokenRepository) InvalidateExistingTokens(userID int, tokenType model.TokenType) error {
+	query := `UPDATE token 
 			  SET used = TRUE 
 			  WHERE user_id = ? AND type = ? AND used = FALSE AND expires_at > datetime('now')`
 	_, err := r.db.Exec(query, userID, string(tokenType))
@@ -121,4 +121,4 @@ func (r *VerificationTokenRepository) InvalidateExistingTokens(userID int, token
 	return nil
 }
 
-var _ VerificationTokenRepositoryInterface = (*VerificationTokenRepository)(nil)
+var _ TokenRepositoryInterface = (*TokenRepository)(nil)
