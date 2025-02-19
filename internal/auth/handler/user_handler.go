@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/shuvo-paul/uptimebot/internal/auth/model"
 	"github.com/shuvo-paul/uptimebot/internal/auth/service"
@@ -70,6 +71,8 @@ func (c *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	flashId := flash.GetFlashIDFromContext(r.Context())
+	c.flashStore.SetFlash(flashId, "success", []string{"Registration successful! Please check your email to verify your account."})
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
@@ -78,8 +81,11 @@ func (c *UserHandler) ShowLoginForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := map[string]string{
-		"Title": "Login",
+	flashId := flash.GetFlashIDFromContext(r.Context())
+	data := map[string]any{
+		"Title":   "Login",
+		"Success": c.flashStore.GetFlash(flashId, "success"),
+		"Errors":  c.flashStore.GetFlash(flashId, "errors"),
 	}
 	c.Template.Login.Render(w, r, data)
 }
@@ -95,7 +101,9 @@ func (c *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	user, err := c.authService.Authenticate(email, password)
 	if err != nil {
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		flashId := flash.GetFlashIDFromContext(r.Context())
+		c.flashStore.SetFlash(flashId, "errors", []string{err.Error()})
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
@@ -116,6 +124,61 @@ func (c *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	})
 
 	http.Redirect(w, r, "/targets", http.StatusSeeOther)
+}
+
+func (c *UserHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+
+	if token == "" {
+		http.Error(w, "Missing verification token", http.StatusBadRequest)
+		return
+	}
+
+	err := c.authService.VerifyEmail(token)
+	if err != nil {
+		flashId := flash.GetFlashIDFromContext(r.Context())
+		c.flashStore.SetFlash(flashId, "errors", []string{"Invalid or expired verification token"})
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	flashId := flash.GetFlashIDFromContext(r.Context())
+	c.flashStore.SetFlash(flashId, "successes", []string{"Email verified successfully!"})
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+func (c *UserHandler) SendVerificationEmail(w http.ResponseWriter, r *http.Request) {
+	flashId := flash.GetFlashIDFromContext(r.Context())
+	userID := r.FormValue("user_id")
+	if userID == "" {
+		c.flashStore.SetFlash(flashId, "errors", []string{"Missing user ID"})
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	userIDInt, err := strconv.Atoi(userID)
+	if err != nil {
+		c.flashStore.SetFlash(flashId, "errors", []string{"Invalid user ID"})
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	user, err := c.authService.GetUserByID(userIDInt)
+	if err != nil {
+		c.flashStore.SetFlash(flashId, "errors", []string{"Failed to get user"})
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	err = c.authService.SendVerificationEmail(user.ID, user.Email)
+	if err != nil {
+		c.flashStore.SetFlash(flashId, "errors", []string{"Failed to send verification email"})
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	c.flashStore.SetFlash(flashId, "successes", []string{"Verification email resent successfully!"})
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
 func (c *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {

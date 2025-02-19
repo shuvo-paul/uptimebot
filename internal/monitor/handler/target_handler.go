@@ -47,9 +47,10 @@ func (c *TargetHandler) List(w http.ResponseWriter, r *http.Request) {
 	flashId := flash.GetFlashIDFromContext(r.Context())
 
 	data := map[string]any{
-		"title":   "all targets",
-		"targets": targets,
-		"success": c.flash.GetFlash(flashId, "success"),
+		"title":     "all targets",
+		"targets":   targets,
+		"successes": c.flash.GetFlash(flashId, "successes"),
+		"errors":    c.flash.GetFlash(flashId, "errors"),
 	}
 
 	c.Template.List.Render(w, r, data)
@@ -70,7 +71,7 @@ func (c *TargetHandler) Create(w http.ResponseWriter, r *http.Request) {
 	interval, err := strconv.Atoi(intervalStr)
 	if err != nil {
 		flashID := flash.GetFlashIDFromContext(r.Context())
-		c.flash.SetFlash(flashID, "error", "Invalid interval value")
+		c.flash.SetFlash(flashID, "errors", "Invalid interval value")
 		http.Redirect(w, r, "/targets/create", http.StatusSeeOther)
 		return
 	}

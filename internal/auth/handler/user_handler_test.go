@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -15,9 +16,10 @@ import (
 
 // Mock UserService
 type mockUserService struct {
-	createUserFunc   func(*model.User) (*model.User, error)
-	authenticateFunc func(string, string) (*model.User, error)
-	getUserByIdFunc  func(id int) (*model.User, error)
+	createUserFunc            func(*model.User) (*model.User, error)
+	authenticateFunc          func(string, string) (*model.User, error)
+	getUserByIdFunc           func(id int) (*model.User, error)
+	sendVerificationEmailFunc func(int, string) error
 }
 
 func (m *mockUserService) CreateUser(user *model.User) (*model.User, error) {
@@ -30,6 +32,14 @@ func (m *mockUserService) Authenticate(email, password string) (*model.User, err
 
 func (m *mockUserService) GetUserByID(id int) (*model.User, error) {
 	return m.getUserByIdFunc(id)
+}
+
+func (m *mockUserService) VerifyEmail(token string) error {
+	return nil
+}
+
+func (m *mockUserService) SendVerificationEmail(id int, email string) error {
+	return m.sendVerificationEmailFunc(id, email)
 }
 
 // Mock SessionService
@@ -133,7 +143,6 @@ func TestLogin(t *testing.T) {
 			expectedStatus: http.StatusSeeOther,
 			expectedPath:   "/targets",
 		},
-		// Add more test cases for invalid credentials, service errors, etc.
 	}
 
 	for _, tt := range tests {
@@ -163,6 +172,70 @@ func TestLogin(t *testing.T) {
 			if location := w.Header().Get("Location"); location != tt.expectedPath {
 				t.Errorf("expected redirect to %s; got %s", tt.expectedPath, location)
 			}
+		})
+	}
+}
+
+func TestSendVerificationMail(t *testing.T) {
+	tests := []struct {
+		name              string
+		queryParams       string
+		mockGetUserFunc   func(int) (*model.User, error)
+		mockSendEmailFunc func(int, string) error
+	}{
+		{
+			name:        "successful verification email send",
+			queryParams: "user_id=1",
+			mockGetUserFunc: func(id int) (*model.User, error) {
+				return &model.User{ID: 1, Email: "test@example.com"}, nil
+			},
+			mockSendEmailFunc: func(id int, email string) error {
+				return nil
+			},
+		},
+		{
+			name:        "missing user ID",
+			queryParams: "",
+		},
+		{
+			name:        "invalid user ID",
+			queryParams: "user_id=invalid",
+		},
+		{
+			name:        "user not found",
+			queryParams: "user_id=999",
+			mockGetUserFunc: func(id int) (*model.User, error) {
+				return nil, fmt.Errorf("user not found")
+			},
+		},
+		{
+			name:        "email sending fails",
+			queryParams: "user_id=1",
+			mockGetUserFunc: func(id int) (*model.User, error) {
+				return &model.User{ID: 1, Email: "test@example.com"}, nil
+			},
+			mockSendEmailFunc: func(id int, email string) error {
+				return fmt.Errorf("failed to send email")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockUser := &mockUserService{
+				getUserByIdFunc:           tt.mockGetUserFunc,
+				sendVerificationEmailFunc: tt.mockSendEmailFunc,
+			}
+			mockSession := &mockSessionService{}
+			mockFlash := &testutil.MockFlashStore{}
+
+			handler := NewUserHandler(mockUser, mockSession, mockFlash)
+
+			req := httptest.NewRequest(http.MethodGet, "/verify-email?"+tt.queryParams, nil)
+			w := httptest.NewRecorder()
+
+			handler.SendVerificationEmail(w, req)
+
 		})
 	}
 }

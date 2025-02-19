@@ -12,6 +12,8 @@ import (
 	"github.com/shuvo-paul/uptimebot/internal/email"
 )
 
+const path = "verification"
+
 type AccountTokenService struct {
 	tokenRepo    repository.TokenRepositoryInterface
 	emailService email.Mailer
@@ -99,8 +101,6 @@ type emailParams struct {
 	TokenType model.TokenType `validate:"required"`
 	// Subject is the email subject line
 	Subject string `validate:"required"`
-	// Path is the URL path component for the token link
-	Path string `validate:"required"`
 	// ExpiresIn is the duration until the token expires
 	ExpiresIn time.Duration `validate:"required"`
 }
@@ -120,9 +120,7 @@ func (p *emailParams) Validate() error {
 	if p.Subject == "" {
 		return fmt.Errorf("subject is required")
 	}
-	if p.Path == "" {
-		return fmt.Errorf("path is required")
-	}
+
 	if p.ExpiresIn <= 0 {
 		return fmt.Errorf("expiration duration must be positive")
 	}
@@ -137,7 +135,7 @@ func (s *AccountTokenService) sendTokenEmail(params emailParams) error {
 	}
 
 	// Generate token link
-	tokenLink := fmt.Sprintf("%s/%s?token=%s", s.baseURL, params.Path, token.Token)
+	tokenLink := fmt.Sprintf("%s/%s?type=%s&token=%s", s.baseURL, path, params.TokenType, token.Token)
 
 	// Send email using the email service
 	if err := s.emailService.SetTo(params.Email); err != nil {
@@ -183,7 +181,6 @@ func (s *AccountTokenService) SendVerificationEmail(userID int, email string) er
 		TokenType: model.TokenTypeEmailVerification,
 
 		Subject:   "Verify Your Email Address",
-		Path:      "verify-email",
 		ExpiresIn: 24 * time.Hour,
 	})
 }
@@ -195,7 +192,6 @@ func (s *AccountTokenService) SendPasswordResetEmail(userID int, email string) e
 		TokenType: model.TokenTypePasswordReset,
 
 		Subject:   "Reset Your Password",
-		Path:      "reset-password",
 		ExpiresIn: 1 * time.Hour,
 	})
 }

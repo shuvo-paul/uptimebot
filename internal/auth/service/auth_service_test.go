@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/shuvo-paul/uptimebot/internal/auth/model"
 	"github.com/stretchr/testify/assert"
@@ -14,6 +15,7 @@ type mockUserRepository struct {
 	emailExistsFunc    func(email string) (bool, error)
 	getUserByEmailFunc func(email string) (*model.User, error)
 	getUserByIdFunc    func(id int) (*model.User, error)
+	updateUserFunc     func(user *model.User) (*model.User, error)
 }
 
 func (m *mockUserRepository) SaveUser(user *model.User) (*model.User, error) {
@@ -32,6 +34,32 @@ func (m *mockUserRepository) GetUserByID(id int) (*model.User, error) {
 	return m.getUserByIdFunc(id)
 }
 
+func (m *mockUserRepository) UpdateUser(user *model.User) (*model.User, error) {
+	return m.updateUserFunc(user)
+}
+
+// MockAccountTokenService is a mock implementation of AccountTokenServiceInterface
+type mockAccountTokenService struct {
+	sendVerificationEmailFunc func(userID int, email string) error
+	validateTokenFunc         func(token string, tokenType model.TokenType) (*model.AccountToken, error)
+}
+
+func (m *mockAccountTokenService) CreateToken(userID int, tokenType model.TokenType, expiresIn time.Duration) (*model.AccountToken, error) {
+	return nil, nil
+}
+
+func (m *mockAccountTokenService) ValidateToken(token string, tokenType model.TokenType) (*model.AccountToken, error) {
+	return m.validateTokenFunc(token, tokenType)
+}
+
+func (m *mockAccountTokenService) InvalidateAndCreateNewToken(userID int, tokenType model.TokenType, expiresIn time.Duration) (*model.AccountToken, error) {
+	return nil, nil
+}
+
+func (m *mockAccountTokenService) SendVerificationEmail(userID int, email string) error {
+	return m.sendVerificationEmailFunc(userID, email)
+}
+
 func TestCreateUser(t *testing.T) {
 	mockRepo := &mockUserRepository{
 		saveUserFunc: func(user *model.User) (*model.User, error) {
@@ -39,7 +67,12 @@ func TestCreateUser(t *testing.T) {
 			return user, nil
 		},
 	}
-	userService := NewAuthService(mockRepo)
+	mockTokenService := &mockAccountTokenService{
+		sendVerificationEmailFunc: func(userID int, email string) error {
+			return nil
+		},
+	}
+	userService := NewAuthService(mockRepo, mockTokenService)
 	t.Run("User created successfully", func(t *testing.T) {
 		mockRepo.emailExistsFunc = func(email string) (bool, error) {
 			return false, nil
@@ -70,6 +103,41 @@ func TestCreateUser(t *testing.T) {
 
 }
 
+func TestVerifyEmail(t *testing.T) {
+	mockRepo := &mockUserRepository{
+		getUserByIdFunc: func(id int) (*model.User, error) {
+			return &model.User{ID: 1, Email: "test@example.com"}, nil
+		},
+		saveUserFunc: func(user *model.User) (*model.User, error) {
+			return user, nil
+		},
+		updateUserFunc: func(user *model.User) (*model.User, error) {
+			return user, nil
+		},
+	}
+
+	mockTokenService := &mockAccountTokenService{
+		validateTokenFunc: func(token string, tokenType model.TokenType) (*model.AccountToken, error) {
+			if token == "valid_token" {
+				return &model.AccountToken{UserID: 1, Token: token}, nil
+			}
+			return nil, fmt.Errorf("invalid token")
+		},
+	}
+
+	userService := NewAuthService(mockRepo, mockTokenService)
+
+	t.Run("Email verified successfully", func(t *testing.T) {
+		err := userService.VerifyEmail("valid_token")
+		assert.NoError(t, err)
+	})
+
+	t.Run("Invalid token", func(t *testing.T) {
+		err := userService.VerifyEmail("invalid_token")
+		assert.Error(t, err)
+	})
+}
+
 func TestAuthentication(t *testing.T) {
 	email := "test@example.com"
 	password := "password123"
@@ -79,18 +147,19 @@ func TestAuthentication(t *testing.T) {
 		Name:     "testuser",
 		Email:    email,
 		Password: password,
+		Verified: true,
 	}
 
 	user.HashPassword()
 
 	mockRepo := &mockUserRepository{
 		getUserByEmailFunc: func(email string) (*model.User, error) {
-
 			return user, nil
 		},
 	}
 
-	userService := NewAuthService(mockRepo)
+	mockTokenService := &mockAccountTokenService{}
+	userService := NewAuthService(mockRepo, mockTokenService)
 
 	t.Run("Logged in succesfully", func(t *testing.T) {
 		user, err := userService.Authenticate(email, password)

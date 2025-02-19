@@ -11,16 +11,25 @@ type AuthServiceInterface interface {
 	CreateUser(*model.User) (*model.User, error)
 	Authenticate(string, string) (*model.User, error)
 	GetUserByID(int) (*model.User, error)
+	VerifyEmail(token string) error
+	SendVerificationEmail(userID int, email string) error
 }
 
 var _ AuthServiceInterface = (*AuthService)(nil)
 
 type AuthService struct {
-	repo repository.UserRepositoryInterface
+	repo         repository.UserRepositoryInterface
+	tokenService AccountTokenServiceInterface
 }
 
-func NewAuthService(repo repository.UserRepositoryInterface) *AuthService {
-	return &AuthService{repo: repo}
+func NewAuthService(
+	repo repository.UserRepositoryInterface,
+	tokenService AccountTokenServiceInterface,
+) *AuthService {
+	return &AuthService{
+		repo:         repo,
+		tokenService: tokenService,
+	}
 }
 
 func (s *AuthService) CreateUser(user *model.User) (*model.User, error) {
@@ -38,7 +47,18 @@ func (s *AuthService) CreateUser(user *model.User) (*model.User, error) {
 		return nil, fmt.Errorf("error hashing password: %w", err)
 	}
 
-	return s.repo.SaveUser(user)
+	user.Verified = false
+
+	createdUser, err := s.repo.SaveUser(user)
+	if err != nil {
+		return nil, fmt.Errorf("error saving user: %w", err)
+	}
+
+	if err := s.tokenService.SendVerificationEmail(createdUser.ID, createdUser.Email); err != nil {
+		fmt.Printf("Failed to send verification email: %v\n", err)
+	}
+
+	return createdUser, nil
 }
 
 func (s *AuthService) Authenticate(email, password string) (*model.User, error) {
@@ -56,4 +76,28 @@ func (s *AuthService) Authenticate(email, password string) (*model.User, error) 
 
 func (s *AuthService) GetUserByID(id int) (*model.User, error) {
 	return s.repo.GetUserByID(id)
+}
+
+func (s *AuthService) VerifyEmail(token string) error {
+	accountToken, err := s.tokenService.ValidateToken(token, model.TokenTypeEmailVerification)
+	if err != nil {
+		return fmt.Errorf("invalid verification token: %w", err)
+	}
+
+	user, err := s.repo.GetUserByID(accountToken.UserID)
+	if err != nil {
+		return fmt.Errorf("failed to find user: %w", err)
+	}
+
+	user.Verified = true
+	_, err = s.repo.UpdateUser(user)
+	if err != nil {
+		return fmt.Errorf("failed to update user verification status: %w", err)
+	}
+
+	return nil
+}
+
+func (s *AuthService) SendVerificationEmail(userID int, email string) error {
+	return s.tokenService.SendVerificationEmail(userID, email)
 }

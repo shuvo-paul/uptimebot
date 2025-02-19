@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"database/sql"
 	"fmt"
+	"html/template"
 	"log"
 
 	"github.com/joho/godotenv"
@@ -12,6 +13,7 @@ import (
 	"github.com/shuvo-paul/uptimebot/internal/config"
 	"github.com/shuvo-paul/uptimebot/internal/database"
 	"github.com/shuvo-paul/uptimebot/internal/database/migrations"
+	"github.com/shuvo-paul/uptimebot/internal/email"
 	uptimeHandler "github.com/shuvo-paul/uptimebot/internal/monitor/handler"
 	uptimeRepository "github.com/shuvo-paul/uptimebot/internal/monitor/repository"
 	uptimeService "github.com/shuvo-paul/uptimebot/internal/monitor/service"
@@ -55,8 +57,28 @@ func NewApp() *App {
 
 	userRepository := authRepository.NewUserRepository(db)
 	sessionRepository := authRepository.NewSessionRepository(db)
+	tokenRepository := authRepository.NewTokenRepository(db)
 
-	authService2 := authService.NewAuthService(userRepository)
+	emailService, err := email.NewEmailService(&config.Email)
+	if err != nil {
+		log.Fatalf("Failed to initialize email service: %v", err)
+	}
+
+	emailTemplates, err := template.ParseFS(templates.TemplateFS, "emails/*.html")
+	if err != nil {
+		log.Fatalf("Failed to parse email templates: %v", err)
+	}
+
+	// Initialize account token service
+	tokenService := authService.NewAccountTokenService(
+		tokenRepository,
+		emailService,
+		config.BaseURL,
+		emailTemplates,
+	)
+
+	// Initialize auth service with token service
+	authService2 := authService.NewAuthService(userRepository, tokenService)
 
 	sessionService := authService.NewSessionService(sessionRepository)
 	authHandler := authHandler.NewUserHandler(authService2, sessionService, flashStore)

@@ -37,6 +37,9 @@ func SetupRoutes(
 		http.Redirect(w, r, "/targets", http.StatusFound)
 	})
 
+	mux.HandleFunc("GET /verification", userHandler.VerifyEmail)
+	mux.HandleFunc("POST /verification", userHandler.SendVerificationEmail)
+
 	// Protected routes
 	protected := http.NewServeMux()
 	// Add target monitoring routes
