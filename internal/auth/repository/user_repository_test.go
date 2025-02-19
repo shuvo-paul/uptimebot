@@ -86,3 +86,29 @@ func TestGetUser(t *testing.T) {
 		assert.Equal(t, expectedUser.Email, user.Email)
 	})
 }
+
+func TestUpdateUser(t *testing.T) {
+	db := testutil.NewInMemoryDB()
+	userRepo := NewUserRepository(db)
+	defer db.Close()
+	// Create a test user first
+	expectedUser := &model.User{
+		Name:     "testuser",
+		Email:    "email@example.org",
+		Password: "hashedpassword",
+		Verified: false,
+	}
+
+	savedUser, err := userRepo.SaveUser(expectedUser)
+	assert.NoError(t, err)
+	expectedUser.ID = savedUser.ID
+	expectedUser.Name = "updateduser"
+	expectedUser.Email = "updated@example.org"
+	expectedUser.Verified = true
+	updatedUser, err := userRepo.UpdateUser(expectedUser)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedUser.ID, updatedUser.ID)
+	assert.Equal(t, expectedUser.Name, updatedUser.Name)
+	assert.Equal(t, expectedUser.Email, updatedUser.Email)
+	assert.Equal(t, expectedUser.Verified, updatedUser.Verified)
+}

@@ -53,11 +53,30 @@ func (r *UserRepository) GetUserByEmail(email string) (*model.User, error) {
 
 func (r *UserRepository) GetUserByID(id int) (*model.User, error) {
 	user := &model.User{}
-	query := `SELECT id, name, email from user WHERE id = ?`
-	err := r.db.QueryRow(query, id).Scan(&user.ID, &user.Name, &user.Email)
+	query := `SELECT id, name, email, verified from user WHERE id = ?`
+	err := r.db.QueryRow(query, id).Scan(&user.ID, &user.Name, &user.Email, &user.Verified)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find user: %w", err)
 	}
+	return user, nil
+}
+
+func (r *UserRepository) UpdateUser(user *model.User) (*model.User, error) {
+	query := `UPDATE user SET name = ?, email = ?, verified = ? WHERE id = ?`
+	result, err := r.db.Exec(query, user.Name, user.Email, user.Verified, user.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update user: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return nil, fmt.Errorf("no user found with ID: %d", user.ID)
+	}
+
 	return user, nil
 }
 
@@ -66,6 +85,7 @@ type UserRepositoryInterface interface {
 	EmailExists(email string) (bool, error)
 	GetUserByEmail(email string) (*model.User, error)
 	GetUserByID(id int) (*model.User, error)
+	UpdateUser(user *model.User) (*model.User, error)
 }
 
 var _ UserRepositoryInterface = (*UserRepository)(nil)
