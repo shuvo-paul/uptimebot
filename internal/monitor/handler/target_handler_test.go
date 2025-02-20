@@ -13,7 +13,7 @@ import (
 	monitor "github.com/shuvo-paul/uptimebot/internal/monitor/engine"
 	"github.com/shuvo-paul/uptimebot/internal/renderer"
 	"github.com/shuvo-paul/uptimebot/internal/templates"
-	"github.com/shuvo-paul/uptimebot/internal/testutil"
+	"github.com/shuvo-paul/uptimebot/pkg/flash"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -67,7 +67,7 @@ func TestTargetHandler_List(t *testing.T) {
 		initializeMonitoringFunc: func() error { return nil },
 	}
 
-	handler := NewTargetHandler(mockService, &testutil.MockFlashStore{})
+	handler := NewTargetHandler(mockService, &flash.MockFlashStore{})
 	templateRenderer := renderer.New(templates.TemplateFS)
 	handler.Template.List = templateRenderer.GetTemplate("pages:targets/list")
 
@@ -87,7 +87,7 @@ func TestTargetHandler_Create(t *testing.T) {
 		mockService := &mockTargetService{
 			initializeMonitoringFunc: func() error { return nil },
 		}
-		handler := NewTargetHandler(mockService, &testutil.MockFlashStore{})
+		handler := NewTargetHandler(mockService, &flash.MockFlashStore{})
 		templateRenderer := renderer.New(templates.TemplateFS)
 		handler.Template.Create = templateRenderer.GetTemplate("pages:targets/create")
 
@@ -107,7 +107,7 @@ func TestTargetHandler_Create(t *testing.T) {
 			initializeMonitoringFunc: func() error { return nil },
 		}
 
-		handler := NewTargetHandler(mockService, &testutil.MockFlashStore{})
+		handler := NewTargetHandler(mockService, &flash.MockFlashStore{})
 
 		form := url.Values{}
 		form.Add("url", "http://example.com")
@@ -137,7 +137,7 @@ func TestTargetHandler_Create(t *testing.T) {
 			initializeMonitoringFunc: func() error { return nil },
 		}
 
-		handler := NewTargetHandler(mockService, &testutil.MockFlashStore{})
+		handler := NewTargetHandler(mockService, &flash.MockFlashStore{})
 
 		form := url.Values{}
 		form.Add("url", "http://example.com")
@@ -162,7 +162,7 @@ func TestTargetHandler_Edit(t *testing.T) {
 			initializeMonitoringFunc: func() error { return nil },
 		}
 
-		handler := NewTargetHandler(mockService, &testutil.MockFlashStore{})
+		handler := NewTargetHandler(mockService, &flash.MockFlashStore{})
 		templateRenderer := renderer.New(templates.TemplateFS)
 		handler.Template.Edit = templateRenderer.GetTemplate("pages:targets/edit")
 
@@ -187,7 +187,7 @@ func TestTargetHandler_Edit(t *testing.T) {
 			initializeMonitoringFunc: func() error { return nil },
 		}
 
-		handler := NewTargetHandler(mockService, &testutil.MockFlashStore{})
+		handler := NewTargetHandler(mockService, &flash.MockFlashStore{})
 
 		form := url.Values{}
 		form.Add("url", "http://example.com")
@@ -214,7 +214,7 @@ func TestTargetHandler_Delete(t *testing.T) {
 			initializeMonitoringFunc: func() error { return nil },
 		}
 
-		handler := NewTargetHandler(mockService, &testutil.MockFlashStore{})
+		handler := NewTargetHandler(mockService, &flash.MockFlashStore{})
 
 		req := httptest.NewRequest(http.MethodPost, "/targets/1/delete", nil)
 		req.SetPathValue("id", "1")
@@ -230,7 +230,7 @@ func TestTargetHandler_Delete(t *testing.T) {
 		mockService := &mockTargetService{
 			initializeMonitoringFunc: func() error { return nil },
 		}
-		handler := NewTargetHandler(mockService, &testutil.MockFlashStore{})
+		handler := NewTargetHandler(mockService, &flash.MockFlashStore{})
 
 		req := httptest.NewRequest(http.MethodPost, "/targets/invalid/delete", nil)
 		req.SetPathValue("id", "invalid")

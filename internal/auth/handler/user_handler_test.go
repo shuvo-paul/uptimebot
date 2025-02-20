@@ -11,7 +11,7 @@ import (
 	"github.com/shuvo-paul/uptimebot/internal/auth/model"
 	"github.com/shuvo-paul/uptimebot/internal/renderer"
 	"github.com/shuvo-paul/uptimebot/internal/templates"
-	"github.com/shuvo-paul/uptimebot/internal/testutil"
+	"github.com/shuvo-paul/uptimebot/pkg/flash"
 )
 
 // Mock UserService
@@ -95,7 +95,7 @@ func TestRegister(t *testing.T) {
 			}
 			mockSession := &mockSessionService{}
 
-			mockFlash := &testutil.MockFlashStore{}
+			mockFlash := &flash.MockFlashStore{}
 
 			controller := NewUserHandler(mockUser, mockSession, mockFlash)
 			controller.Template.Register = templateRenderer.GetTemplate("pages:register")
@@ -154,7 +154,7 @@ func TestLogin(t *testing.T) {
 				createSessionFunc: tt.mockSessFunc,
 			}
 
-			mockFlash := &testutil.MockFlashStore{}
+			mockFlash := &flash.MockFlashStore{}
 
 			controller := NewUserHandler(mockUser, mockSession, mockFlash)
 			controller.Template.Login = templateRenderer.GetTemplate("pages:login")
@@ -227,7 +227,7 @@ func TestSendVerificationMail(t *testing.T) {
 				sendVerificationEmailFunc: tt.mockSendEmailFunc,
 			}
 			mockSession := &mockSessionService{}
-			mockFlash := &testutil.MockFlashStore{}
+			mockFlash := &flash.MockFlashStore{}
 
 			handler := NewUserHandler(mockUser, mockSession, mockFlash)
 

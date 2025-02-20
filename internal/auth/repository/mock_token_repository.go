@@ -1,4 +1,4 @@
-package mock
+package repository
 
 import (
 	"github.com/shuvo-paul/uptimebot/internal/auth/model"

@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/shuvo-paul/uptimebot/internal/auth/model"
-	mockRepo "github.com/shuvo-paul/uptimebot/internal/auth/repository/mock"
-	mockEmail "github.com/shuvo-paul/uptimebot/internal/email/mock"
+	mockRepo "github.com/shuvo-paul/uptimebot/internal/auth/repository"
+	mockEmail "github.com/shuvo-paul/uptimebot/internal/email"
 	"github.com/stretchr/testify/assert"
 )
 

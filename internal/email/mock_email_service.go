@@ -1,4 +1,4 @@
-package mock
+package email
 
 type EmailServiceMock struct {
 	SetToFunc      func(to string) error

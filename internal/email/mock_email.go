@@ -1,9 +1,7 @@
-package mock
+package email
 
 import (
 	"sync"
-
-	"github.com/shuvo-paul/uptimebot/internal/email"
 )
 
 type MailServiceMock struct {
@@ -23,7 +21,7 @@ type MailServiceMock struct {
 }
 
 // Verify MailServiceMock implements email.Mailer interface
-var _ email.Mailer = (*MailServiceMock)(nil)
+var _ Mailer = (*MailServiceMock)(nil)
 
 func (m *MailServiceMock) SetTo(to string) error {
 	m.mutex.Lock()

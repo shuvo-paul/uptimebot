@@ -1,4 +1,4 @@
-package testutil
+package flash
 
 // MockFlashStore is a mock implementation of flash.FlashStoreInterface
 type MockFlashStore struct {
