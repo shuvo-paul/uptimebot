@@ -1,6 +1,7 @@
 package flash
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,11 +13,13 @@ func TestSetAndGetFlash(t *testing.T) {
 	fs := NewFlashStore()
 	flashID := "test-id"
 
-	fs.SetFlash(flashID, "key1", "value1")
+	testValue := []string{"value1"}
+	fs.SetFlash(flashID, "key1", testValue)
 
 	value := fs.GetFlash(flashID, "key1")
 
-	assert.Equal(t, value, "value1")
+	assert.Equal(t, value, testValue)
+	assert.Equal(t, len(value), len(testValue))
 
 	value = fs.GetFlash(flashID, "key1")
 
@@ -39,4 +42,53 @@ func TestMiddleware(t *testing.T) {
 
 	assert.Equal(t, cookie.Name, "flash_id")
 	assert.NotEmpty(t, cookie.Value)
+}
+
+func TestSetErrors(t *testing.T) {
+	fs := NewFlashStore()
+	ctx := context.Background()
+
+	// Test with empty flash ID
+	fs.SetErrors(ctx, []string{"error1", "error2"})
+	assert.Nil(t, fs.GetFlash("", FlashKeyErrors))
+
+	// Test with valid flash ID
+	flashID := "test-flash-id"
+	ctx = context.WithValue(ctx, flashIdKey, flashID)
+	errors := []string{"error1", "error2"}
+	fs.SetErrors(ctx, errors)
+
+	// Verify errors were stored
+	value := fs.GetFlash(flashID, FlashKeyErrors)
+	assert.NotNil(t, value)
+	assert.Equal(t, errors, value)
+	assert.Equal(t, len(errors), len(value))
+
+	// Verify errors were cleared after retrieval
+	value = fs.GetFlash(flashID, FlashKeyErrors)
+	assert.Nil(t, value)
+}
+
+func TestSetSuccesses(t *testing.T) {
+	fs := NewFlashStore()
+	ctx := context.Background()
+
+	// Test with empty flash ID
+	fs.SetSuccesses(ctx, []string{"success1", "success2"})
+	assert.Nil(t, fs.GetFlash("", FlashKeySuccesses))
+
+	// Test with valid flash ID
+	flashID := "test-flash-id"
+	ctx = context.WithValue(ctx, flashIdKey, flashID)
+	successes := []string{"success1", "success2"}
+	fs.SetSuccesses(ctx, successes)
+
+	// Verify successes were stored
+	value := fs.GetFlash(flashID, FlashKeySuccesses)
+	assert.NotNil(t, value)
+	assert.Equal(t, successes, value)
+
+	// Verify successes were cleared after retrieval
+	value = fs.GetFlash(flashID, FlashKeySuccesses)
+	assert.Nil(t, value)
 }

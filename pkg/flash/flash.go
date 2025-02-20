@@ -9,9 +9,16 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	FlashKeyErrors    = "Errors"
+	FlashKeySuccesses = "Successes"
+)
+
 type FlashStoreInterface interface {
-	SetFlash(flashID, key string, value any)
-	GetFlash(flashID, key string) any
+	SetFlash(flashID, key string, value []string)
+	GetFlash(flashID, key string) []string
+	SetErrors(ctx context.Context, errors []string)
+	SetSuccesses(ctx context.Context, successes []string)
 }
 
 var _ FlashStoreInterface = (*FlashStore)(nil)
@@ -22,7 +29,7 @@ const flashIdKey contextKey = "flashIdKey"
 
 type FlashStore struct {
 	mu      sync.RWMutex
-	flashes map[string]map[string]any
+	flashes map[string]map[string][]string
 }
 
 func defaultFlashIdGenerator() string {
@@ -31,21 +38,21 @@ func defaultFlashIdGenerator() string {
 
 func NewFlashStore() *FlashStore {
 	return &FlashStore{
-		flashes: make(map[string]map[string]any),
+		flashes: make(map[string]map[string][]string),
 	}
 }
 
-func (fs *FlashStore) SetFlash(flashID, key string, value any) {
+func (fs *FlashStore) SetFlash(flashID, key string, value []string) {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
 	if _, exists := fs.flashes[flashID]; !exists {
-		fs.flashes[flashID] = make(map[string]any)
+		fs.flashes[flashID] = make(map[string][]string)
 	}
 	fs.flashes[flashID][key] = value
 }
 
-func (fs *FlashStore) GetFlash(flashID, key string) any {
+func (fs *FlashStore) GetFlash(flashID, key string) []string {
 	fs.mu.RLock()
 	session, exists := fs.flashes[flashID]
 	fs.mu.RUnlock()
@@ -66,6 +73,22 @@ func (fs *FlashStore) GetFlash(flashID, key string) any {
 		}
 	}
 	return value
+}
+
+func (fs *FlashStore) SetErrors(ctx context.Context, errors []string) {
+	flashId := GetFlashIDFromContext(ctx)
+	if flashId == "" {
+		return
+	}
+	fs.SetFlash(flashId, FlashKeyErrors, errors)
+}
+
+func (fs *FlashStore) SetSuccesses(ctx context.Context, successes []string) {
+	flashId := GetFlashIDFromContext(ctx)
+	if flashId == "" {
+		return
+	}
+	fs.SetFlash(flashId, FlashKeySuccesses, successes)
 }
 
 func Middleware(next http.Handler) http.Handler {
