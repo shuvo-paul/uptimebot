@@ -19,6 +19,8 @@ type FlashStoreInterface interface {
 	getFlash(flashID, key string) []string
 	SetErrors(ctx context.Context, errors []string)
 	SetSuccesses(ctx context.Context, successes []string)
+	GetErrors(ctx context.Context) []string
+	GetSuccesses(ctx context.Context) []string
 }
 
 var _ FlashStoreInterface = (*FlashStore)(nil)
