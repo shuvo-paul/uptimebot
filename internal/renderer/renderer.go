@@ -14,6 +14,7 @@ import (
 	"github.com/shuvo-paul/uptimebot/internal/auth/model"
 	"github.com/shuvo-paul/uptimebot/internal/auth/service"
 	"github.com/shuvo-paul/uptimebot/pkg/csrf"
+	"github.com/shuvo-paul/uptimebot/pkg/flash"
 )
 
 const layoutDir = "layouts"
@@ -134,14 +135,25 @@ func (e *Engine) parseTemplate(dir, fullPath string) error {
 		"currentUser": func() *model.User {
 			return nil // This will be replaced at render time
 		},
+		"flashMessages": func() (map[string][]string, error) {
+			return map[string][]string{
+				"successes": {},
+				"errors":    {},
+			}, nil // This will be replaced at render time
+		},
 	})
 
 	pattern := []string{fullPath}
 	pattern = append(pattern, e.layouts...)
-	// First parse the content template
-	tmpl = template.Must(tmpl.ParseFS(e.fs, pattern...))
 
-	e.templates[key] = &Template{tmpl: tmpl}
+	// Parse the content template and layouts
+	tmpl, err := tmpl.ParseFS(e.fs, pattern...)
+	if err != nil {
+		return fmt.Errorf("failed to parse template %s: %w", key, err)
+	}
+
+	// Use the NewTemplate constructor
+	e.templates[key] = NewTemplate(tmpl)
 	return nil
 }
 
@@ -160,7 +172,38 @@ func (e *Engine) GetTemplate(key string) *Template {
 }
 
 type Template struct {
-	tmpl *template.Template
+	tmpl       *template.Template
+	flashStore flash.FlashStoreInterface
+}
+
+// NewTemplate creates a new Template instance
+func NewTemplate(tmpl *template.Template) *Template {
+	return &Template{
+		tmpl:       tmpl,
+		flashStore: flash.NewFlashStore(),
+	}
+}
+
+// getTemplateFuncs returns the template functions map
+func (t *Template) getTemplateFuncs(r *http.Request) template.FuncMap {
+	ctx := r.Context()
+	return template.FuncMap{
+		"csrfField": func() template.HTML {
+			return csrf.GenerateCsrfField(r)
+		},
+		"currentUser": func() *model.User {
+			user, _ := service.GetUser(ctx)
+			return user
+		},
+		"flashMessages": func() (map[string][]string, error) {
+			successes := t.flashStore.GetSuccesses(ctx)
+			errors := t.flashStore.GetErrors(ctx)
+			return map[string][]string{
+				"successes": successes,
+				"errors":    errors,
+			}, nil
+		},
+	}
 }
 
 // GetTmpl returns the underlying template.Template
@@ -176,15 +219,7 @@ func (t *Template) Render(w http.ResponseWriter, r *http.Request, data any) erro
 		return fmt.Errorf("failed to clone template: %w", err)
 	}
 
-	newTmpl.Funcs(template.FuncMap{
-		"csrfField": func() template.HTML {
-			return csrf.GenerateCsrfField(r)
-		},
-		"currentUser": func() *model.User {
-			user, _ := service.GetUser(r.Context())
-			return user
-		},
-	})
+	newTmpl.Funcs(t.getTemplateFuncs(r))
 
 	buf := &bytes.Buffer{}
 	// Execute the template with the full template name including layout
