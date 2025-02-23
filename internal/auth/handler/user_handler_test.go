@@ -95,7 +95,7 @@ func TestRegister(t *testing.T) {
 			}
 			mockSession := &mockSessionService{}
 
-			mockFlash := &flash.MockFlashStore{}
+			mockFlash := flash.NewFlashStore()
 
 			controller := NewUserHandler(mockUser, mockSession, mockFlash)
 			controller.Template.Register = templateRenderer.GetTemplate("pages:register")

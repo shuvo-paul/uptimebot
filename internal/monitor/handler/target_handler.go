@@ -44,13 +44,9 @@ func (c *TargetHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	flashId := flash.GetFlashIDFromContext(r.Context())
-
 	data := map[string]any{
-		"title":     "all targets",
-		"targets":   targets,
-		"successes": c.flash.GetFlash(flashId, "successes"),
-		"errors":    c.flash.GetFlash(flashId, "errors"),
+		"title":   "all targets",
+		"targets": targets,
 	}
 
 	c.Template.List.Render(w, r, data)
@@ -70,8 +66,10 @@ func (c *TargetHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	interval, err := strconv.Atoi(intervalStr)
 	if err != nil {
-		flashID := flash.GetFlashIDFromContext(r.Context())
-		c.flash.SetFlash(flashID, "errors", "Invalid interval value")
+		errors := []string{
+			"Invalid interval value",
+		}
+		c.flash.SetErrors(r.Context(), errors)
 		http.Redirect(w, r, "/targets/create", http.StatusSeeOther)
 		return
 	}
@@ -84,14 +82,18 @@ func (c *TargetHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	_, err = c.targetService.Create(user.ID, url, time.Duration(interval)*time.Second)
 	if err != nil {
-		flashID := flash.GetFlashIDFromContext(r.Context())
-		c.flash.SetFlash(flashID, "error", "Failed to create target: "+err.Error())
+		errors := []string{
+			"Failed to create target: " + err.Error(),
+		}
+		c.flash.SetErrors(r.Context(), errors)
 		http.Redirect(w, r, "/targets/create", http.StatusSeeOther)
 		return
 	}
 
-	flashID := flash.GetFlashIDFromContext(r.Context())
-	c.flash.SetFlash(flashID, "success", "Target created successfully")
+	successes := []string{
+		"Target created successfully",
+	}
+	c.flash.SetSuccesses(r.Context(), successes)
 	http.Redirect(w, r, "/targets", http.StatusSeeOther)
 }
 
@@ -129,8 +131,10 @@ func (c *TargetHandler) Edit(w http.ResponseWriter, r *http.Request) {
 	intervalStr := r.FormValue("interval")
 	interval, err := strconv.Atoi(intervalStr)
 	if err != nil {
-		flashID := flash.GetFlashIDFromContext(r.Context())
-		c.flash.SetFlash(flashID, "error", "Invalid interval value")
+		errors := []string{
+			"Invalid interval value",
+		}
+		c.flash.SetErrors(r.Context(), errors)
 		http.Redirect(w, r, "/targets/"+strconv.Itoa(id)+"/edit", http.StatusSeeOther)
 		return
 	}
@@ -138,14 +142,16 @@ func (c *TargetHandler) Edit(w http.ResponseWriter, r *http.Request) {
 
 	_, err = c.targetService.Update(target)
 	if err != nil {
-		flashID := flash.GetFlashIDFromContext(r.Context())
-		c.flash.SetFlash(flashID, "error", "Failed to update target: "+err.Error())
+		errors := []string{
+			"Failed to update target: " + err.Error(),
+		}
+		c.flash.SetErrors(r.Context(), errors)
 		http.Redirect(w, r, "/targets/"+strconv.Itoa(id)+"/edit", http.StatusSeeOther)
 		return
 	}
 
-	flashID := flash.GetFlashIDFromContext(r.Context())
-	c.flash.SetFlash(flashID, "success", "Target updated successfully")
+	c.flash.SetSuccesses(r.Context(), []string{"Target updated successfully"})
+
 	http.Redirect(w, r, "/targets", http.StatusSeeOther)
 }
 
@@ -158,11 +164,10 @@ func (c *TargetHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = c.targetService.Delete(id)
-	flashID := flash.GetFlashIDFromContext(r.Context())
 	if err != nil {
-		c.flash.SetFlash(flashID, "error", "Failed to delete target: "+err.Error())
+		c.flash.SetErrors(r.Context(), []string{"Failed to delete target: " + err.Error()})
 	} else {
-		c.flash.SetFlash(flashID, "success", "Target deleted successfully")
+		c.flash.SetSuccesses(r.Context(), []string{"Target deleted successfully"})
 	}
 
 	http.Redirect(w, r, "/targets", http.StatusSeeOther)
