@@ -15,8 +15,8 @@ const (
 )
 
 type FlashStoreInterface interface {
-	SetFlash(flashID, key string, value []string)
-	GetFlash(flashID, key string) []string
+	setFlash(flashID, key string, value []string)
+	getFlash(flashID, key string) []string
 	SetErrors(ctx context.Context, errors []string)
 	SetSuccesses(ctx context.Context, successes []string)
 }
@@ -42,7 +42,7 @@ func NewFlashStore() *FlashStore {
 	}
 }
 
-func (fs *FlashStore) SetFlash(flashID, key string, value []string) {
+func (fs *FlashStore) setFlash(flashID, key string, value []string) {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
@@ -52,7 +52,7 @@ func (fs *FlashStore) SetFlash(flashID, key string, value []string) {
 	fs.flashes[flashID][key] = value
 }
 
-func (fs *FlashStore) GetFlash(flashID, key string) []string {
+func (fs *FlashStore) getFlash(flashID, key string) []string {
 	fs.mu.RLock()
 	session, exists := fs.flashes[flashID]
 	fs.mu.RUnlock()
@@ -80,7 +80,7 @@ func (fs *FlashStore) SetErrors(ctx context.Context, errors []string) {
 	if flashId == "" {
 		return
 	}
-	fs.SetFlash(flashId, FlashKeyErrors, errors)
+	fs.setFlash(flashId, FlashKeyErrors, errors)
 }
 
 func (fs *FlashStore) SetSuccesses(ctx context.Context, successes []string) {
@@ -88,7 +88,23 @@ func (fs *FlashStore) SetSuccesses(ctx context.Context, successes []string) {
 	if flashId == "" {
 		return
 	}
-	fs.SetFlash(flashId, FlashKeySuccesses, successes)
+	fs.setFlash(flashId, FlashKeySuccesses, successes)
+}
+
+func (fs *FlashStore) GetSuccesses(ctx context.Context) []string {
+	flashId := GetFlashIDFromContext(ctx)
+	if flashId == "" {
+		return nil
+	}
+	return fs.getFlash(flashId, FlashKeySuccesses)
+}
+
+func (fs *FlashStore) GetErrors(ctx context.Context) []string {
+	flashId := GetFlashIDFromContext(ctx)
+	if flashId == "" {
+		return nil
+	}
+	return fs.getFlash(flashId, FlashKeyErrors)
 }
 
 func Middleware(next http.Handler) http.Handler {
