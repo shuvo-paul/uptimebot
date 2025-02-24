@@ -189,6 +189,8 @@ func NewTemplate(tmpl *template.Template, flashStore flash.FlashStoreInterface) 
 // getTemplateFuncs returns the template functions map
 func (t *Template) getTemplateFuncs(r *http.Request) template.FuncMap {
 	ctx := r.Context()
+	successes := t.flashStore.GetSuccesses(ctx)
+	errors := t.flashStore.GetErrors(ctx)
 	return template.FuncMap{
 		"csrfField": func() template.HTML {
 			return csrf.GenerateCsrfField(r)
@@ -199,8 +201,8 @@ func (t *Template) getTemplateFuncs(r *http.Request) template.FuncMap {
 		},
 		"flashMessages": func() (map[string][]string, error) {
 			return map[string][]string{
-				"successes": t.flashStore.GetSuccesses(ctx),
-				"errors":    t.flashStore.GetErrors(ctx),
+				"successes": successes,
+				"errors":    errors,
 			}, nil
 		},
 	}
