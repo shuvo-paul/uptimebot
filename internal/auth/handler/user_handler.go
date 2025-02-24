@@ -212,7 +212,7 @@ func (c *UserHandler) redirectIfAuthenticated(w http.ResponseWriter, r *http.Req
 			return false
 		}
 		if user != nil {
-			http.Redirect(w, r, "/", http.StatusSeeOther)
+			http.Redirect(w, r, "/targets", http.StatusSeeOther)
 			return true
 		}
 	}
