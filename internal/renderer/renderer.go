@@ -20,16 +20,18 @@ import (
 const layoutDir = "layouts"
 
 type Engine struct {
-	fs        embed.FS
-	templates map[string]*Template
-	layouts   []string // List of layout files
+	fs         embed.FS
+	templates  map[string]*Template
+	layouts    []string // List of layout files
+	flashStore flash.FlashStoreInterface
 }
 
-func New(fs embed.FS) *Engine {
+func New(fs embed.FS, flashStore flash.FlashStoreInterface) *Engine {
 	e := &Engine{
-		fs:        fs,
-		templates: make(map[string]*Template),
-		layouts:   make([]string, 0),
+		fs:         fs,
+		templates:  make(map[string]*Template),
+		layouts:    make([]string, 0),
+		flashStore: flashStore,
 	}
 
 	if err := e.parseAllTemplates(); err != nil {
@@ -153,7 +155,7 @@ func (e *Engine) parseTemplate(dir, fullPath string) error {
 	}
 
 	// Use the NewTemplate constructor
-	e.templates[key] = NewTemplate(tmpl)
+	e.templates[key] = NewTemplate(tmpl, e.flashStore)
 	return nil
 }
 
@@ -177,10 +179,10 @@ type Template struct {
 }
 
 // NewTemplate creates a new Template instance
-func NewTemplate(tmpl *template.Template) *Template {
+func NewTemplate(tmpl *template.Template, flashStore flash.FlashStoreInterface) *Template {
 	return &Template{
 		tmpl:       tmpl,
-		flashStore: flash.NewFlashStore(),
+		flashStore: flashStore,
 	}
 }
 
@@ -196,11 +198,9 @@ func (t *Template) getTemplateFuncs(r *http.Request) template.FuncMap {
 			return user
 		},
 		"flashMessages": func() (map[string][]string, error) {
-			successes := t.flashStore.GetSuccesses(ctx)
-			errors := t.flashStore.GetErrors(ctx)
 			return map[string][]string{
-				"successes": successes,
-				"errors":    errors,
+				"successes": t.flashStore.GetSuccesses(ctx),
+				"errors":    t.flashStore.GetErrors(ctx),
 			}, nil
 		},
 	}

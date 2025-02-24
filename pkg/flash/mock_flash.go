@@ -28,12 +28,8 @@ func (m *MockFlashStore) getFlash(flashID, key string) []string {
 	}
 
 	value, ok := session[key]
-	if ok {
-		delete(session, key)
-		// Clean up empty sessions
-		if len(session) == 0 {
-			delete(m.flashes, flashID)
-		}
+	if !ok {
+		return nil
 	}
 	return value
 }

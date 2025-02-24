@@ -60,6 +60,7 @@ func (m *mockTargetService) InitializeMonitoring() error {
 }
 
 func TestTargetHandler_List(t *testing.T) {
+	mockFlashStore := flash.NewMockFlashStore()
 	mockService := &mockTargetService{
 		getAllByUserIDFunc: func(userID int) ([]*monitor.Target, error) {
 			return []*monitor.Target{{ID: 1, URL: "http://example.com", Interval: 60 * time.Second}}, nil
@@ -68,7 +69,7 @@ func TestTargetHandler_List(t *testing.T) {
 	}
 
 	handler := NewTargetHandler(mockService, &flash.MockFlashStore{})
-	templateRenderer := renderer.New(templates.TemplateFS)
+	templateRenderer := renderer.New(templates.TemplateFS, mockFlashStore)
 	handler.Template.List = templateRenderer.GetTemplate("pages:targets/list")
 
 	req := httptest.NewRequest(http.MethodGet, "/targets", nil)
@@ -83,12 +84,13 @@ func TestTargetHandler_List(t *testing.T) {
 }
 
 func TestTargetHandler_Create(t *testing.T) {
+	mockFlashStore := flash.NewMockFlashStore()
 	t.Run("GET request", func(t *testing.T) {
 		mockService := &mockTargetService{
 			initializeMonitoringFunc: func() error { return nil },
 		}
 		handler := NewTargetHandler(mockService, &flash.MockFlashStore{})
-		templateRenderer := renderer.New(templates.TemplateFS)
+		templateRenderer := renderer.New(templates.TemplateFS, mockFlashStore)
 		handler.Template.Create = templateRenderer.GetTemplate("pages:targets/create")
 
 		req := httptest.NewRequest(http.MethodGet, "/targets/create", nil)
@@ -154,6 +156,7 @@ func TestTargetHandler_Create(t *testing.T) {
 }
 
 func TestTargetHandler_Edit(t *testing.T) {
+	mockFlashStore := flash.NewMockFlashStore()
 	t.Run("GET request", func(t *testing.T) {
 		mockService := &mockTargetService{
 			getByIDFunc: func(id int) (*monitor.Target, error) {
@@ -163,7 +166,7 @@ func TestTargetHandler_Edit(t *testing.T) {
 		}
 
 		handler := NewTargetHandler(mockService, &flash.MockFlashStore{})
-		templateRenderer := renderer.New(templates.TemplateFS)
+		templateRenderer := renderer.New(templates.TemplateFS, mockFlashStore)
 		handler.Template.Edit = templateRenderer.GetTemplate("pages:targets/edit")
 
 		req := httptest.NewRequest(http.MethodGet, "/targets/1/edit", nil)

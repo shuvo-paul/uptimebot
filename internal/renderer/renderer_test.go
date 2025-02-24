@@ -10,6 +10,7 @@ import (
 	"github.com/shuvo-paul/uptimebot/internal/auth/model"
 	"github.com/shuvo-paul/uptimebot/internal/auth/service"
 	"github.com/shuvo-paul/uptimebot/internal/renderer/testdata"
+	"github.com/shuvo-paul/uptimebot/pkg/flash"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -30,7 +31,8 @@ func TestNew(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			engine := New(tt.fs)
+			mockFlash := flash.NewFlashStore()
+			engine := New(tt.fs, mockFlash)
 			assert.NotNil(t, engine)
 			assert.NotEmpty(t, engine.templates)
 			assert.NotEmpty(t, engine.layouts)
@@ -65,7 +67,8 @@ func TestEngine_parseAllTemplates(t *testing.T) {
 }
 
 func TestEngine_GetTemplate(t *testing.T) {
-	engine := New(testFS)
+	mockFlash := flash.NewFlashStore()
+	engine := New(testFS, mockFlash)
 
 	tests := []struct {
 		name      string
@@ -105,7 +108,8 @@ func TestEngine_GetTemplate(t *testing.T) {
 }
 
 func TestTemplate_Render(t *testing.T) {
-	engine := New(testFS)
+	mockFlash := flash.NewMockFlashStore()
+	engine := New(testFS, mockFlash)
 
 	tests := []struct {
 		name     string

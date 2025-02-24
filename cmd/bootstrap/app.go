@@ -51,9 +51,9 @@ func NewApp() *App {
 
 	migrations.SetupMigration(db)
 
-	templateRenderer := renderer.New(templates.TemplateFS)
-
 	flashStore := flash.NewFlashStore()
+
+	templateRenderer := renderer.New(templates.TemplateFS, flashStore)
 
 	userRepository := authRepository.NewUserRepository(db)
 	sessionRepository := authRepository.NewSessionRepository(db)

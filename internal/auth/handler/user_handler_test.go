@@ -62,7 +62,8 @@ func (m *mockSessionService) ValidateSession(token string) (*model.Session, erro
 }
 
 func TestRegister(t *testing.T) {
-	templateRenderer := renderer.New(templates.TemplateFS)
+	mockFlashStore := flash.NewFlashStore()
+	templateRenderer := renderer.New(templates.TemplateFS, mockFlashStore)
 
 	tests := []struct {
 		name           string
@@ -86,6 +87,7 @@ func TestRegister(t *testing.T) {
 			expectedPath:   "/login",
 		},
 		// Add more test cases for validation errors, service errors, etc.
+
 	}
 
 	for _, tt := range tests {
@@ -118,7 +120,8 @@ func TestRegister(t *testing.T) {
 }
 
 func TestLogin(t *testing.T) {
-	templateRenderer := renderer.New(templates.TemplateFS)
+	mockFlashStore := flash.NewFlashStore()
+	templateRenderer := renderer.New(templates.TemplateFS, mockFlashStore)
 
 	tests := []struct {
 		name           string
