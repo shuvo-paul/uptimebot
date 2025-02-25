@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	authService "github.com/shuvo-paul/uptimebot/internal/auth/service"
@@ -129,7 +130,12 @@ func (c *TargetHandler) Edit(w http.ResponseWriter, r *http.Request) {
 
 	target, err := c.targetService.GetByID(id, user.ID)
 	if err != nil {
-		http.Error(w, "Target not found", http.StatusNotFound)
+		code := http.StatusNotFound
+		msg := err.Error()
+		if strings.Contains(msg, "unauthorized") {
+			code = http.StatusUnauthorized
+		}
+		http.Error(w, err.Error(), code)
 		return
 	}
 

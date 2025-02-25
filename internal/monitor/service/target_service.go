@@ -112,7 +112,7 @@ func (s *TargetService) handleStatusUpdate(target *monitor.Target, status string
 
 	if err := s.repo.UpdateStatus(target, status); err != nil {
 		if errors.Is(err, repository.ErrTargetNotFound) {
-			return fmt.Errorf("%w: target with id %d not found", ErrTargetNotFound, target.ID)
+			return fmt.Errorf("%w: target %s not found", ErrTargetNotFound, target.URL)
 		}
 		return fmt.Errorf("failed to update target status: %w", err)
 	}
