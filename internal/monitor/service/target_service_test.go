@@ -16,27 +16,27 @@ import (
 // mockTargetRepository is a mock implementation of TargetRepositoryInterface
 type mockTargetRepository struct {
 	createFunc         func(model.UserTarget) (model.UserTarget, error)
-	getByIDFunc        func(id int) (*monitor.Target, error)
-	getAllFunc         func() ([]*monitor.Target, error)
-	updateFunc         func(target *monitor.Target) (*monitor.Target, error)
+	getByIDFunc        func(id int) (model.UserTarget, error)
+	getAllFunc         func() ([]model.UserTarget, error)
+	updateFunc         func(target model.UserTarget) (model.UserTarget, error)
 	deleteFunc         func(id int) error
 	updateStatusFunc   func(target *monitor.Target, status string) error
-	getAllByUserIDFunc func(userID int) ([]*monitor.Target, error)
+	getAllByUserIDFunc func(userID int) ([]model.UserTarget, error)
 }
 
 func (m *mockTargetRepository) Create(userTarget model.UserTarget) (model.UserTarget, error) {
 	return m.createFunc(userTarget)
 }
 
-func (m *mockTargetRepository) GetByID(id int) (*monitor.Target, error) {
+func (m *mockTargetRepository) GetByID(id int) (model.UserTarget, error) {
 	return m.getByIDFunc(id)
 }
 
-func (m *mockTargetRepository) GetAll() ([]*monitor.Target, error) {
+func (m *mockTargetRepository) GetAll() ([]model.UserTarget, error) {
 	return m.getAllFunc()
 }
 
-func (m *mockTargetRepository) Update(target *monitor.Target) (*monitor.Target, error) {
+func (m *mockTargetRepository) Update(target model.UserTarget) (model.UserTarget, error) {
 	return m.updateFunc(target)
 }
 
@@ -48,7 +48,7 @@ func (m *mockTargetRepository) UpdateStatus(target *monitor.Target, status strin
 	return m.updateStatusFunc(target, status)
 }
 
-func (m *mockTargetRepository) GetAllByUserID(userID int) ([]*monitor.Target, error) {
+func (m *mockTargetRepository) GetAllByUserID(userID int) ([]model.UserTarget, error) {
 	return m.getAllByUserIDFunc(userID)
 }
 
@@ -127,50 +127,78 @@ func TestTargetService_Create(t *testing.T) {
 
 func TestTargetService_Update(t *testing.T) {
 	mockRepo := &mockTargetRepository{
-		updateFunc: func(target *monitor.Target) (*monitor.Target, error) {
+		updateFunc: func(target model.UserTarget) (model.UserTarget, error) {
 			return target, nil
+		},
+		getByIDFunc: func(id int) (model.UserTarget, error) {
+			return model.UserTarget{
+				UserID: 1,
+				Target: &monitor.Target{
+					ID:       id,
+					URL:      "https://example.com",
+					Interval: time.Second * 30,
+					Enabled:  true,
+					Status:   "up",
+				},
+			}, nil
 		},
 	}
 	service := NewTargetService(mockRepo, &mockNotifierService{})
 
 	t.Run("Update existing target", func(t *testing.T) {
 		// Create and register initial target
-		target := &monitor.Target{
+		userTarget := model.UserTarget{
+			UserID: 1,
+			Target: &monitor.Target{
+				ID:       1,
+				URL:      "https://example.com",
+				Interval: time.Second * 30,
+				Enabled:  true,
+				Status:   "up",
+			},
+		}
+		err := service.manager.RegisterTarget(userTarget.Target)
+		assert.NoError(t, err)
+
+		// Update the target
+		userTarget.URL = "https://updated-example.com"
+		userTarget.Interval = time.Second * 60
+		userTarget.Enabled = false
+
+		result, err := service.Update(userTarget, userTarget.UserID)
+		assert.NoError(t, err)
+		assert.Equal(t, userTarget.URL, result.URL)
+		assert.Equal(t, userTarget.Interval, result.Interval)
+		assert.Equal(t, userTarget.Enabled, result.Enabled)
+
+		// Verify the monitor was updated
+		existingTarget := service.manager.Targets[userTarget.ID]
+		assert.Equal(t, userTarget.URL, existingTarget.URL)
+		assert.Equal(t, userTarget.Interval, existingTarget.Interval)
+		assert.Equal(t, userTarget.Enabled, existingTarget.Enabled)
+	})
+
+	t.Run("Update fails", func(t *testing.T) {
+		mockRepo.updateFunc = func(target model.UserTarget) (model.UserTarget, error) {
+			return model.UserTarget{}, fmt.Errorf("database error")
+		}
+
+		userTarget := model.UserTarget{UserID: 1, Target: &monitor.Target{ID: 1}}
+		_, err := service.Update(userTarget, userTarget.UserID)
+		assert.Error(t, err)
+	})
+
+	t.Run("Update unauthorized target", func(t *testing.T) {
+		userTarget := model.UserTarget{UserID: 1, Target: &monitor.Target{
 			ID:       1,
 			URL:      "https://example.com",
 			Interval: time.Second * 30,
 			Enabled:  true,
 			Status:   "up",
-		}
-		err := service.manager.RegisterTarget(target)
-		assert.NoError(t, err)
-
-		// Update the target
-		target.URL = "https://updated-example.com"
-		target.Interval = time.Second * 60
-		target.Enabled = false
-
-		result, err := service.Update(target)
-		assert.NoError(t, err)
-		assert.Equal(t, target.URL, result.URL)
-		assert.Equal(t, target.Interval, result.Interval)
-		assert.Equal(t, target.Enabled, result.Enabled)
-
-		// Verify the monitor was updated
-		existingTarget := service.manager.Targets[target.ID]
-		assert.Equal(t, target.URL, existingTarget.URL)
-		assert.Equal(t, target.Interval, existingTarget.Interval)
-		assert.Equal(t, target.Enabled, existingTarget.Enabled)
-	})
-
-	t.Run("Update fails", func(t *testing.T) {
-		mockRepo.updateFunc = func(target *monitor.Target) (*monitor.Target, error) {
-			return nil, fmt.Errorf("database error")
-		}
-
-		target := &monitor.Target{ID: 1}
-		_, err := service.Update(target)
+		}}
+		_, err := service.Update(userTarget, 2)
 		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unauthorized")
 	})
 }
 
@@ -178,6 +206,12 @@ func TestTargetService_Delete(t *testing.T) {
 	mockRepo := &mockTargetRepository{
 		deleteFunc: func(id int) error {
 			return nil
+		},
+		getByIDFunc: func(id int) (model.UserTarget, error) {
+			return model.UserTarget{
+				UserID: 1,
+				Target: &monitor.Target{ID: id},
+			}, nil
 		},
 	}
 	service := NewTargetService(mockRepo, &mockNotifierService{})
@@ -193,9 +227,22 @@ func TestTargetService_Delete(t *testing.T) {
 		err := service.manager.RegisterTarget(target)
 		assert.NoError(t, err)
 
-		err = service.Delete(target.ID)
+		err = service.Delete(1, 1) // UserID 1 deleting target 1
 		assert.NoError(t, err)
 		assert.NotContains(t, service.manager.Targets, target.ID)
+	})
+
+	t.Run("Delete unauthorized target", func(t *testing.T) {
+		mockRepo.getByIDFunc = func(id int) (model.UserTarget, error) {
+			return model.UserTarget{
+				UserID: 2, // Different user ID
+				Target: &monitor.Target{ID: id},
+			}, nil
+		}
+
+		err := service.Delete(1, 1) // UserID 1 trying to delete target owned by UserID 2
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unauthorized")
 	})
 
 	t.Run("Delete fails", func(t *testing.T) {
@@ -203,22 +250,34 @@ func TestTargetService_Delete(t *testing.T) {
 			return fmt.Errorf("database error")
 		}
 
-		// Try to delete a target that doesn't exist in the manager
-		err := service.Delete(1)
+		mockRepo.getByIDFunc = func(id int) (model.UserTarget, error) {
+			return model.UserTarget{
+				UserID: id, // Different user ID
+				Target: &monitor.Target{ID: id},
+			}, nil
+		}
+
+		err := service.Delete(1, 1)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "database error")
+		assert.ErrorContains(t, err, "database error")
 	})
 }
 
 func TestTargetService_GetAllByUserID(t *testing.T) {
 	t.Run("successful retrieval", func(t *testing.T) {
-		expectedTargets := []*monitor.Target{
-			{ID: 1, URL: "target1.com", Status: "up"},
-			{ID: 2, URL: "target2.com", Status: "down"},
+		expectedTargets := []model.UserTarget{
+			{
+				UserID: 1,
+				Target: &monitor.Target{ID: 1, URL: "target1.com", Status: "up"},
+			},
+			{
+				UserID: 1,
+				Target: &monitor.Target{ID: 2, URL: "target2.com", Status: "down"},
+			},
 		}
 
 		mockRepo := &mockTargetRepository{
-			getAllByUserIDFunc: func(userID int) ([]*monitor.Target, error) {
+			getAllByUserIDFunc: func(userID int) ([]model.UserTarget, error) {
 				assert.Equal(t, 1, userID)
 				return expectedTargets, nil
 			},
@@ -233,8 +292,8 @@ func TestTargetService_GetAllByUserID(t *testing.T) {
 
 	t.Run("no targets found", func(t *testing.T) {
 		mockRepo := &mockTargetRepository{
-			getAllByUserIDFunc: func(userID int) ([]*monitor.Target, error) {
-				return []*monitor.Target{}, nil
+			getAllByUserIDFunc: func(userID int) ([]model.UserTarget, error) {
+				return []model.UserTarget{}, nil
 			},
 		}
 
@@ -247,7 +306,7 @@ func TestTargetService_GetAllByUserID(t *testing.T) {
 
 	t.Run("repository error", func(t *testing.T) {
 		mockRepo := &mockTargetRepository{
-			getAllByUserIDFunc: func(userID int) ([]*monitor.Target, error) {
+			getAllByUserIDFunc: func(userID int) ([]model.UserTarget, error) {
 				return nil, fmt.Errorf("database error")
 			},
 		}

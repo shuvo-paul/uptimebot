@@ -149,7 +149,7 @@ func TestTargetRepository_Update(t *testing.T) {
 	tests := []struct {
 		name        string
 		setupTarget model.UserTarget
-		updateFunc  func(*core.Target)
+		updateFunc  func(*model.UserTarget)
 		wantErr     bool
 	}{
 		{
@@ -163,7 +163,7 @@ func TestTargetRepository_Update(t *testing.T) {
 					Interval: 30 * time.Second,
 				},
 			},
-			updateFunc: func(s *core.Target) {
+			updateFunc: func(s *model.UserTarget) {
 				s.Status = "down"
 				s.Enabled = true
 			},
@@ -181,7 +181,7 @@ func TestTargetRepository_Update(t *testing.T) {
 					Interval: 30 * time.Second,
 				},
 			},
-			updateFunc: func(s *core.Target) {
+			updateFunc: func(s *model.UserTarget) {
 				s.Status = "down"
 			},
 			wantErr: true,
@@ -190,19 +190,19 @@ func TestTargetRepository_Update(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var target *core.Target
+			var userTarget model.UserTarget
 			if tt.name == "update non-existent target" {
-				target = tt.setupTarget.Target
+				userTarget = tt.setupTarget
 			} else {
 				created, err := repo.Create(tt.setupTarget)
 				if err != nil {
 					t.Fatalf("Failed to create test target: %v", err)
 				}
-				target = created.Target
+				userTarget = created
 			}
 
-			tt.updateFunc(target)
-			updated, err := repo.Update(target)
+			tt.updateFunc(&userTarget)
+			updated, err := repo.Update(userTarget)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -210,7 +210,7 @@ func TestTargetRepository_Update(t *testing.T) {
 			}
 
 			assert.NoError(t, err)
-			fetched, err := repo.GetByID(target.ID)
+			fetched, err := repo.GetByID(userTarget.ID)
 			assert.NoError(t, err)
 			assert.Equal(t, updated, fetched)
 		})
@@ -286,7 +286,7 @@ func TestTargetRepository_GetAll(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, targets, len(createdTargets))
 
-	targetMap := make(map[int]*core.Target)
+	targetMap := make(map[int]model.UserTarget)
 	for _, t := range targets {
 		targetMap[t.ID] = t
 	}

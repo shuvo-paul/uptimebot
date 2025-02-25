@@ -11,6 +11,7 @@ import (
 	authModel "github.com/shuvo-paul/uptimebot/internal/auth/model"
 	authService "github.com/shuvo-paul/uptimebot/internal/auth/service"
 	monitor "github.com/shuvo-paul/uptimebot/internal/monitor/engine"
+	"github.com/shuvo-paul/uptimebot/internal/monitor/model"
 	"github.com/shuvo-paul/uptimebot/internal/renderer"
 	"github.com/shuvo-paul/uptimebot/internal/templates"
 	"github.com/shuvo-paul/uptimebot/pkg/flash"
@@ -19,36 +20,36 @@ import (
 
 // Mock TargetService
 type mockTargetService struct {
-	getAllFunc               func() ([]*monitor.Target, error)
-	getByIDFunc              func(id int) (*monitor.Target, error)
-	createFunc               func(userID int, url string, interval time.Duration) (*monitor.Target, error)
-	updateFunc               func(target *monitor.Target) (*monitor.Target, error)
-	deleteFunc               func(id int) error
-	getAllByUserIDFunc       func(userID int) ([]*monitor.Target, error)
+	getAllFunc               func() ([]model.UserTarget, error)
+	getByIDFunc             func(id, userID int) (model.UserTarget, error)
+	createFunc              func(userID int, url string, interval time.Duration) (model.UserTarget, error)
+	updateFunc              func(target model.UserTarget, userID int) (model.UserTarget, error)
+	deleteFunc              func(id, userID int) error
+	getAllByUserIDFunc      func(userID int) ([]model.UserTarget, error)
 	initializeMonitoringFunc func() error
 }
 
-func (m *mockTargetService) GetAll() ([]*monitor.Target, error) {
+func (m *mockTargetService) GetAll() ([]model.UserTarget, error) {
 	return m.getAllFunc()
 }
 
-func (m *mockTargetService) GetByID(id int) (*monitor.Target, error) {
-	return m.getByIDFunc(id)
+func (m *mockTargetService) GetByID(id, userID int) (model.UserTarget, error) {
+	return m.getByIDFunc(id, userID)
 }
 
-func (m *mockTargetService) Create(userID int, url string, interval time.Duration) (*monitor.Target, error) {
+func (m *mockTargetService) Create(userID int, url string, interval time.Duration) (model.UserTarget, error) {
 	return m.createFunc(userID, url, interval)
 }
 
-func (m *mockTargetService) Update(target *monitor.Target) (*monitor.Target, error) {
-	return m.updateFunc(target)
+func (m *mockTargetService) Update(target model.UserTarget, userID int) (model.UserTarget, error) {
+	return m.updateFunc(target, userID)
 }
 
-func (m *mockTargetService) Delete(id int) error {
-	return m.deleteFunc(id)
+func (m *mockTargetService) Delete(id, userID int) error {
+	return m.deleteFunc(id, userID)
 }
 
-func (m *mockTargetService) GetAllByUserID(userID int) ([]*monitor.Target, error) {
+func (m *mockTargetService) GetAllByUserID(userID int) ([]model.UserTarget, error) {
 	return m.getAllByUserIDFunc(userID)
 }
 
@@ -62,8 +63,11 @@ func (m *mockTargetService) InitializeMonitoring() error {
 func TestTargetHandler_List(t *testing.T) {
 	mockFlashStore := flash.NewMockFlashStore()
 	mockService := &mockTargetService{
-		getAllByUserIDFunc: func(userID int) ([]*monitor.Target, error) {
-			return []*monitor.Target{{ID: 1, URL: "http://example.com", Interval: 60 * time.Second}}, nil
+		getAllByUserIDFunc: func(userID int) ([]model.UserTarget, error) {
+			return []model.UserTarget{{
+				UserID: userID,
+				Target: &monitor.Target{ID: 1, URL: "http://example.com", Interval: 60 * time.Second},
+			}}, nil
 		},
 		initializeMonitoringFunc: func() error { return nil },
 	}
@@ -103,8 +107,11 @@ func TestTargetHandler_Create(t *testing.T) {
 
 	t.Run("POST request - success", func(t *testing.T) {
 		mockService := &mockTargetService{
-			createFunc: func(userID int, url string, interval time.Duration) (*monitor.Target, error) {
-				return &monitor.Target{ID: 1, URL: url, Interval: interval}, nil
+			createFunc: func(userID int, url string, interval time.Duration) (model.UserTarget, error) {
+				return model.UserTarget{
+					UserID: userID,
+					Target: &monitor.Target{ID: 1, URL: url, Interval: interval},
+				}, nil
 			},
 			initializeMonitoringFunc: func() error { return nil },
 		}
@@ -133,8 +140,11 @@ func TestTargetHandler_Create(t *testing.T) {
 
 	t.Run("POST request - no user in context", func(t *testing.T) {
 		mockService := &mockTargetService{
-			createFunc: func(userID int, url string, interval time.Duration) (*monitor.Target, error) {
-				return &monitor.Target{ID: 1, URL: url, Interval: interval}, nil
+			createFunc: func(userID int, url string, interval time.Duration) (model.UserTarget, error) {
+				return model.UserTarget{
+					UserID: userID,
+					Target: &monitor.Target{ID: 1, URL: url, Interval: interval},
+				}, nil
 			},
 			initializeMonitoringFunc: func() error { return nil },
 		}
@@ -159,8 +169,11 @@ func TestTargetHandler_Edit(t *testing.T) {
 	mockFlashStore := flash.NewMockFlashStore()
 	t.Run("GET request", func(t *testing.T) {
 		mockService := &mockTargetService{
-			getByIDFunc: func(id int) (*monitor.Target, error) {
-				return &monitor.Target{ID: id, URL: "http://example.com", Interval: 60 * time.Second}, nil
+			getByIDFunc: func(id, userID int) (model.UserTarget, error) {
+				return model.UserTarget{
+					UserID: userID,
+					Target: &monitor.Target{ID: id, URL: "http://example.com", Interval: 60 * time.Second},
+				}, nil
 			},
 			initializeMonitoringFunc: func() error { return nil },
 		}
@@ -171,6 +184,12 @@ func TestTargetHandler_Edit(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodGet, "/targets/1/edit", nil)
 		req.SetPathValue("id", "1")
+		
+		// Add user to context
+		user := &authModel.User{ID: 1}
+		ctx := authService.WithUser(req.Context(), user)
+		req = req.WithContext(ctx)
+		
 		w := httptest.NewRecorder()
 
 		handler.Edit(w, req)
@@ -181,11 +200,14 @@ func TestTargetHandler_Edit(t *testing.T) {
 	t.Run("POST request - success", func(t *testing.T) {
 		target := &monitor.Target{ID: 1, URL: "http://example.com", Interval: 60 * time.Second}
 		mockService := &mockTargetService{
-			getByIDFunc: func(id int) (*monitor.Target, error) {
-				return target, nil
+			getByIDFunc: func(id, userID int) (model.UserTarget, error) {
+				return model.UserTarget{
+					UserID: userID,
+					Target: target,
+				}, nil
 			},
-			updateFunc: func(t *monitor.Target) (*monitor.Target, error) {
-				return t, nil
+			updateFunc: func(ut model.UserTarget, userID int) (model.UserTarget, error) {
+				return ut, nil
 			},
 			initializeMonitoringFunc: func() error { return nil },
 		}
@@ -199,6 +221,12 @@ func TestTargetHandler_Edit(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/targets/1/edit", strings.NewReader(form.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		req.SetPathValue("id", "1")
+		
+		// Add user to context
+		user := &authModel.User{ID: 1}
+		ctx := authService.WithUser(req.Context(), user)
+		req = req.WithContext(ctx)
+		
 		w := httptest.NewRecorder()
 
 		handler.Edit(w, req)
@@ -211,7 +239,7 @@ func TestTargetHandler_Edit(t *testing.T) {
 func TestTargetHandler_Delete(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		mockService := &mockTargetService{
-			deleteFunc: func(id int) error {
+			deleteFunc: func(id, userID int) error {
 				return nil
 			},
 			initializeMonitoringFunc: func() error { return nil },
@@ -221,6 +249,12 @@ func TestTargetHandler_Delete(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodPost, "/targets/1/delete", nil)
 		req.SetPathValue("id", "1")
+		
+		// Add user to context
+		user := &authModel.User{ID: 1}
+		ctx := authService.WithUser(req.Context(), user)
+		req = req.WithContext(ctx)
+		
 		w := httptest.NewRecorder()
 
 		handler.Delete(w, req)

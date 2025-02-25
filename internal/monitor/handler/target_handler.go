@@ -105,10 +105,16 @@ func (c *TargetHandler) Edit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user, ok := authService.GetUser(r.Context())
+	if !ok {
+		http.Error(w, "User not found", http.StatusInternalServerError)
+		return
+	}
+
 	if r.Method == http.MethodGet {
-		target, err := c.targetService.GetByID(id)
+		target, err := c.targetService.GetByID(id, user.ID)
 		if err != nil {
-			http.Error(w, "Target not found", http.StatusNotFound)
+			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
 
@@ -121,7 +127,7 @@ func (c *TargetHandler) Edit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	target, err := c.targetService.GetByID(id)
+	target, err := c.targetService.GetByID(id, user.ID)
 	if err != nil {
 		http.Error(w, "Target not found", http.StatusNotFound)
 		return
@@ -140,7 +146,7 @@ func (c *TargetHandler) Edit(w http.ResponseWriter, r *http.Request) {
 	}
 	target.Interval = time.Duration(interval) * time.Second
 
-	_, err = c.targetService.Update(target)
+	_, err = c.targetService.Update(target, user.ID)
 	if err != nil {
 		errors := []string{
 			"Failed to update target: " + err.Error(),
@@ -163,7 +169,13 @@ func (c *TargetHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = c.targetService.Delete(id)
+	user, ok := authService.GetUser(r.Context())
+	if !ok {
+		http.Error(w, "User not found", http.StatusInternalServerError)
+		return
+	}
+
+	err = c.targetService.Delete(id, user.ID)
 	if err != nil {
 		c.flash.SetErrors(r.Context(), []string{"Failed to delete target: " + err.Error()})
 	} else {
