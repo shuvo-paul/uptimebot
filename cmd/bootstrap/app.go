@@ -30,7 +30,7 @@ var db *sql.DB
 type App struct {
 	AuthService     *authService.AuthService
 	SessionService  *authService.SessionService
-	UserHandler     *authHandler.UserHandler
+	UserHandler     *authHandler.AuthHandler
 	TargetHandler   *uptimeHandler.TargetHandler
 	NotifierHandler *notificationHandler.NotifierHandler
 }
@@ -81,7 +81,7 @@ func NewApp() *App {
 	authService2 := authService.NewAuthService(userRepository, tokenService)
 
 	sessionService := authService.NewSessionService(sessionRepository)
-	authHandler := authHandler.NewUserHandler(authService2, sessionService, flashStore)
+	authHandler := authHandler.NewAuthHandler(authService2, sessionService, flashStore)
 	authHandler.Template.Register = templateRenderer.GetTemplate("pages:register")
 	authHandler.Template.Login = templateRenderer.GetTemplate("pages:login")
 

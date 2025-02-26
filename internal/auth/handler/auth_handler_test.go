@@ -98,7 +98,7 @@ func TestRegister(t *testing.T) {
 
 			mockFlash := flash.NewFlashStore()
 
-			controller := NewUserHandler(mockUser, mockSession, mockFlash)
+			controller := NewAuthHandler(mockUser, mockSession, mockFlash)
 			controller.Template.Register = templateRenderer.GetTemplate("pages:register")
 
 			req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader(tt.formData.Encode()))
@@ -158,7 +158,7 @@ func TestLogin(t *testing.T) {
 
 			mockFlash := &flash.MockFlashStore{}
 
-			controller := NewUserHandler(mockUser, mockSession, mockFlash)
+			controller := NewAuthHandler(mockUser, mockSession, mockFlash)
 			controller.Template.Login = templateRenderer.GetTemplate("pages:login")
 
 			req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(tt.formData.Encode()))
@@ -231,7 +231,7 @@ func TestSendVerificationMail(t *testing.T) {
 			mockSession := &mockSessionService{}
 			mockFlash := &flash.MockFlashStore{}
 
-			handler := NewUserHandler(mockUser, mockSession, mockFlash)
+			handler := NewAuthHandler(mockUser, mockSession, mockFlash)
 
 			req := httptest.NewRequest(http.MethodGet, "/verify-email?"+tt.queryParams, nil)
 			w := httptest.NewRecorder()

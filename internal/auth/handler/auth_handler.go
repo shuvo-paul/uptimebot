@@ -10,7 +10,7 @@ import (
 	"github.com/shuvo-paul/uptimebot/pkg/flash"
 )
 
-type UserHandler struct {
+type AuthHandler struct {
 	Template struct {
 		Register *renderer.Template
 		Login    *renderer.Template
@@ -20,19 +20,19 @@ type UserHandler struct {
 	flashStore     flash.FlashStoreInterface
 }
 
-func NewUserHandler(
+func NewAuthHandler(
 	authService service.AuthServiceInterface,
 	sessionService service.SessionServiceInterface,
 	flashStore flash.FlashStoreInterface,
-) *UserHandler {
-	return &UserHandler{
+) *AuthHandler {
+	return &AuthHandler{
 		authService:    authService,
 		sessionService: sessionService,
 		flashStore:     flashStore,
 	}
 }
 
-func (c *UserHandler) ShowRegisterForm(w http.ResponseWriter, r *http.Request) {
+func (c *AuthHandler) ShowRegisterForm(w http.ResponseWriter, r *http.Request) {
 	if c.redirectIfAuthenticated(w, r) {
 		return
 	}
@@ -44,7 +44,7 @@ func (c *UserHandler) ShowRegisterForm(w http.ResponseWriter, r *http.Request) {
 	c.Template.Register.Render(w, r, data)
 }
 
-func (c *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
+func (c *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Failed to parse form", http.StatusBadRequest)
@@ -70,7 +70,7 @@ func (c *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
-func (c *UserHandler) ShowLoginForm(w http.ResponseWriter, r *http.Request) {
+func (c *AuthHandler) ShowLoginForm(w http.ResponseWriter, r *http.Request) {
 	if c.redirectIfAuthenticated(w, r) {
 		return
 	}
@@ -81,7 +81,7 @@ func (c *UserHandler) ShowLoginForm(w http.ResponseWriter, r *http.Request) {
 	c.Template.Login.Render(w, r, data)
 }
 
-func (c *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
+func (c *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Failed to parse form", http.StatusBadRequest)
@@ -117,7 +117,7 @@ func (c *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/targets", http.StatusSeeOther)
 }
 
-func (c *UserHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
+func (c *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	token := r.URL.Query().Get("token")
 
@@ -137,7 +137,7 @@ func (c *UserHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
-func (c *UserHandler) SendVerificationEmail(w http.ResponseWriter, r *http.Request) {
+func (c *AuthHandler) SendVerificationEmail(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID := r.FormValue("user_id")
 	if userID == "" {
@@ -171,7 +171,7 @@ func (c *UserHandler) SendVerificationEmail(w http.ResponseWriter, r *http.Reque
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
-func (c *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
+func (c *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session_token")
 	if err == nil {
 		// Invalidate the session in the backend
@@ -195,7 +195,7 @@ func (c *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
-func (c *UserHandler) redirectIfAuthenticated(w http.ResponseWriter, r *http.Request) bool {
+func (c *AuthHandler) redirectIfAuthenticated(w http.ResponseWriter, r *http.Request) bool {
 	if cookie, err := r.Cookie("session_token"); err == nil {
 		user, err := c.sessionService.ValidateSession(cookie.Value)
 

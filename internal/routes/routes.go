@@ -14,7 +14,7 @@ import (
 )
 
 func SetupRoutes(
-	userHandler *authHandler.UserHandler,
+	userHandler *authHandler.AuthHandler,
 	sessionService authService.SessionService,
 	authService authService.AuthService,
 	targetHandler *uptimeHandler.TargetHandler,
