@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -186,6 +187,39 @@ func (c *TargetHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		c.flash.SetErrors(r.Context(), []string{"Failed to delete target: " + err.Error()})
 	} else {
 		c.flash.SetSuccesses(r.Context(), []string{"Target deleted successfully"})
+	}
+
+	http.Redirect(w, r, "/targets", http.StatusSeeOther)
+}
+
+func (c *TargetHandler) ToggleEnabled(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "Invalid target ID", http.StatusBadRequest)
+		return
+	}
+
+	user, ok := authService.GetUser(ctx)
+	if !ok {
+		http.Error(w, "User not found", http.StatusInternalServerError)
+		return
+	}
+
+	userTarget, err := c.targetService.ToggleEnabled(id, user.ID)
+
+	var enabledState string
+	if userTarget.Enabled {
+		enabledState = "enabled"
+	} else {
+		enabledState = "disabled"
+	}
+	if err != nil {
+		c.flash.SetErrors(ctx, []string{"Failed to toggle target: " + err.Error()})
+	} else {
+		c.flash.SetSuccesses(ctx, []string{
+			fmt.Sprintf("%s has been successfully %s", userTarget.URL, enabledState),
+		})
 	}
 
 	http.Redirect(w, r, "/targets", http.StatusSeeOther)

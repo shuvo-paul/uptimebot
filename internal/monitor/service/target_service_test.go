@@ -263,6 +263,76 @@ func TestTargetService_Delete(t *testing.T) {
 	})
 }
 
+func TestTargetService_ToggleEnabled(t *testing.T) {
+	mockRepo := &mockTargetRepository{
+		getByIDFunc: func(id int) (model.UserTarget, error) {
+			return model.UserTarget{
+				UserID: 1,
+				Target: &monitor.Target{
+					ID:       id,
+					Enabled:  true,
+					URL:      "https://example.com",
+					Interval: time.Second * 30,
+				},
+			}, nil
+		},
+		updateFunc: func(target model.UserTarget) (model.UserTarget, error) {
+			return target, nil
+		},
+	}
+	service := NewTargetService(mockRepo, &mockNotifierService{})
+
+	t.Run("Toggle target successfully", func(t *testing.T) {
+		// Register initial target
+		target := &monitor.Target{
+			ID:       1,
+			Enabled:  true,
+			URL:      "https://example.com",
+			Interval: time.Second * 30,
+		}
+		err := service.manager.RegisterTarget(target)
+		assert.NoError(t, err)
+
+		// Toggle the target
+		result, err := service.ToggleEnabled(1, 1)
+		assert.NoError(t, err)
+		assert.False(t, result.Enabled)
+
+		// Verify the monitor was updated
+		existingTarget := service.manager.Targets[target.ID]
+		assert.False(t, existingTarget.Enabled)
+	})
+
+	t.Run("Toggle unauthorized target", func(t *testing.T) {
+		mockRepo.getByIDFunc = func(id int) (model.UserTarget, error) {
+			return model.UserTarget{
+				UserID: 2, // Different user ID
+				Target: &monitor.Target{ID: id},
+			}, nil
+		}
+
+		_, err := service.ToggleEnabled(1, 1) // UserID 1 trying to toggle target owned by UserID 2
+		assert.Error(t, err)
+		assert.ErrorContains(t, err, "unauthorized")
+	})
+
+	t.Run("Toggle fails - database error", func(t *testing.T) {
+		mockRepo.getByIDFunc = func(id int) (model.UserTarget, error) {
+			return model.UserTarget{
+				UserID: 1,
+				Target: &monitor.Target{ID: id},
+			}, nil
+		}
+		mockRepo.updateFunc = func(target model.UserTarget) (model.UserTarget, error) {
+			return model.UserTarget{}, fmt.Errorf("database error")
+		}
+
+		_, err := service.ToggleEnabled(1, 1)
+		assert.Error(t, err)
+		assert.ErrorContains(t, err, "database error")
+	})
+}
+
 func TestTargetService_GetAllByUserID(t *testing.T) {
 	t.Run("successful retrieval", func(t *testing.T) {
 		expectedTargets := []model.UserTarget{

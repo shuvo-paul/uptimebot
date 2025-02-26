@@ -49,6 +49,7 @@ func SetupRoutes(
 	protected.HandleFunc("GET /{id}/edit", targetHandler.Edit)
 	protected.HandleFunc("POST /{id}/edit", targetHandler.Edit)
 	protected.HandleFunc("POST /{id}/delete", targetHandler.Delete)
+	protected.HandleFunc("POST /{id}/toggle-enable", targetHandler.ToggleEnabled)
 
 	protected.HandleFunc("GET /auth/slack/{targetId}", notifierHandler.AuthSlack)
 	protected.HandleFunc("GET /auth/slack/callback", notifierHandler.AuthSlackCallback)

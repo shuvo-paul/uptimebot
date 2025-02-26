@@ -12,6 +12,7 @@ import (
 	authService "github.com/shuvo-paul/uptimebot/internal/auth/service"
 	monitor "github.com/shuvo-paul/uptimebot/internal/monitor/engine"
 	"github.com/shuvo-paul/uptimebot/internal/monitor/model"
+	"github.com/shuvo-paul/uptimebot/internal/monitor/service"
 	"github.com/shuvo-paul/uptimebot/internal/renderer"
 	"github.com/shuvo-paul/uptimebot/internal/templates"
 	"github.com/shuvo-paul/uptimebot/pkg/flash"
@@ -21,12 +22,13 @@ import (
 // Mock TargetService
 type mockTargetService struct {
 	getAllFunc               func() ([]model.UserTarget, error)
-	getByIDFunc             func(id, userID int) (model.UserTarget, error)
-	createFunc              func(userID int, url string, interval time.Duration) (model.UserTarget, error)
-	updateFunc              func(target model.UserTarget, userID int) (model.UserTarget, error)
-	deleteFunc              func(id, userID int) error
-	getAllByUserIDFunc      func(userID int) ([]model.UserTarget, error)
+	getByIDFunc              func(id, userID int) (model.UserTarget, error)
+	createFunc               func(userID int, url string, interval time.Duration) (model.UserTarget, error)
+	updateFunc               func(target model.UserTarget, userID int) (model.UserTarget, error)
+	deleteFunc               func(id, userID int) error
+	getAllByUserIDFunc       func(userID int) ([]model.UserTarget, error)
 	initializeMonitoringFunc func() error
+	toggleEnabledFunc        func(id, userID int) (model.UserTarget, error)
 }
 
 func (m *mockTargetService) GetAll() ([]model.UserTarget, error) {
@@ -58,6 +60,10 @@ func (m *mockTargetService) InitializeMonitoring() error {
 		return m.initializeMonitoringFunc()
 	}
 	return nil
+}
+
+func (m *mockTargetService) ToggleEnabled(id, userID int) (model.UserTarget, error) {
+	return m.toggleEnabledFunc(id, userID)
 }
 
 func TestTargetHandler_List(t *testing.T) {
@@ -184,12 +190,12 @@ func TestTargetHandler_Edit(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodGet, "/targets/1/edit", nil)
 		req.SetPathValue("id", "1")
-		
+
 		// Add user to context
 		user := &authModel.User{ID: 1}
 		ctx := authService.WithUser(req.Context(), user)
 		req = req.WithContext(ctx)
-		
+
 		w := httptest.NewRecorder()
 
 		handler.Edit(w, req)
@@ -221,12 +227,12 @@ func TestTargetHandler_Edit(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/targets/1/edit", strings.NewReader(form.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		req.SetPathValue("id", "1")
-		
+
 		// Add user to context
 		user := &authModel.User{ID: 1}
 		ctx := authService.WithUser(req.Context(), user)
 		req = req.WithContext(ctx)
-		
+
 		w := httptest.NewRecorder()
 
 		handler.Edit(w, req)
@@ -249,12 +255,12 @@ func TestTargetHandler_Delete(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodPost, "/targets/1/delete", nil)
 		req.SetPathValue("id", "1")
-		
+
 		// Add user to context
 		user := &authModel.User{ID: 1}
 		ctx := authService.WithUser(req.Context(), user)
 		req = req.WithContext(ctx)
-		
+
 		w := httptest.NewRecorder()
 
 		handler.Delete(w, req)
@@ -274,6 +280,94 @@ func TestTargetHandler_Delete(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		handler.Delete(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+}
+
+func TestTargetHandler_ToggleEnabled(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		target := &monitor.Target{
+			ID:       1,
+			URL:      "http://example.com",
+			Interval: 60 * time.Second,
+			Enabled:  false,
+		}
+		mockService := &mockTargetService{
+			getByIDFunc: func(id, userID int) (model.UserTarget, error) {
+				return model.UserTarget{
+					UserID: userID,
+					Target: target,
+				}, nil
+			},
+			toggleEnabledFunc: func(id, userID int) (model.UserTarget, error) {
+				target.Enabled = !target.Enabled
+				return model.UserTarget{
+					UserID: userID,
+					Target: target,
+				}, nil
+			},
+			initializeMonitoringFunc: func() error { return nil },
+		}
+
+		handler := NewTargetHandler(mockService, &flash.MockFlashStore{})
+
+		req := httptest.NewRequest(http.MethodPost, "/targets/1/toggle", nil)
+		req.SetPathValue("id", "1")
+
+		// Add user to context
+		user := &authModel.User{ID: 1}
+		ctx := authService.WithUser(req.Context(), user)
+		req = req.WithContext(ctx)
+
+		w := httptest.NewRecorder()
+
+		handler.ToggleEnabled(w, req)
+
+		assert.Equal(t, http.StatusSeeOther, w.Code)
+		assert.Equal(t, "/targets", w.Header().Get("Location"))
+	})
+
+	t.Run("unauthorized access", func(t *testing.T) {
+		mockService := &mockTargetService{
+			getByIDFunc: func(id, userID int) (model.UserTarget, error) {
+				return model.UserTarget{}, service.ErrUnauthorized
+			},
+			toggleEnabledFunc: func(id, userID int) (model.UserTarget, error) {
+				return model.UserTarget{}, service.ErrUnauthorized
+			},
+			initializeMonitoringFunc: func() error { return nil },
+		}
+
+		handler := NewTargetHandler(mockService, &flash.MockFlashStore{})
+
+		req := httptest.NewRequest(http.MethodPost, "/targets/1/toggle", nil)
+		req.SetPathValue("id", "1")
+
+		// Add different user to context
+		user := &authModel.User{ID: 2}
+		ctx := authService.WithUser(req.Context(), user)
+		req = req.WithContext(ctx)
+
+		w := httptest.NewRecorder()
+
+		handler.ToggleEnabled(w, req)
+
+		assert.Equal(t, http.StatusSeeOther, w.Code)
+		assert.Equal(t, "/targets", w.Header().Get("Location"))
+	})
+
+	t.Run("invalid ID", func(t *testing.T) {
+		mockService := &mockTargetService{
+			initializeMonitoringFunc: func() error { return nil },
+		}
+		handler := NewTargetHandler(mockService, &flash.MockFlashStore{})
+
+		req := httptest.NewRequest(http.MethodPost, "/targets/invalid/toggle", nil)
+		req.SetPathValue("id", "invalid")
+		w := httptest.NewRecorder()
+
+		handler.ToggleEnabled(w, req)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})

@@ -58,6 +58,11 @@ type TargetServiceInterface interface {
 	// InitializeMonitoring starts monitoring for all existing targets.
 	// Returns an error if initialization fails.
 	InitializeMonitoring() error
+
+	// ToggleEnabled toggles the monitoring state for a target after verifying ownership.
+	// Returns the updated target or an error if the operation fails.
+	// Possible errors: ErrTargetNotFound, ErrUnauthorized, ErrInvalidInput.
+	ToggleEnabled(id int, userID int) (model.UserTarget, error)
 }
 
 var _ TargetServiceInterface = (*TargetService)(nil)
@@ -241,6 +246,34 @@ func (s *TargetService) Delete(id int, userID int) error {
 
 	s.manager.RevokeTarget(userTarget.ID)
 	return s.repo.Delete(userTarget.ID)
+}
+
+func (s *TargetService) ToggleEnabled(id int, userID int) (model.UserTarget, error) {
+	userTarget, err := s.GetByID(id, userID)
+	if err != nil {
+		return model.UserTarget{}, err
+	}
+
+	userTarget.Enabled = !userTarget.Enabled
+	userTarget.OnStatusUpdate = s.handleStatusUpdate
+
+	// Update the target in the database
+	updatedUserTarget, err := s.repo.Update(userTarget)
+	if err != nil {
+		return model.UserTarget{}, fmt.Errorf("failed to update target: %w", err)
+	}
+
+	// Update the target in the monitor manager
+	if existingTarget, exists := s.manager.Targets[userTarget.ID]; exists {
+		existingTarget.Update(updatedUserTarget.Target)
+	} else if updatedUserTarget.Enabled {
+		// Register new monitor if it doesn't exist and is being enabled
+		if err := s.manager.RegisterTarget(updatedUserTarget.Target); err != nil {
+			return model.UserTarget{}, fmt.Errorf("failed to register target monitor: %w", err)
+		}
+	}
+
+	return updatedUserTarget, nil
 }
 
 func (s *TargetService) InitializeMonitoring() error {
