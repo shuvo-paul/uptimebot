@@ -16,10 +16,10 @@ import (
 
 // Mock UserService
 type mockUserService struct {
-	createUserFunc            func(*model.User) (*model.User, error)
-	authenticateFunc          func(string, string) (*model.User, error)
-	getUserByIdFunc           func(id int) (*model.User, error)
-	sendVerificationEmailFunc func(int, string) error
+	createUserFunc   func(*model.User) (*model.User, error)
+	authenticateFunc func(string, string) (*model.User, error)
+	getUserByIdFunc  func(id int) (*model.User, error)
+	sendTokenFunc    func(int, string) error
 }
 
 func (m *mockUserService) CreateUser(user *model.User) (*model.User, error) {
@@ -38,8 +38,8 @@ func (m *mockUserService) VerifyEmail(token string) error {
 	return nil
 }
 
-func (m *mockUserService) SendVerificationEmail(id int, email string) error {
-	return m.sendVerificationEmailFunc(id, email)
+func (m *mockUserService) SendToken(id int, email string) error {
+	return m.sendTokenFunc(id, email)
 }
 
 // Mock SessionService
@@ -87,7 +87,6 @@ func TestRegister(t *testing.T) {
 			expectedPath:   "/login",
 		},
 		// Add more test cases for validation errors, service errors, etc.
-
 	}
 
 	for _, tt := range tests {
@@ -226,8 +225,8 @@ func TestSendVerificationMail(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockUser := &mockUserService{
-				getUserByIdFunc:           tt.mockGetUserFunc,
-				sendVerificationEmailFunc: tt.mockSendEmailFunc,
+				getUserByIdFunc: tt.mockGetUserFunc,
+				sendTokenFunc:   tt.mockSendEmailFunc,
 			}
 			mockSession := &mockSessionService{}
 			mockFlash := &flash.MockFlashStore{}

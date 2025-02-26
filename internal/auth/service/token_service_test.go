@@ -12,13 +12,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAccountTokenService_CreateToken(t *testing.T) {
+func TestTokenService_CreateToken(t *testing.T) {
 	tokenRepo := &mockRepo.AccountTokenRepositoryMock{}
 	emailService := &mockEmail.EmailServiceMock{}
 	baseURL := "http://localhost:8080"
 	tmpl := template.Must(template.New("test").Parse("{{.TokenLink}}"))
 
-	service := NewAccountTokenService(tokenRepo, emailService, baseURL, tmpl)
+	service := NewTokenService(tokenRepo, emailService, baseURL, tmpl)
 
 	tests := []struct {
 		name      string
@@ -73,13 +73,13 @@ func TestAccountTokenService_CreateToken(t *testing.T) {
 	}
 }
 
-func TestAccountTokenService_ValidateToken(t *testing.T) {
+func TestTokenService_ValidateToken(t *testing.T) {
 	tokenRepo := &mockRepo.AccountTokenRepositoryMock{}
 	emailService := &mockEmail.EmailServiceMock{}
 	baseURL := "http://localhost:8080"
 	tmpl := template.Must(template.New("test").Parse("{{.TokenLink}}"))
 
-	service := NewAccountTokenService(tokenRepo, emailService, baseURL, tmpl)
+	service := NewTokenService(tokenRepo, emailService, baseURL, tmpl)
 
 	tests := []struct {
 		name      string
@@ -157,25 +157,33 @@ func TestAccountTokenService_ValidateToken(t *testing.T) {
 	}
 }
 
-func TestAccountTokenService_SendVerificationEmail(t *testing.T) {
+func TestTokenService_SendToken(t *testing.T) {
 	tokenRepo := &mockRepo.AccountTokenRepositoryMock{}
 	emailService := &mockEmail.EmailServiceMock{}
 	baseURL := "http://localhost:8080"
-	tmpl := template.Must(template.New("verify_email").Parse("{{.TokenLink}}"))
+	tmpl := template.Must(template.New("test").Parse(`{{define "verify_email"}}{{.TokenLink}}{{end}}{{define "reset_password"}}{{.TokenLink}}{{end}}`))
 
-	service := NewAccountTokenService(tokenRepo, emailService, baseURL, tmpl)
+	service := NewTokenService(tokenRepo, emailService, baseURL, tmpl)
 
 	tests := []struct {
 		name      string
 		userID    int
 		email     string
+		tokenType model.TokenType
+		subject   string
+		path      string
+		expiresIn time.Duration
 		setupMock func()
 		wantErr   bool
 	}{
 		{
-			name:   "successful email sending",
-			userID: 1,
-			email:  "test@example.com",
+			name:      "successful email verification token sending",
+			userID:    1,
+			email:     "test@example.com",
+			tokenType: model.TokenTypeEmailVerification,
+			subject:   "Verify Your Email Address",
+			path:      "verify-email",
+			expiresIn: 24 * time.Hour,
 			setupMock: func() {
 				tokenRepo.InvalidateExistingTokensFunc = func(userID int, tokenType model.TokenType) error {
 					return nil
@@ -192,9 +200,36 @@ func TestAccountTokenService_SendVerificationEmail(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:   "email service error",
-			userID: 1,
-			email:  "test@example.com",
+			name:      "successful password reset token sending",
+			userID:    1,
+			email:     "test@example.com",
+			tokenType: model.TokenTypePasswordReset,
+			subject:   "Reset Your Password",
+			path:      "reset-password",
+			expiresIn: time.Hour,
+			setupMock: func() {
+				tokenRepo.InvalidateExistingTokensFunc = func(userID int, tokenType model.TokenType) error {
+					return nil
+				}
+				tokenRepo.SaveTokenFunc = func(token *model.AccountToken) (*model.AccountToken, error) {
+					token.ID = 1
+					return token, nil
+				}
+				emailService.SetToFunc = func(to string) error { return nil }
+				emailService.SetSubjectFunc = func(subject string) error { return nil }
+				emailService.SetBodyFunc = func(body string) error { return nil }
+				emailService.SendEmailFunc = func() error { return nil }
+			},
+			wantErr: false,
+		},
+		{
+			name:      "email service error",
+			userID:    1,
+			email:     "test@example.com",
+			tokenType: model.TokenTypeEmailVerification,
+			subject:   "Verify Your Email Address",
+			path:      "verify-email",
+			expiresIn: 24 * time.Hour,
 			setupMock: func() {
 				tokenRepo.InvalidateExistingTokensFunc = func(userID int, tokenType model.TokenType) error {
 					return nil
@@ -216,7 +251,7 @@ func TestAccountTokenService_SendVerificationEmail(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.setupMock()
 
-			err := service.SendVerificationEmail(tt.userID, tt.email)
+			err := service.SendToken(tt.userID, tt.email, tt.tokenType, tt.subject, tt.path, tt.expiresIn)
 
 			if tt.wantErr {
 				assert.Error(t, err)

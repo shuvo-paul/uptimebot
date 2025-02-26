@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/shuvo-paul/uptimebot/internal/auth/model"
 	"github.com/shuvo-paul/uptimebot/internal/auth/repository"
@@ -12,19 +13,19 @@ type AuthServiceInterface interface {
 	Authenticate(string, string) (*model.User, error)
 	GetUserByID(int) (*model.User, error)
 	VerifyEmail(token string) error
-	SendVerificationEmail(userID int, email string) error
+	SendToken(userID int, email string) error
 }
 
 var _ AuthServiceInterface = (*AuthService)(nil)
 
 type AuthService struct {
 	repo         repository.UserRepositoryInterface
-	tokenService AccountTokenServiceInterface
+	tokenService TokenServiceInterface
 }
 
 func NewAuthService(
 	repo repository.UserRepositoryInterface,
-	tokenService AccountTokenServiceInterface,
+	tokenService TokenServiceInterface,
 ) *AuthService {
 	return &AuthService{
 		repo:         repo,
@@ -54,7 +55,7 @@ func (s *AuthService) CreateUser(user *model.User) (*model.User, error) {
 		return nil, fmt.Errorf("error saving user: %w", err)
 	}
 
-	if err := s.tokenService.SendVerificationEmail(createdUser.ID, createdUser.Email); err != nil {
+	if err := s.tokenService.SendToken(createdUser.ID, createdUser.Email, model.TokenTypeEmailVerification, "Verify Your Email Address", "verify-email", 24*time.Hour); err != nil {
 		fmt.Printf("Failed to send verification email: %v\n", err)
 	}
 
@@ -98,6 +99,6 @@ func (s *AuthService) VerifyEmail(token string) error {
 	return nil
 }
 
-func (s *AuthService) SendVerificationEmail(userID int, email string) error {
-	return s.tokenService.SendVerificationEmail(userID, email)
+func (s *AuthService) SendToken(userID int, email string) error {
+	return s.tokenService.SendToken(userID, email, model.TokenTypeEmailVerification, "Verify Your Email Address", "verify-email", 24*time.Hour)
 }

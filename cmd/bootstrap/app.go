@@ -70,7 +70,7 @@ func NewApp() *App {
 	}
 
 	// Initialize account token service
-	tokenService := authService.NewAccountTokenService(
+	tokenService := authService.NewTokenService(
 		tokenRepository,
 		emailService,
 		config.BaseURL,

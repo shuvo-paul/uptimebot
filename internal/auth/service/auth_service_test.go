@@ -40,8 +40,8 @@ func (m *mockUserRepository) UpdateUser(user *model.User) (*model.User, error) {
 
 // MockAccountTokenService is a mock implementation of AccountTokenServiceInterface
 type mockAccountTokenService struct {
-	sendVerificationEmailFunc func(userID int, email string) error
-	validateTokenFunc         func(token string, tokenType model.TokenType) (*model.AccountToken, error)
+	validateTokenFunc func(token string, tokenType model.TokenType) (*model.AccountToken, error)
+	sendTokenFunc     func(userID int, email string, tokenType model.TokenType, subject string, path string, expiresIn time.Duration) error
 }
 
 func (m *mockAccountTokenService) CreateToken(userID int, tokenType model.TokenType, expiresIn time.Duration) (*model.AccountToken, error) {
@@ -56,8 +56,11 @@ func (m *mockAccountTokenService) InvalidateAndCreateNewToken(userID int, tokenT
 	return nil, nil
 }
 
-func (m *mockAccountTokenService) SendVerificationEmail(userID int, email string) error {
-	return m.sendVerificationEmailFunc(userID, email)
+func (m *mockAccountTokenService) SendToken(userID int, email string, tokenType model.TokenType, subject string, path string, expiresIn time.Duration) error {
+	if m.sendTokenFunc != nil {
+		return m.sendTokenFunc(userID, email, tokenType, subject, path, expiresIn)
+	}
+	return nil
 }
 
 func TestCreateUser(t *testing.T) {
@@ -68,7 +71,7 @@ func TestCreateUser(t *testing.T) {
 		},
 	}
 	mockTokenService := &mockAccountTokenService{
-		sendVerificationEmailFunc: func(userID int, email string) error {
+		sendTokenFunc: func(userID int, email string, tokenType model.TokenType, subject string, path string, expiresIn time.Duration) error {
 			return nil
 		},
 	}

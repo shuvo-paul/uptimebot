@@ -27,7 +27,7 @@
             <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4" role="alert">
                 <p class="font-bold">Email Verification Required</p>
                 <p>Please verify your email address to access all features. 
-                    <form method="POST" action="/verification" class="inline">
+                    <form method="POST" action="/verify-email" class="inline">
                         {{csrfField}}
                         <input type="hidden" name="user_id" value="{{currentUser.ID}}">
                         <button type="submit" class="underline hover:text-yellow-800">Click here</button>

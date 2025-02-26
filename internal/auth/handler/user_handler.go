@@ -160,14 +160,14 @@ func (c *UserHandler) SendVerificationEmail(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	err = c.authService.SendVerificationEmail(user.ID, user.Email)
+	err = c.authService.SendToken(user.ID, user.Email)
 	if err != nil {
 		c.flashStore.SetErrors(ctx, []string{"Failed to send verification email"})
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
-	c.flashStore.SetErrors(ctx, []string{"Verification email resent successfully!"})
+	c.flashStore.SetSuccesses(ctx, []string{"Verification email resent successfully!"})
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 

@@ -37,8 +37,8 @@ func SetupRoutes(
 		http.Redirect(w, r, "/targets", http.StatusFound)
 	})
 
-	mux.HandleFunc("GET /verification", userHandler.VerifyEmail)
-	mux.HandleFunc("POST /verification", userHandler.SendVerificationEmail)
+	mux.HandleFunc("GET /verify-email", userHandler.VerifyEmail)
+	mux.HandleFunc("POST /verify-email", userHandler.SendVerificationEmail)
 
 	// Protected routes
 	protected := http.NewServeMux()

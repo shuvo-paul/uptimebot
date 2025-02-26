@@ -329,12 +329,24 @@ func TestTargetHandler_ToggleEnabled(t *testing.T) {
 	})
 
 	t.Run("unauthorized access", func(t *testing.T) {
+		target := &monitor.Target{
+			ID:       1,
+			URL:      "http://example.com",
+			Interval: 60 * time.Second,
+			Enabled:  false,
+		}
 		mockService := &mockTargetService{
 			getByIDFunc: func(id, userID int) (model.UserTarget, error) {
-				return model.UserTarget{}, service.ErrUnauthorized
+				return model.UserTarget{
+					UserID: 1, // Original owner's ID
+					Target: target,
+				}, nil
 			},
 			toggleEnabledFunc: func(id, userID int) (model.UserTarget, error) {
-				return model.UserTarget{}, service.ErrUnauthorized
+				return model.UserTarget{
+					UserID: 1,
+					Target: target,
+				}, service.ErrUnauthorized
 			},
 			initializeMonitoringFunc: func() error { return nil },
 		}

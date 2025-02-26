@@ -12,22 +12,20 @@ import (
 	"github.com/shuvo-paul/uptimebot/internal/email"
 )
 
-const path = "verification"
-
-type AccountTokenService struct {
+type TokenService struct {
 	tokenRepo    repository.TokenRepositoryInterface
 	emailService email.Mailer
 	baseURL      string
 	template     *template.Template
 }
 
-func NewAccountTokenService(
+func NewTokenService(
 	tokenRepo repository.TokenRepositoryInterface,
 	emailService email.Mailer,
 	baseURL string,
 	template *template.Template,
-) *AccountTokenService {
-	return &AccountTokenService{
+) *TokenService {
+	return &TokenService{
 		tokenRepo:    tokenRepo,
 		emailService: emailService,
 		baseURL:      baseURL,
@@ -35,14 +33,17 @@ func NewAccountTokenService(
 	}
 }
 
-type AccountTokenServiceInterface interface {
+type TokenServiceInterface interface {
 	CreateToken(userID int, tokenType model.TokenType, expiresIn time.Duration) (*model.AccountToken, error)
 	ValidateToken(token string, tokenType model.TokenType) (*model.AccountToken, error)
 	InvalidateAndCreateNewToken(userID int, tokenType model.TokenType, expiresIn time.Duration) (*model.AccountToken, error)
-	SendVerificationEmail(userID int, email string) error
+	SendToken(userID int, email string, tokenType model.TokenType, subject string, path string, expiresIn time.Duration) error
 }
 
-func (s *AccountTokenService) CreateToken(userID int, tokenType model.TokenType, expiresIn time.Duration) (*model.AccountToken, error) {
+// Ensure AccountTokenService implements TokenServiceInterface
+var _ TokenServiceInterface = (*TokenService)(nil)
+
+func (s *TokenService) CreateToken(userID int, tokenType model.TokenType, expiresIn time.Duration) (*model.AccountToken, error) {
 	token := &model.AccountToken{
 		UserID:    userID,
 		Token:     uuid.New().String(),
@@ -54,7 +55,7 @@ func (s *AccountTokenService) CreateToken(userID int, tokenType model.TokenType,
 	return s.tokenRepo.SaveToken(token)
 }
 
-func (s *AccountTokenService) ValidateToken(token string, tokenType model.TokenType) (*model.AccountToken, error) {
+func (s *TokenService) ValidateToken(token string, tokenType model.TokenType) (*model.AccountToken, error) {
 	vToken, err := s.tokenRepo.GetTokenByValue(token)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get token: %w", err)
@@ -78,7 +79,7 @@ func (s *AccountTokenService) ValidateToken(token string, tokenType model.TokenT
 	return vToken, nil
 }
 
-func (s *AccountTokenService) InvalidateAndCreateNewToken(userID int, tokenType model.TokenType, expiresIn time.Duration) (*model.AccountToken, error) {
+func (s *TokenService) InvalidateAndCreateNewToken(userID int, tokenType model.TokenType, expiresIn time.Duration) (*model.AccountToken, error) {
 	if err := s.tokenRepo.InvalidateExistingTokens(userID, tokenType); err != nil {
 		return nil, fmt.Errorf("failed to invalidate existing tokens: %w", err)
 	}
@@ -88,8 +89,8 @@ func (s *AccountTokenService) InvalidateAndCreateNewToken(userID int, tokenType 
 
 // emailParams contains all necessary parameters for sending token-based emails
 const (
-	TemplateNameEmailVerification = "verify_email"
-	TemplateNamePasswordReset     = "reset_password"
+	templateNameEmailVerification = "verify_email"
+	templateNamePasswordReset     = "reset_password"
 )
 
 type emailParams struct {
@@ -101,6 +102,8 @@ type emailParams struct {
 	TokenType model.TokenType `validate:"required"`
 	// Subject is the email subject line
 	Subject string `validate:"required"`
+	// Path is the URL path component for the token link
+	Path string `validate:"required"`
 	// ExpiresIn is the duration until the token expires
 	ExpiresIn time.Duration `validate:"required"`
 }
@@ -121,13 +124,17 @@ func (p *emailParams) Validate() error {
 		return fmt.Errorf("subject is required")
 	}
 
+	if p.Path == "" {
+		return fmt.Errorf("path is required")
+	}
+
 	if p.ExpiresIn <= 0 {
 		return fmt.Errorf("expiration duration must be positive")
 	}
 	return nil
 }
 
-func (s *AccountTokenService) sendTokenEmail(params emailParams) error {
+func (s *TokenService) sendTokenEmail(params emailParams) error {
 	// Create a new token
 	token, err := s.InvalidateAndCreateNewToken(params.UserID, params.TokenType, params.ExpiresIn)
 	if err != nil {
@@ -135,7 +142,7 @@ func (s *AccountTokenService) sendTokenEmail(params emailParams) error {
 	}
 
 	// Generate token link
-	tokenLink := fmt.Sprintf("%s/%s?type=%s&token=%s", s.baseURL, path, params.TokenType, token.Token)
+	tokenLink := fmt.Sprintf("%s/%s?token=%s", s.baseURL, params.Path, token.Token)
 
 	// Send email using the email service
 	if err := s.emailService.SetTo(params.Email); err != nil {
@@ -154,9 +161,9 @@ func (s *AccountTokenService) sendTokenEmail(params emailParams) error {
 		TokenLink: tokenLink,
 	}
 
-	templateName := TemplateNameEmailVerification
+	templateName := templateNameEmailVerification
 	if params.TokenType == model.TokenTypePasswordReset {
-		templateName = TemplateNamePasswordReset
+		templateName = templateNamePasswordReset
 	}
 
 	if err := s.template.ExecuteTemplate(&buf, templateName, data); err != nil {
@@ -174,26 +181,20 @@ func (s *AccountTokenService) sendTokenEmail(params emailParams) error {
 	return nil
 }
 
-func (s *AccountTokenService) SendVerificationEmail(userID int, email string) error {
+func (s *TokenService) SendToken(
+	userID int,
+	email string,
+	tokenType model.TokenType,
+	subject string,
+	path string,
+	expiresIn time.Duration,
+) error {
 	return s.sendTokenEmail(emailParams{
 		UserID:    userID,
 		Email:     email,
-		TokenType: model.TokenTypeEmailVerification,
-
-		Subject:   "Verify Your Email Address",
-		ExpiresIn: 24 * time.Hour,
+		TokenType: tokenType,
+		Subject:   subject,
+		Path:      path,
+		ExpiresIn: expiresIn,
 	})
 }
-
-func (s *AccountTokenService) SendPasswordResetEmail(userID int, email string) error {
-	return s.sendTokenEmail(emailParams{
-		UserID:    userID,
-		Email:     email,
-		TokenType: model.TokenTypePasswordReset,
-
-		Subject:   "Reset Your Password",
-		ExpiresIn: 1 * time.Hour,
-	})
-}
-
-var _ AccountTokenServiceInterface = (*AccountTokenService)(nil)
