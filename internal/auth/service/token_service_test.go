@@ -13,7 +13,7 @@ import (
 )
 
 func TestTokenService_CreateToken(t *testing.T) {
-	tokenRepo := &mockRepo.AccountTokenRepositoryMock{}
+	tokenRepo := &mockRepo.TokenRepositoryMock{}
 	emailService := &mockEmail.EmailServiceMock{}
 	baseURL := "http://localhost:8080"
 	tmpl := template.Must(template.New("test").Parse("{{.TokenLink}}"))
@@ -74,7 +74,7 @@ func TestTokenService_CreateToken(t *testing.T) {
 }
 
 func TestTokenService_ValidateToken(t *testing.T) {
-	tokenRepo := &mockRepo.AccountTokenRepositoryMock{}
+	tokenRepo := &mockRepo.TokenRepositoryMock{}
 	emailService := &mockEmail.EmailServiceMock{}
 	baseURL := "http://localhost:8080"
 	tmpl := template.Must(template.New("test").Parse("{{.TokenLink}}"))
@@ -158,7 +158,7 @@ func TestTokenService_ValidateToken(t *testing.T) {
 }
 
 func TestTokenService_SendToken(t *testing.T) {
-	tokenRepo := &mockRepo.AccountTokenRepositoryMock{}
+	tokenRepo := &mockRepo.TokenRepositoryMock{}
 	emailService := &mockEmail.EmailServiceMock{}
 	baseURL := "http://localhost:8080"
 	tmpl := template.Must(template.New("test").Parse(`{{define "verify_email"}}{{.TokenLink}}{{end}}{{define "reset_password"}}{{.TokenLink}}{{end}}`))
@@ -263,7 +263,7 @@ func TestTokenService_SendToken(t *testing.T) {
 }
 
 func TestTokenService_MarkTokenAsUsed(t *testing.T) {
-	tokenRepo := &mockRepo.AccountTokenRepositoryMock{}
+	tokenRepo := &mockRepo.TokenRepositoryMock{}
 	emailService := &mockEmail.EmailServiceMock{}
 	baseURL := "http://localhost:8080"
 	tmpl := template.Must(template.New("test").Parse("{{.TokenLink}}"))
