@@ -80,12 +80,32 @@ func (r *UserRepository) UpdateUser(user *model.User) (*model.User, error) {
 	return user, nil
 }
 
+func (r *UserRepository) UpdatePassword(userID int, hashedPassword string) error {
+	query := `UPDATE user SET password = ? WHERE id = ?`
+	result, err := r.db.Exec(query, hashedPassword, userID)
+	if err != nil {
+		return fmt.Errorf("failed to update password: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("no user found with ID: %d", userID)
+	}
+
+	return nil
+}
+
 type UserRepositoryInterface interface {
 	SaveUser(user *model.User) (*model.User, error)
 	EmailExists(email string) (bool, error)
 	GetUserByEmail(email string) (*model.User, error)
 	GetUserByID(id int) (*model.User, error)
 	UpdateUser(user *model.User) (*model.User, error)
+	UpdatePassword(userID int, hashedPassword string) error
 }
 
 var _ UserRepositoryInterface = (*UserRepository)(nil)

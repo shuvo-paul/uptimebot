@@ -112,3 +112,33 @@ func TestUpdateUser(t *testing.T) {
 	assert.Equal(t, expectedUser.Email, updatedUser.Email)
 	assert.Equal(t, expectedUser.Verified, updatedUser.Verified)
 }
+
+func TestUpdatePassword(t *testing.T) {
+	db := testutil.NewInMemoryDB()
+	userRepo := NewUserRepository(db)
+	defer db.Close()
+
+	// Create a test user first
+	user := &model.User{
+		Name:     "testuser",
+		Email:    "test@example.com",
+		Password: "oldpassword",
+	}
+	savedUser, err := userRepo.SaveUser(user)
+	assert.NoError(t, err)
+
+	t.Run("successful password update", func(t *testing.T) {
+		err := userRepo.UpdatePassword(savedUser.ID, "newhashedpassword")
+		assert.NoError(t, err)
+
+		// Verify password was updated
+		updatedUser, err := userRepo.GetUserByEmail(user.Email)
+		assert.NoError(t, err)
+		assert.Equal(t, "newhashedpassword", updatedUser.Password)
+	})
+
+	t.Run("non-existent user", func(t *testing.T) {
+		err := userRepo.UpdatePassword(9999, "newpassword")
+		assert.Error(t, err)
+	})
+}
