@@ -261,3 +261,54 @@ func TestTokenService_SendToken(t *testing.T) {
 		})
 	}
 }
+
+func TestTokenService_MarkTokenAsUsed(t *testing.T) {
+	tokenRepo := &mockRepo.AccountTokenRepositoryMock{}
+	emailService := &mockEmail.EmailServiceMock{}
+	baseURL := "http://localhost:8080"
+	tmpl := template.Must(template.New("test").Parse("{{.TokenLink}}"))
+
+	service := NewTokenService(tokenRepo, emailService, baseURL, tmpl)
+
+	tests := []struct {
+		name      string
+		tokenID   int
+		setupMock func()
+		wantErr   bool
+	}{
+		{
+			name:    "successful token marking",
+			tokenID: 1,
+			setupMock: func() {
+				tokenRepo.MarkTokenUsedFunc = func(tokenID int) error {
+					return nil
+				}
+			},
+			wantErr: false,
+		},
+		{
+			name:    "repository error",
+			tokenID: 2,
+			setupMock: func() {
+				tokenRepo.MarkTokenUsedFunc = func(tokenID int) error {
+					return fmt.Errorf("failed to mark token as used")
+				}
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setupMock()
+
+			err := service.MarkTokenAsUsed(tt.tokenID)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}

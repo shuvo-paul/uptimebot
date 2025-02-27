@@ -38,6 +38,7 @@ type TokenServiceInterface interface {
 	ValidateToken(token string, tokenType model.TokenType) (*model.AccountToken, error)
 	InvalidateAndCreateNewToken(userID int, tokenType model.TokenType, expiresIn time.Duration) (*model.AccountToken, error)
 	SendToken(userID int, email string, tokenType model.TokenType, subject string, path string, expiresIn time.Duration) error
+	MarkTokenAsUsed(tokenID int) error
 }
 
 // Ensure AccountTokenService implements TokenServiceInterface
@@ -72,11 +73,19 @@ func (s *TokenService) ValidateToken(token string, tokenType model.TokenType) (*
 		return nil, fmt.Errorf("token is no longer valid")
 	}
 
-	if err := s.tokenRepo.MarkTokenUsed(vToken.ID); err != nil {
-		return nil, fmt.Errorf("failed to mark token as used: %w", err)
+	if err := s.MarkTokenAsUsed(vToken.ID); err != nil {
+		return nil, err
 	}
 
 	return vToken, nil
+}
+
+// MarkTokenAsUsed marks a token as used in the repository
+func (s *TokenService) MarkTokenAsUsed(tokenID int) error {
+	if err := s.tokenRepo.MarkTokenUsed(tokenID); err != nil {
+		return fmt.Errorf("failed to mark token as used: %w", err)
+	}
+	return nil
 }
 
 func (s *TokenService) InvalidateAndCreateNewToken(userID int, tokenType model.TokenType, expiresIn time.Duration) (*model.AccountToken, error) {
