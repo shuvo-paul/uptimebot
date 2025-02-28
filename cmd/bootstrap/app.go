@@ -8,6 +8,7 @@ import (
 
 	"github.com/joho/godotenv"
 	authHandler "github.com/shuvo-paul/uptimebot/internal/auth/handler"
+	"github.com/shuvo-paul/uptimebot/internal/auth/model"
 	authRepository "github.com/shuvo-paul/uptimebot/internal/auth/repository"
 	authService "github.com/shuvo-paul/uptimebot/internal/auth/service"
 	"github.com/shuvo-paul/uptimebot/internal/config"
@@ -64,9 +65,12 @@ func NewApp() *App {
 		log.Fatalf("Failed to initialize email service: %v", err)
 	}
 
-	emailTemplates, err := template.ParseFS(templates.TemplateFS, "emails/*.html")
-	if err != nil {
-		log.Fatalf("Failed to parse email templates: %v", err)
+	emailVerificationTemplate := templateRenderer.GetTemplate("emails:verify-email")
+	passwordResetTemplate := templateRenderer.GetTemplate("emails:request-reset-password")
+	// Create a map of email templates
+	emailTemplates := map[model.TokenType]*template.Template{
+		model.TokenTypeEmailVerification: emailVerificationTemplate.Raw(),
+		model.TokenTypePasswordReset:     passwordResetTemplate.Raw(),
 	}
 
 	// Initialize account token service
@@ -84,6 +88,8 @@ func NewApp() *App {
 	authHandler := authHandler.NewAuthHandler(authService2, sessionService, flashStore)
 	authHandler.Template.Register = templateRenderer.GetTemplate("pages:register")
 	authHandler.Template.Login = templateRenderer.GetTemplate("pages:login")
+	authHandler.Template.RequestPasswordReset = templateRenderer.GetTemplate("pages:request-reset-password")
+	authHandler.Template.ResetPassword = templateRenderer.GetTemplate("pages:reset-password")
 
 	notifierRepository := notificationRepository.NewNotifierRepository(db)
 	notifierService := notificationService.NewNotifierService(notifierRepository, nil)

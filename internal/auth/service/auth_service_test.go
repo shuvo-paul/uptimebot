@@ -16,6 +16,7 @@ type mockUserRepository struct {
 	getUserByEmailFunc func(email string) (*model.User, error)
 	getUserByIdFunc    func(id int) (*model.User, error)
 	updateUserFunc     func(user *model.User) (*model.User, error)
+	updatePasswordFunc func(userID int, hashedPassword string) error
 }
 
 func (m *mockUserRepository) SaveUser(user *model.User) (*model.User, error) {
@@ -38,27 +39,39 @@ func (m *mockUserRepository) UpdateUser(user *model.User) (*model.User, error) {
 	return m.updateUserFunc(user)
 }
 
-// MockAccountTokenService is a mock implementation of AccountTokenServiceInterface
-type mockAccountTokenService struct {
-	validateTokenFunc func(token string, tokenType model.TokenType) (*model.AccountToken, error)
-	sendTokenFunc     func(userID int, email string, tokenType model.TokenType, subject string, path string, expiresIn time.Duration) error
+func (m *mockUserRepository) UpdatePassword(userID int, hashedPassword string) error {
+	return m.updatePasswordFunc(userID, hashedPassword)
 }
 
-func (m *mockAccountTokenService) CreateToken(userID int, tokenType model.TokenType, expiresIn time.Duration) (*model.AccountToken, error) {
+// MockTokenService is a mock implementation of TokenServiceInterface
+type mockTokenService struct {
+	validateTokenFunc   func(token string, tokenType model.TokenType) (*model.Token, error)
+	sendTokenFunc       func(userID int, email string, tokenType model.TokenType, subject string, path string, expiresIn time.Duration) error
+	markTokenAsUsedFunc func(tokenID int) error
+}
+
+func (m *mockTokenService) createToken(userID int, tokenType model.TokenType, expiresIn time.Duration) (*model.Token, error) {
 	return nil, nil
 }
 
-func (m *mockAccountTokenService) ValidateToken(token string, tokenType model.TokenType) (*model.AccountToken, error) {
+func (m *mockTokenService) ValidateToken(token string, tokenType model.TokenType) (*model.Token, error) {
 	return m.validateTokenFunc(token, tokenType)
 }
 
-func (m *mockAccountTokenService) InvalidateAndCreateNewToken(userID int, tokenType model.TokenType, expiresIn time.Duration) (*model.AccountToken, error) {
+func (m *mockTokenService) invalidateAndCreateNewToken(userID int, tokenType model.TokenType, expiresIn time.Duration) (*model.Token, error) {
 	return nil, nil
 }
 
-func (m *mockAccountTokenService) SendToken(userID int, email string, tokenType model.TokenType, subject string, path string, expiresIn time.Duration) error {
+func (m *mockTokenService) SendToken(userID int, email string, tokenType model.TokenType, subject string, path string, expiresIn time.Duration) error {
 	if m.sendTokenFunc != nil {
 		return m.sendTokenFunc(userID, email, tokenType, subject, path, expiresIn)
+	}
+	return nil
+}
+
+func (m *mockTokenService) MarkTokenAsUsed(tokenID int) error {
+	if m.markTokenAsUsedFunc != nil {
+		return m.markTokenAsUsedFunc(tokenID)
 	}
 	return nil
 }
@@ -70,7 +83,7 @@ func TestCreateUser(t *testing.T) {
 			return user, nil
 		},
 	}
-	mockTokenService := &mockAccountTokenService{
+	mockTokenService := &mockTokenService{
 		sendTokenFunc: func(userID int, email string, tokenType model.TokenType, subject string, path string, expiresIn time.Duration) error {
 			return nil
 		},
@@ -119,10 +132,10 @@ func TestVerifyEmail(t *testing.T) {
 		},
 	}
 
-	mockTokenService := &mockAccountTokenService{
-		validateTokenFunc: func(token string, tokenType model.TokenType) (*model.AccountToken, error) {
+	mockTokenService := &mockTokenService{
+		validateTokenFunc: func(token string, tokenType model.TokenType) (*model.Token, error) {
 			if token == "valid_token" {
-				return &model.AccountToken{UserID: 1, Token: token}, nil
+				return &model.Token{UserID: 1, Token: token}, nil
 			}
 			return nil, fmt.Errorf("invalid token")
 		},
@@ -161,7 +174,7 @@ func TestAuthentication(t *testing.T) {
 		},
 	}
 
-	mockTokenService := &mockAccountTokenService{}
+	mockTokenService := &mockTokenService{}
 	userService := NewAuthService(mockRepo, mockTokenService)
 
 	t.Run("Logged in succesfully", func(t *testing.T) {
@@ -173,5 +186,49 @@ func TestAuthentication(t *testing.T) {
 	t.Run("Login failed", func(t *testing.T) {
 		_, err := userService.Authenticate(email, wrongPassword)
 		assert.Error(t, err)
+	})
+}
+
+func TestValidateToken(t *testing.T) {
+	mockRepo := &mockUserRepository{}
+
+	t.Run("Valid token", func(t *testing.T) {
+		mockTokenService := &mockTokenService{
+			validateTokenFunc: func(token string, tokenType model.TokenType) (*model.Token, error) {
+				return &model.Token{ID: 1, UserID: 1, Token: token}, nil
+			},
+		}
+		userService := NewAuthService(mockRepo, mockTokenService)
+
+		token, err := userService.ValidateToken("valid_token", model.TokenTypeEmailVerification)
+		assert.NoError(t, err)
+		assert.NotNil(t, token)
+		assert.Equal(t, "valid_token", token.Token)
+	})
+
+	t.Run("Invalid token", func(t *testing.T) {
+		mockTokenService := &mockTokenService{
+			validateTokenFunc: func(token string, tokenType model.TokenType) (*model.Token, error) {
+				return nil, fmt.Errorf("invalid token")
+			},
+		}
+		userService := NewAuthService(mockRepo, mockTokenService)
+
+		token, err := userService.ValidateToken("invalid_token", model.TokenTypeEmailVerification)
+		assert.Error(t, err)
+		assert.Nil(t, token)
+	})
+
+	t.Run("Expired token", func(t *testing.T) {
+		mockTokenService := &mockTokenService{
+			validateTokenFunc: func(token string, tokenType model.TokenType) (*model.Token, error) {
+				return nil, fmt.Errorf("token has expired")
+			},
+		}
+		userService := NewAuthService(mockRepo, mockTokenService)
+
+		token, err := userService.ValidateToken("expired_token", model.TokenTypeEmailVerification)
+		assert.Error(t, err)
+		assert.Nil(t, token)
 	})
 }

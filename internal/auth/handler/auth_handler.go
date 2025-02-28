@@ -12,8 +12,10 @@ import (
 
 type AuthHandler struct {
 	Template struct {
-		Register *renderer.Template
-		Login    *renderer.Template
+		Register             *renderer.Template
+		Login                *renderer.Template
+		ResetPassword        *renderer.Template
+		RequestPasswordReset *renderer.Template
 	}
 	sessionService service.SessionServiceInterface
 	authService    service.AuthServiceInterface
@@ -160,7 +162,7 @@ func (c *AuthHandler) SendVerificationEmail(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	err = c.authService.SendToken(user.ID, user.Email)
+	err = c.authService.SendToken(user.ID, user.Email, model.TokenTypeEmailVerification)
 	if err != nil {
 		c.flashStore.SetErrors(ctx, []string{"Failed to send verification email"})
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -192,6 +194,95 @@ func (c *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteStrictMode,
 	})
 
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+func (c *AuthHandler) ShowRequestResetForm(w http.ResponseWriter, r *http.Request) {
+	data := map[string]any{
+		"Title": "Send Reset Password Email",
+	}
+	c.Template.RequestPasswordReset.Render(w, r, data)
+}
+
+func (c *AuthHandler) SendResetLink(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+
+	email := r.FormValue("email")
+	if email == "" {
+		c.flashStore.SetErrors(ctx, []string{"Email is required"})
+		http.Redirect(w, r, "/request-reset-password", http.StatusSeeOther)
+		return
+	}
+
+	user, err := c.authService.GetUserByEmail(email)
+	if err != nil {
+		// Don't reveal if email exists or not for security
+		c.flashStore.SetSuccesses(ctx, []string{"If your email exists in our system, you will receive a password reset link shortly."})
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	err = c.authService.SendToken(user.ID, email, model.TokenTypePasswordReset)
+	if err != nil {
+		c.flashStore.SetErrors(ctx, []string{"Failed to send reset password email"})
+		http.Redirect(w, r, "/request-reset-password", http.StatusSeeOther)
+		return
+	}
+
+	c.flashStore.SetSuccesses(ctx, []string{"Password reset link has been sent to your email"})
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+func (c *AuthHandler) ShowResetPasswordForm(w http.ResponseWriter, r *http.Request) {
+	if c.redirectIfAuthenticated(w, r) {
+		return
+	}
+
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		http.Error(w, "Invalid token", http.StatusBadRequest)
+		return
+	}
+
+	_, err := c.authService.ValidateToken(token, model.TokenTypePasswordReset)
+	if err != nil {
+		c.flashStore.SetErrors(r.Context(), []string{"Invalid or expired token"})
+		http.Redirect(w, r, "/request-reset-password", http.StatusSeeOther)
+		return
+	}
+
+	data := map[string]any{
+		"Title": "Reset Password",
+		"Token": token,
+	}
+	c.Template.ResetPassword.Render(w, r, data)
+}
+
+func (c *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+	token := r.FormValue("token")
+	password := r.FormValue("password")
+	conformPassword := r.FormValue("confirm_password")
+	if password != conformPassword {
+		c.flashStore.SetErrors(ctx, []string{"Passwords do not match"})
+		http.Redirect(w, r, "/reset-password?token="+token, http.StatusSeeOther)
+		return
+	}
+	if err := c.authService.ResetPassword(token, password); err != nil {
+		c.flashStore.SetErrors(ctx, []string{"Failed to reset password"})
+		http.Redirect(w, r, "/reset-password?token="+token, http.StatusSeeOther)
+		return
+	}
+
+	c.flashStore.SetSuccesses(ctx, []string{"Password reset successfully!"})
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 

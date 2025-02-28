@@ -14,32 +14,61 @@ import (
 	"github.com/shuvo-paul/uptimebot/pkg/flash"
 )
 
-// Mock UserService
-type mockUserService struct {
-	createUserFunc   func(*model.User) (*model.User, error)
-	authenticateFunc func(string, string) (*model.User, error)
-	getUserByIdFunc  func(id int) (*model.User, error)
-	sendTokenFunc    func(int, string) error
+// Mock AuthService
+type mockAuthService struct {
+	createUserFunc     func(*model.User) (*model.User, error)
+	authenticateFunc   func(string, string) (*model.User, error)
+	getUserByIdFunc    func(id int) (*model.User, error)
+	getUserByEmailFunc func(email string) (*model.User, error)
+	sendTokenFunc      func(int, string, model.TokenType) error
+	updatePasswordFunc func(int, string) error
+	resetPasswordFunc  func(string, string) error
+	validateTokenFunc  func(string, model.TokenType) (*model.Token, error)
 }
 
-func (m *mockUserService) CreateUser(user *model.User) (*model.User, error) {
+func (m *mockAuthService) CreateUser(user *model.User) (*model.User, error) {
 	return m.createUserFunc(user)
 }
 
-func (m *mockUserService) Authenticate(email, password string) (*model.User, error) {
+func (m *mockAuthService) Authenticate(email, password string) (*model.User, error) {
 	return m.authenticateFunc(email, password)
 }
 
-func (m *mockUserService) GetUserByID(id int) (*model.User, error) {
+func (m *mockAuthService) GetUserByID(id int) (*model.User, error) {
 	return m.getUserByIdFunc(id)
 }
 
-func (m *mockUserService) VerifyEmail(token string) error {
+func (m *mockAuthService) GetUserByEmail(email string) (*model.User, error) {
+	return m.getUserByEmailFunc(email)
+}
+
+func (m *mockAuthService) ValidateToken(token string, tokenType model.TokenType) (*model.Token, error) {
+	if m.validateTokenFunc != nil {
+		return m.validateTokenFunc(token, tokenType)
+	}
+	return nil, nil
+}
+
+func (m *mockAuthService) VerifyEmail(token string) error {
 	return nil
 }
 
-func (m *mockUserService) SendToken(id int, email string) error {
-	return m.sendTokenFunc(id, email)
+func (m *mockAuthService) SendToken(id int, email string, tokenType model.TokenType) error {
+	return m.sendTokenFunc(id, email, tokenType)
+}
+
+func (m *mockAuthService) UpdatePassword(userID int, newPassword string) error {
+	if m.updatePasswordFunc != nil {
+		return m.updatePasswordFunc(userID, newPassword)
+	}
+	return nil
+}
+
+func (m *mockAuthService) ResetPassword(token string, newPassword string) error {
+	if m.resetPasswordFunc != nil {
+		return m.resetPasswordFunc(token, newPassword)
+	}
+	return nil
 }
 
 // Mock SessionService
@@ -91,7 +120,7 @@ func TestRegister(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockUser := &mockUserService{
+			mockUser := &mockAuthService{
 				createUserFunc: tt.mockUserFunc,
 			}
 			mockSession := &mockSessionService{}
@@ -149,7 +178,7 @@ func TestLogin(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockUser := &mockUserService{
+			mockUser := &mockAuthService{
 				authenticateFunc: tt.mockAuthFunc,
 			}
 			mockSession := &mockSessionService{
@@ -224,9 +253,14 @@ func TestSendVerificationMail(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockUser := &mockUserService{
+			mockUser := &mockAuthService{
 				getUserByIdFunc: tt.mockGetUserFunc,
-				sendTokenFunc:   tt.mockSendEmailFunc,
+				sendTokenFunc: func(id int, email string, tokenType model.TokenType) error {
+					if tt.mockSendEmailFunc != nil {
+						return tt.mockSendEmailFunc(id, email)
+					}
+					return nil
+				},
 			}
 			mockSession := &mockSessionService{}
 			mockFlash := &flash.MockFlashStore{}

@@ -16,9 +16,13 @@ func TestTokenService_CreateToken(t *testing.T) {
 	tokenRepo := &mockRepo.TokenRepositoryMock{}
 	emailService := &mockEmail.EmailServiceMock{}
 	baseURL := "http://localhost:8080"
-	tmpl := template.Must(template.New("test").Parse("{{.TokenLink}}"))
 
-	service := NewTokenService(tokenRepo, emailService, baseURL, tmpl)
+	templates := map[model.TokenType]*template.Template{
+		model.TokenTypeEmailVerification: template.Must(template.New("email_verification").Parse("{{.TokenLink}}")),
+		model.TokenTypePasswordReset:     template.Must(template.New("password_reset").Parse("{{.TokenLink}}")),
+	}
+
+	service := NewTokenService(tokenRepo, emailService, baseURL, templates)
 
 	tests := []struct {
 		name      string
@@ -46,17 +50,17 @@ func TestTokenService_CreateToken(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.wantErr {
-				tokenRepo.SaveTokenFunc = func(token *model.AccountToken) (*model.AccountToken, error) {
+				tokenRepo.SaveTokenFunc = func(token *model.Token) (*model.Token, error) {
 					return nil, fmt.Errorf("mock error")
 				}
 			} else {
-				tokenRepo.SaveTokenFunc = func(token *model.AccountToken) (*model.AccountToken, error) {
+				tokenRepo.SaveTokenFunc = func(token *model.Token) (*model.Token, error) {
 					token.ID = 1
 					return token, nil
 				}
 			}
 
-			token, err := service.CreateToken(tt.userID, tt.tokenType, tt.expiresIn)
+			token, err := service.createToken(tt.userID, tt.tokenType, tt.expiresIn)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -77,9 +81,12 @@ func TestTokenService_ValidateToken(t *testing.T) {
 	tokenRepo := &mockRepo.TokenRepositoryMock{}
 	emailService := &mockEmail.EmailServiceMock{}
 	baseURL := "http://localhost:8080"
-	tmpl := template.Must(template.New("test").Parse("{{.TokenLink}}"))
 
-	service := NewTokenService(tokenRepo, emailService, baseURL, tmpl)
+	templates := map[model.TokenType]*template.Template{
+		model.TokenTypeEmailVerification: template.Must(template.New("email_verification").Parse("{{.TokenLink}}")),
+		model.TokenTypePasswordReset:     template.Must(template.New("password_reset").Parse("{{.TokenLink}}")),
+	}
+	service := NewTokenService(tokenRepo, emailService, baseURL, templates)
 
 	tests := []struct {
 		name      string
@@ -93,8 +100,8 @@ func TestTokenService_ValidateToken(t *testing.T) {
 			token:     "valid-token",
 			tokenType: model.TokenTypeEmailVerification,
 			setupMock: func() {
-				tokenRepo.GetTokenByValueFunc = func(token string) (*model.AccountToken, error) {
-					return &model.AccountToken{
+				tokenRepo.GetTokenByValueFunc = func(token string) (*model.Token, error) {
+					return &model.Token{
 						ID:        1,
 						Token:     "valid-token",
 						Type:      model.TokenTypeEmailVerification,
@@ -113,7 +120,7 @@ func TestTokenService_ValidateToken(t *testing.T) {
 			token:     "invalid-token",
 			tokenType: model.TokenTypeEmailVerification,
 			setupMock: func() {
-				tokenRepo.GetTokenByValueFunc = func(token string) (*model.AccountToken, error) {
+				tokenRepo.GetTokenByValueFunc = func(token string) (*model.Token, error) {
 					return nil, nil
 				}
 			},
@@ -124,8 +131,8 @@ func TestTokenService_ValidateToken(t *testing.T) {
 			token:     "expired-token",
 			tokenType: model.TokenTypeEmailVerification,
 			setupMock: func() {
-				tokenRepo.GetTokenByValueFunc = func(token string) (*model.AccountToken, error) {
-					return &model.AccountToken{
+				tokenRepo.GetTokenByValueFunc = func(token string) (*model.Token, error) {
+					return &model.Token{
 						ID:        1,
 						Token:     "expired-token",
 						Type:      model.TokenTypeEmailVerification,
@@ -161,9 +168,12 @@ func TestTokenService_SendToken(t *testing.T) {
 	tokenRepo := &mockRepo.TokenRepositoryMock{}
 	emailService := &mockEmail.EmailServiceMock{}
 	baseURL := "http://localhost:8080"
-	tmpl := template.Must(template.New("test").Parse(`{{define "verify_email"}}{{.TokenLink}}{{end}}{{define "reset_password"}}{{.TokenLink}}{{end}}`))
 
-	service := NewTokenService(tokenRepo, emailService, baseURL, tmpl)
+	templates := map[model.TokenType]*template.Template{
+		model.TokenTypeEmailVerification: template.Must(template.New("email_verification").Parse("{{.TokenLink}}")),
+		model.TokenTypePasswordReset:     template.Must(template.New("password_reset").Parse("{{.TokenLink}}")),
+	}
+	s := NewTokenService(tokenRepo, emailService, baseURL, templates)
 
 	tests := []struct {
 		name      string
@@ -188,7 +198,7 @@ func TestTokenService_SendToken(t *testing.T) {
 				tokenRepo.InvalidateExistingTokensFunc = func(userID int, tokenType model.TokenType) error {
 					return nil
 				}
-				tokenRepo.SaveTokenFunc = func(token *model.AccountToken) (*model.AccountToken, error) {
+				tokenRepo.SaveTokenFunc = func(token *model.Token) (*model.Token, error) {
 					token.ID = 1
 					return token, nil
 				}
@@ -211,7 +221,7 @@ func TestTokenService_SendToken(t *testing.T) {
 				tokenRepo.InvalidateExistingTokensFunc = func(userID int, tokenType model.TokenType) error {
 					return nil
 				}
-				tokenRepo.SaveTokenFunc = func(token *model.AccountToken) (*model.AccountToken, error) {
+				tokenRepo.SaveTokenFunc = func(token *model.Token) (*model.Token, error) {
 					token.ID = 1
 					return token, nil
 				}
@@ -234,7 +244,7 @@ func TestTokenService_SendToken(t *testing.T) {
 				tokenRepo.InvalidateExistingTokensFunc = func(userID int, tokenType model.TokenType) error {
 					return nil
 				}
-				tokenRepo.SaveTokenFunc = func(token *model.AccountToken) (*model.AccountToken, error) {
+				tokenRepo.SaveTokenFunc = func(token *model.Token) (*model.Token, error) {
 					token.ID = 1
 					return token, nil
 				}
@@ -251,7 +261,17 @@ func TestTokenService_SendToken(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.setupMock()
 
-			err := service.SendToken(tt.userID, tt.email, tt.tokenType, tt.subject, tt.path, tt.expiresIn)
+			params := emailParams{
+				UserID:    tt.userID,
+				Email:     tt.email,
+				TokenType: tt.tokenType,
+				Subject:   tt.subject,
+				Path:      tt.path,
+				Template:  template.Must(template.New("test").Parse(`{{.TokenLink}}`)),
+				ExpiresIn: tt.expiresIn,
+			}
+
+			err := s.sendTokenEmail(params)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -268,7 +288,10 @@ func TestTokenService_MarkTokenAsUsed(t *testing.T) {
 	baseURL := "http://localhost:8080"
 	tmpl := template.Must(template.New("test").Parse("{{.TokenLink}}"))
 
-	service := NewTokenService(tokenRepo, emailService, baseURL, tmpl)
+	service := NewTokenService(tokenRepo, emailService, baseURL, map[model.TokenType]*template.Template{
+		model.TokenTypeEmailVerification: tmpl,
+		model.TokenTypePasswordReset:     tmpl,
+	})
 
 	tests := []struct {
 		name      string

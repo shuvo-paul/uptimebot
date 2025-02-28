@@ -40,6 +40,12 @@ func SetupRoutes(
 	mux.HandleFunc("GET /verify-email", userHandler.VerifyEmail)
 	mux.HandleFunc("POST /verify-email", userHandler.SendVerificationEmail)
 
+	mux.HandleFunc("GET /request-reset-password", userHandler.ShowRequestResetForm)
+	mux.HandleFunc("POST /send-reset-password-link", userHandler.SendResetLink)
+
+	mux.HandleFunc("GET /reset-password", userHandler.ShowResetPasswordForm)
+	mux.HandleFunc("POST /reset-password", userHandler.ResetPassword)
+
 	// Protected routes
 	protected := http.NewServeMux()
 	// Add target monitoring routes
