@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/shuvo-paul/uptimebot/cmd/bootstrap"
+	"github.com/shuvo-paul/uptimebot/internal/bootstrap"
 	"github.com/shuvo-paul/uptimebot/internal/routes"
 )
 
