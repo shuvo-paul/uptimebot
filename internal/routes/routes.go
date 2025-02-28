@@ -66,6 +66,17 @@ func SetupRoutes(
 		authService,
 	))
 
+	// Profile routes
+	profileRoutes := http.NewServeMux()
+	profileRoutes.HandleFunc("GET /", userHandler.ShowProfileForm)
+	profileRoutes.HandleFunc("POST /update-password", userHandler.UpdatePassword)
+
+	mux.Handle("/profile/", middleware.RequireAuth(
+		http.StripPrefix("/profile", profileRoutes),
+		sessionService,
+		authService,
+	))
+
 	mws := middleware.CreateStack(
 		flash.Middleware,
 		csrf.Middleware,

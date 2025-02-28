@@ -16,6 +16,7 @@ type AuthHandler struct {
 		Login                *renderer.Template
 		ResetPassword        *renderer.Template
 		RequestPasswordReset *renderer.Template
+		Profile              *renderer.Template
 	}
 	sessionService service.SessionServiceInterface
 	authService    service.AuthServiceInterface
@@ -284,6 +285,55 @@ func (c *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 
 	c.flashStore.SetSuccesses(ctx, []string{"Password reset successfully!"})
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+func (c *AuthHandler) ShowProfileForm(w http.ResponseWriter, r *http.Request) {
+	data := map[string]any{
+		"Title": "Profile",
+	}
+	c.Template.Profile.Render(w, r, data)
+}
+
+func (c *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+
+	user, ok := service.GetUser(ctx)
+	if !ok {
+		http.Error(w, "User not found", http.StatusUnauthorized)
+		return
+	}
+
+	currentPassword := r.FormValue("current_password")
+	newPassword := r.FormValue("new_password")
+	confirmPassword := r.FormValue("confirm_password")
+
+	if newPassword != confirmPassword {
+		c.flashStore.SetErrors(ctx, []string{"New passwords do not match"})
+		http.Redirect(w, r, "/update-password", http.StatusSeeOther)
+		return
+	}
+
+	// Verify current password
+	_, err := c.authService.Authenticate(user.Email, currentPassword)
+	if err != nil {
+		c.flashStore.SetErrors(ctx, []string{"Current password is incorrect"})
+		http.Redirect(w, r, "/update-password", http.StatusSeeOther)
+		return
+	}
+
+	// Update password
+	if err := c.authService.UpdatePassword(user.ID, newPassword); err != nil {
+		c.flashStore.SetErrors(ctx, []string{"Failed to update password"})
+		http.Redirect(w, r, "/update-password", http.StatusSeeOther)
+		return
+	}
+
+	c.flashStore.SetSuccesses(ctx, []string{"Password updated successfully"})
+	http.Redirect(w, r, "/targets", http.StatusSeeOther)
 }
 
 func (c *AuthHandler) redirectIfAuthenticated(w http.ResponseWriter, r *http.Request) bool {

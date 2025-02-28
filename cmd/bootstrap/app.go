@@ -90,6 +90,7 @@ func NewApp() *App {
 	authHandler.Template.Login = templateRenderer.GetTemplate("pages:login")
 	authHandler.Template.RequestPasswordReset = templateRenderer.GetTemplate("pages:request-reset-password")
 	authHandler.Template.ResetPassword = templateRenderer.GetTemplate("pages:reset-password")
+	authHandler.Template.Profile = templateRenderer.GetTemplate("pages:profile")
 
 	notifierRepository := notificationRepository.NewNotifierRepository(db)
 	notifierService := notificationService.NewNotifierService(notifierRepository, nil)

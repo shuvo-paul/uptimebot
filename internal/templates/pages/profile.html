@@ -1,0 +1,29 @@
+{{template "base" .}}
+
+{{define "content"}}
+<div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md">
+    <h2 class="text-2xl font-bold mb-6 text-center">Update Password</h2>
+    <form action="/profile/update-password" method="POST">
+        {{csrfField}}
+        <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="current_password">Current Password</label>
+            <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                id="current_password" type="password" name="current_password" required>
+        </div>
+        <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="new_password">New Password</label>
+            <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                id="new_password" type="password" name="new_password" required>
+        </div>
+        <div class="mb-6">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="confirm_password">Confirm New Password</label>
+            <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+                id="confirm_password" type="password" name="confirm_password" required>
+        </div>
+        <div class="flex items-center justify-between">
+            <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" 
+                type="submit">Update Password</button>
+        </div>
+    </form>
+</div>
+{{end}}

@@ -12,7 +12,7 @@
                 <a href="/" class="flex items-center text-xl font-bold">Uptime Bot</a>
                 <div class="flex items-center space-x-4">
                     {{if currentUser}}
-                        <span class="text-white">{{currentUser.Name}}</span>
+                        <a href="/profile" class="text-white hover:text-gray-300">{{currentUser.Email}}</a>
                         <form method="POST" action="/logout">
                             {{csrfField}}
                             <button type="submit" class="text-white">Logout</button>
