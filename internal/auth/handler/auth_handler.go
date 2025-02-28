@@ -313,7 +313,7 @@ func (c *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 
 	if newPassword != confirmPassword {
 		c.flashStore.SetErrors(ctx, []string{"New passwords do not match"})
-		http.Redirect(w, r, "/update-password", http.StatusSeeOther)
+		http.Redirect(w, r, "/profile", http.StatusSeeOther)
 		return
 	}
 
@@ -321,14 +321,14 @@ func (c *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	_, err := c.authService.Authenticate(user.Email, currentPassword)
 	if err != nil {
 		c.flashStore.SetErrors(ctx, []string{"Current password is incorrect"})
-		http.Redirect(w, r, "/update-password", http.StatusSeeOther)
+		http.Redirect(w, r, "/profile", http.StatusSeeOther)
 		return
 	}
 
 	// Update password
 	if err := c.authService.UpdatePassword(user.ID, newPassword); err != nil {
-		c.flashStore.SetErrors(ctx, []string{"Failed to update password"})
-		http.Redirect(w, r, "/update-password", http.StatusSeeOther)
+		c.flashStore.SetErrors(ctx, []string{err.Error()})
+		http.Redirect(w, r, "/profile", http.StatusSeeOther)
 		return
 	}
 

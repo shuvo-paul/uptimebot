@@ -34,7 +34,7 @@ func (u *User) ValidatePassword() error {
 		return fmt.Errorf("password must be between 6 and 12 characters")
 	}
 
-	var hasNumber, hasSymbol bool
+	var hasNumber, hasSymbol, hasUpper, hasLower bool
 
 	for _, char := range u.Password {
 		switch {
@@ -42,6 +42,10 @@ func (u *User) ValidatePassword() error {
 			hasNumber = true
 		case (char >= '!' && char <= '/') || (char >= ':' && char <= '@'):
 			hasSymbol = true
+		case char >= 'A' && char <= 'Z':
+			hasUpper = true
+		case char >= 'a' && char <= 'z':
+			hasLower = true
 		}
 	}
 
@@ -51,6 +55,14 @@ func (u *User) ValidatePassword() error {
 
 	if !hasSymbol {
 		return fmt.Errorf("password must contain at least one symbol")
+	}
+
+	if !hasUpper {
+		return fmt.Errorf("password must contain at least one uppercase letter")
+	}
+
+	if !hasLower {
+		return fmt.Errorf("password must contain at least one lowercase letter")
 	}
 
 	return nil
