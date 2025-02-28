@@ -14,7 +14,7 @@ const (
 	TokenTypePasswordReset     TokenType = "password_reset"
 )
 
-type AccountToken struct {
+type Token struct {
 	ID        int       `db:"id"`
 	UserID    int       `db:"user_id"`
 	Token     string    `db:"token"`
@@ -24,24 +24,24 @@ type AccountToken struct {
 }
 
 // Core validation methods
-func (at *AccountToken) IsExpired() bool {
+func (at *Token) IsExpired() bool {
 	return time.Now().After(at.ExpiresAt)
 }
 
-func (at *AccountToken) IsUsed() bool {
+func (at *Token) IsUsed() bool {
 	return at.Used
 }
 
-func (at *AccountToken) MarkUsed() {
+func (at *Token) MarkUsed() {
 	at.Used = true
 }
 
-func (at *AccountToken) IsValid() bool {
+func (at *Token) IsValid() bool {
 	return !at.IsExpired() && !at.IsUsed()
 }
 
 // Type validation
-func (at *AccountToken) ValidateType(expectedType TokenType) error {
+func (at *Token) ValidateType(expectedType TokenType) error {
 	if at.Type != expectedType {
 		return errors.New("invalid token type")
 	}
@@ -49,12 +49,12 @@ func (at *AccountToken) ValidateType(expectedType TokenType) error {
 }
 
 // Constructor with validation
-func NewEmailVerificationToken(userID int) (*AccountToken, error) {
+func NewEmailVerificationToken(userID int) (*Token, error) {
 	if userID <= 0 {
 		return nil, errors.New("invalid user ID")
 	}
 
-	return &AccountToken{
+	return &Token{
 		UserID:    userID,
 		Token:     uuid.New().String(),
 		Type:      TokenTypeEmailVerification,

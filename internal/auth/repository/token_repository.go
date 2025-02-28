@@ -16,14 +16,14 @@ func NewTokenRepository(db *sql.DB) *TokenRepository {
 }
 
 type TokenRepositoryInterface interface {
-	SaveToken(token *model.AccountToken) (*model.AccountToken, error)
-	GetTokenByValue(token string) (*model.AccountToken, error)
+	SaveToken(token *model.Token) (*model.Token, error)
+	GetTokenByValue(token string) (*model.Token, error)
 	MarkTokenUsed(tokenID int) error
-	GetTokensByUserID(userID int) ([]*model.AccountToken, error)
+	GetTokensByUserID(userID int) ([]*model.Token, error)
 	InvalidateExistingTokens(userID int, tokenType model.TokenType) error
 }
 
-func (r *TokenRepository) SaveToken(token *model.AccountToken) (*model.AccountToken, error) {
+func (r *TokenRepository) SaveToken(token *model.Token) (*model.Token, error) {
 	query := `INSERT INTO token (user_id, token, type, expires_at, used) 
 			  VALUES (?, ?, ?, ?, ?)`
 	result, err := r.db.Exec(query, token.UserID, token.Token, token.Type, token.ExpiresAt, token.Used)
@@ -40,8 +40,8 @@ func (r *TokenRepository) SaveToken(token *model.AccountToken) (*model.AccountTo
 	return token, nil
 }
 
-func (r *TokenRepository) GetTokenByValue(tokenValue string) (*model.AccountToken, error) {
-	var token model.AccountToken
+func (r *TokenRepository) GetTokenByValue(tokenValue string) (*model.Token, error) {
+	var token model.Token
 	query := `SELECT id, user_id, token, type, expires_at, used 
 			  FROM token WHERE token = ?`
 	err := r.db.QueryRow(query, tokenValue).Scan(
@@ -78,7 +78,7 @@ func (r *TokenRepository) MarkTokenUsed(tokenID int) error {
 	return nil
 }
 
-func (r *TokenRepository) GetTokensByUserID(userID int) ([]*model.AccountToken, error) {
+func (r *TokenRepository) GetTokensByUserID(userID int) ([]*model.Token, error) {
 	query := `SELECT id, user_id, token, type, expires_at, used 
 			  FROM token WHERE user_id = ?`
 	rows, err := r.db.Query(query, userID)
@@ -87,9 +87,9 @@ func (r *TokenRepository) GetTokensByUserID(userID int) ([]*model.AccountToken, 
 	}
 	defer rows.Close()
 
-	var tokens []*model.AccountToken
+	var tokens []*model.Token
 	for rows.Next() {
-		var token model.AccountToken
+		var token model.Token
 		err := rows.Scan(
 			&token.ID,
 			&token.UserID,

@@ -16,7 +16,7 @@ func TestVerificationTokenRepository(t *testing.T) {
 	repo := NewTokenRepository(db)
 
 	t.Run("SaveToken", func(t *testing.T) {
-		token := &model.AccountToken{
+		token := &model.Token{
 			UserID:    1,
 			Token:     "test-token",
 			Type:      model.TokenTypeEmailVerification,
@@ -56,7 +56,7 @@ func TestVerificationTokenRepository(t *testing.T) {
 
 	t.Run("GetTokensByUserID", func(t *testing.T) {
 		// Add another token for the same user
-		newToken := &model.AccountToken{
+		newToken := &model.Token{
 			UserID:    1,
 			Token:     "test-token-2",
 			Type:      model.TokenTypePasswordReset,
@@ -72,7 +72,7 @@ func TestVerificationTokenRepository(t *testing.T) {
 	})
 
 	t.Run("InvalidateExistingTokens", func(t *testing.T) {
-		token := &model.AccountToken{
+		token := &model.Token{
 			UserID:    2,
 			Token:     "test-token-3",
 			Type:      model.TokenTypeEmailVerification,
