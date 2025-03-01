@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"os"
 
 	"github.com/joho/godotenv"
 	authHandler "github.com/shuvo-paul/uptimebot/internal/auth/handler"
@@ -37,8 +38,10 @@ type App struct {
 }
 
 func NewApp() *App {
-	if err := godotenv.Load(); err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
+	if os.Getenv("RENDER") == "" {
+		if err := godotenv.Load(); err != nil {
+			log.Fatalf("Error loading .env file: %v", err)
+		}
 	}
 	config, err := config.Load()
 	if err != nil {
