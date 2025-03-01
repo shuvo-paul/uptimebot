@@ -10,6 +10,7 @@ type Config struct {
 	Email    EmailConfig
 	Database DatabaseConfig
 	BaseURL  string
+	Port     int
 }
 
 type DatabaseConfig struct {
@@ -41,10 +42,21 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("missing required base URL configuration")
 	}
 
+	// Get port from environment variable with default value of 8080
+	port := 8080
+	if portStr := os.Getenv("PORT"); portStr != "" {
+		portNum, err := strconv.Atoi(portStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid port number: %v", err)
+		}
+		port = portNum
+	}
+
 	return &Config{
 		Email:    emailConfig,
 		Database: dbConfig,
 		BaseURL:  baseURL,
+		Port:     port,
 	}, nil
 }
 

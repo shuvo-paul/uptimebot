@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -20,8 +21,8 @@ func main() {
 	)
 
 	// Start server
-	log.Println("Server starting on :8080")
-	if err := http.ListenAndServe(":8080", handler); err != nil {
+	log.Printf("Server starting on :%d", app.Config.Port)
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", app.Config.Port), handler); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
 }

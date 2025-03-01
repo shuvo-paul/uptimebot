@@ -30,6 +30,7 @@ import (
 var db *sql.DB
 
 type App struct {
+	Config          *config.Config
 	AuthService     *authService.AuthService
 	SessionService  *authService.SessionService
 	UserHandler     *authHandler.AuthHandler
@@ -117,6 +118,7 @@ func NewApp() *App {
 	fmt.Println("app initialized")
 
 	return &App{
+		Config:          config,
 		AuthService:     authService2,
 		SessionService:  sessionService,
 		UserHandler:     authHandler,
