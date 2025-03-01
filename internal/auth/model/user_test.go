@@ -86,8 +86,14 @@ func TestValidatePassword(t *testing.T) {
 			errMsg:   "password must contain at least one symbol",
 		},
 		{
-			name:     "valid password",
+			name:     "missing uppercase letter",
 			password: "abcdefg1234@",
+			wantErr:  true,
+			errMsg:   "password must contain at least one uppercase letter",
+		},
+		{
+			name:     "valid password",
+			password: "Abcdefg1234@",
 			wantErr:  false,
 			errMsg:   "",
 		},

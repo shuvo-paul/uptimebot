@@ -97,7 +97,7 @@ func TestCreateUser(t *testing.T) {
 		user := &model.User{
 			
 			Email:    "test@example.com",
-			Password: "password123@",
+			Password: "Password123@",
 		}
 		savedUser, err := userService.CreateUser(user)
 		assert.NoError(t, err)

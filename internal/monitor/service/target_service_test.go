@@ -94,6 +94,9 @@ func TestTargetService_Create(t *testing.T) {
 			userTarget.ID = 1
 			return userTarget, nil
 		},
+		getAllByUserIDFunc: func(userID int) ([]model.UserTarget, error) {
+			return []model.UserTarget{}, nil
+		},
 	}
 	mockNotifierService := &mockNotifierService{}
 
