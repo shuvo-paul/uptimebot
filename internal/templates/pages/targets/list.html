@@ -3,10 +3,20 @@
 {{ define "content" }}
 <div class="container mx-auto px-4 py-8">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">Monitored Targets</h1>
-        <a href="/targets/create" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-            Add New Target
-        </a>
+        <div>
+            <h1 class="text-2xl font-bold">Monitored Targets</h1>
+            <p class="text-sm text-gray-600 mt-1">You can monitor up to 5 websites</p>
+        </div>
+        {{ $targetCount := len .targets }}
+        {{ if lt $targetCount 5 }}
+            <a href="/targets/create" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                Add New Target
+            </a>
+        {{ else }}
+            <div class="text-yellow-600 font-medium">
+                Maximum limit of 5 targets reached
+            </div>
+        {{ end }}
     </div>
 
     {{ if .targets }}
@@ -51,4 +61,4 @@
         </div>
     {{ end }}
 </div>
-{{ end }} 
+{{ end }}

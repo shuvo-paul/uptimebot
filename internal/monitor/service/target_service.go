@@ -22,6 +22,8 @@ var (
 	ErrTargetNotFound = errors.New("target not found")
 	// ErrInvalidInput is returned when the provided input parameters are invalid.
 	ErrInvalidInput = errors.New("invalid input parameters")
+	// ErrTargetLimitReached is returned when a user attempts to create more than the allowed number of targets.
+	ErrTargetLimitReached = errors.New("maximum number of targets (5) reached")
 )
 
 // TargetServiceInterface defines the contract for managing monitoring targets.
@@ -141,6 +143,15 @@ func (s *TargetService) handleStatusUpdate(target *monitor.Target, status string
 func (s *TargetService) Create(userID int, url string, interval time.Duration) (model.UserTarget, error) {
 	if err := s.validateTarget(userID, url, interval); err != nil {
 		return model.UserTarget{}, err
+	}
+
+	// Check if user has reached the target limit
+	existingTargets, err := s.GetAllByUserID(userID)
+	if err != nil {
+		return model.UserTarget{}, fmt.Errorf("failed to check target limit: %w", err)
+	}
+	if len(existingTargets) >= 5 {
+		return model.UserTarget{}, ErrTargetLimitReached
 	}
 
 	userTarget := model.UserTarget{
