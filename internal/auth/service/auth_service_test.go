@@ -95,7 +95,7 @@ func TestCreateUser(t *testing.T) {
 		}
 
 		user := &model.User{
-			Name:     "testuser",
+			
 			Email:    "test@example.com",
 			Password: "password123@",
 		}
@@ -109,7 +109,7 @@ func TestCreateUser(t *testing.T) {
 			return true, fmt.Errorf("email already exists")
 		}
 		user := &model.User{
-			Name:     "testuser",
+			
 			Email:    "test@example.com",
 			Password: "password123",
 		}
@@ -160,7 +160,7 @@ func TestAuthentication(t *testing.T) {
 	wrongPassword := "wrongpassword123"
 
 	user := &model.User{
-		Name:     "testuser",
+		
 		Email:    email,
 		Password: password,
 		Verified: true,

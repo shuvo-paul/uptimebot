@@ -16,8 +16,8 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 }
 
 func (r *UserRepository) SaveUser(user *model.User) (*model.User, error) {
-	query := `INSERT INTO user (name, email, password) VALUES (?, ?, ?)`
-	result, err := r.db.Exec(query, user.Name, user.Email, user.Password)
+	query := `INSERT INTO user (email, password) VALUES (?, ?)`
+	result, err := r.db.Exec(query, user.Email, user.Password)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save user: %w", err)
 	}
@@ -43,8 +43,8 @@ func (r *UserRepository) EmailExists(email string) (bool, error) {
 
 func (r *UserRepository) GetUserByEmail(email string) (*model.User, error) {
 	user := &model.User{}
-	query := `SELECT id, name, email, password FROM user WHERE email = ?`
-	err := r.db.QueryRow(query, email).Scan(&user.ID, &user.Name, &user.Email, &user.Password)
+	query := `SELECT id, email, password FROM user WHERE email = ?`
+	err := r.db.QueryRow(query, email).Scan(&user.ID, &user.Email, &user.Password)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find user: %w", err)
 	}
@@ -53,8 +53,8 @@ func (r *UserRepository) GetUserByEmail(email string) (*model.User, error) {
 
 func (r *UserRepository) GetUserByID(id int) (*model.User, error) {
 	user := &model.User{}
-	query := `SELECT id, name, email, verified from user WHERE id = ?`
-	err := r.db.QueryRow(query, id).Scan(&user.ID, &user.Name, &user.Email, &user.Verified)
+	query := `SELECT id, email, verified from user WHERE id = ?`
+	err := r.db.QueryRow(query, id).Scan(&user.ID, &user.Email, &user.Verified)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find user: %w", err)
 	}
@@ -62,8 +62,8 @@ func (r *UserRepository) GetUserByID(id int) (*model.User, error) {
 }
 
 func (r *UserRepository) UpdateUser(user *model.User) (*model.User, error) {
-	query := `UPDATE user SET name = ?, email = ?, verified = ? WHERE id = ?`
-	result, err := r.db.Exec(query, user.Name, user.Email, user.Verified, user.ID)
+	query := `UPDATE user SET email = ?, verified = ? WHERE id = ?`
+	result, err := r.db.Exec(query, user.Email, user.Verified, user.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update user: %w", err)
 	}

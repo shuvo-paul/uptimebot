@@ -132,7 +132,7 @@ func TestTargetHandler_Create(t *testing.T) {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 		// Add user to context
-		user := &authModel.User{ID: 1, Name: "Test User"}
+		user := &authModel.User{ID: 1}
 		ctx := authService.WithUser(req.Context(), user)
 		req = req.WithContext(ctx)
 

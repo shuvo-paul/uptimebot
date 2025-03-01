@@ -15,7 +15,7 @@ func TestSaveUser(t *testing.T) {
 	userRepo := NewUserRepository(db)
 
 	user := &model.User{
-		Name:     "testuser",
+
 		Email:    "test@example.com",
 		Password: "hashedpassword",
 	}
@@ -24,7 +24,8 @@ func TestSaveUser(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotZero(t, savedUser.ID)
-	assert.Equal(t, user.Name, savedUser.Name)
+	// Removing Name field assertion
+
 }
 
 func TestEmailExists(t *testing.T) {
@@ -34,7 +35,7 @@ func TestEmailExists(t *testing.T) {
 
 	// Create a test user first
 	user := &model.User{
-		Name:     "testuser",
+
 		Email:    "existing@example.com",
 		Password: "hashedpassword",
 	}
@@ -61,7 +62,7 @@ func TestGetUser(t *testing.T) {
 
 	// Create a test user first
 	expectedUser := &model.User{
-		Name:     "testuser",
+
 		Email:    "test@example.com",
 		Password: "hashedpassword",
 	}
@@ -73,7 +74,6 @@ func TestGetUser(t *testing.T) {
 		user, err := userRepo.GetUserByEmail(expectedUser.Email)
 		assert.NoError(t, err)
 		assert.Equal(t, expectedUser.ID, user.ID)
-		assert.Equal(t, expectedUser.Name, user.Name)
 		assert.Equal(t, expectedUser.Email, user.Email)
 		assert.Equal(t, expectedUser.Password, user.Password)
 	})
@@ -82,7 +82,6 @@ func TestGetUser(t *testing.T) {
 		user, err := userRepo.GetUserByID(expectedUser.ID)
 		assert.NoError(t, err)
 		assert.Equal(t, expectedUser.ID, user.ID)
-		assert.Equal(t, expectedUser.Name, user.Name)
 		assert.Equal(t, expectedUser.Email, user.Email)
 	})
 }
@@ -93,7 +92,7 @@ func TestUpdateUser(t *testing.T) {
 	defer db.Close()
 	// Create a test user first
 	expectedUser := &model.User{
-		Name:     "testuser",
+
 		Email:    "email@example.org",
 		Password: "hashedpassword",
 		Verified: false,
@@ -102,13 +101,11 @@ func TestUpdateUser(t *testing.T) {
 	savedUser, err := userRepo.SaveUser(expectedUser)
 	assert.NoError(t, err)
 	expectedUser.ID = savedUser.ID
-	expectedUser.Name = "updateduser"
 	expectedUser.Email = "updated@example.org"
 	expectedUser.Verified = true
 	updatedUser, err := userRepo.UpdateUser(expectedUser)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedUser.ID, updatedUser.ID)
-	assert.Equal(t, expectedUser.Name, updatedUser.Name)
 	assert.Equal(t, expectedUser.Email, updatedUser.Email)
 	assert.Equal(t, expectedUser.Verified, updatedUser.Verified)
 }
@@ -120,7 +117,7 @@ func TestUpdatePassword(t *testing.T) {
 
 	// Create a test user first
 	user := &model.User{
-		Name:     "testuser",
+
 		Email:    "test@example.com",
 		Password: "oldpassword",
 	}

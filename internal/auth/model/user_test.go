@@ -9,7 +9,6 @@ import (
 
 func TestUser_HashPassword(t *testing.T) {
 	user := &User{
-		Name:     "testuser",
 		Email:    "test@example.com",
 		Password: "password123",
 	}
@@ -33,7 +32,6 @@ func TestUser_HashPassword(t *testing.T) {
 
 func TestUser_VerifyPassword(t *testing.T) {
 	user := &User{
-		Name:     "testuser",
 		Email:    "test@example.com",
 		Password: "password123",
 	}
@@ -54,7 +52,6 @@ func TestUser_VerifyPassword(t *testing.T) {
 
 func TestValidatePassword(t *testing.T) {
 	user := &User{
-		Name:  "test",
 		Email: "test@example.org",
 	}
 

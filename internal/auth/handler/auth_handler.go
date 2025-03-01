@@ -55,7 +55,7 @@ func (c *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := &model.User{
-		Name:     r.FormValue("name"),
+		
 		Email:    r.FormValue("email"),
 		Password: r.FormValue("password"),
 	}

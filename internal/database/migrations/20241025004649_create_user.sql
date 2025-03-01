@@ -1,7 +1,6 @@
 -- +migrate Up
 CREATE TABLE user (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
     email TEXT NOT NULL,
     password TEXT NOT NULL,
     verified BOOLEAN NOT NULL DEFAULT FALSE,
