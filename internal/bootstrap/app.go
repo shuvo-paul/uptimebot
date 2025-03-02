@@ -39,7 +39,11 @@ type App struct {
 }
 
 func NewApp() *App {
-	if os.Getenv("RENDER") == "" {
+	appEnv := os.Getenv("APP_ENV")
+	if appEnv == "" {
+		appEnv = "production" // Default to production if not set
+	}
+	if appEnv == "development" {
 		if err := godotenv.Load(); err != nil {
 			log.Fatalf("Error loading .env file: %v", err)
 		}

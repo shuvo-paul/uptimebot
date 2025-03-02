@@ -45,6 +45,8 @@ Create a `.env` file and set the required values:
 Create a `.env` file and set the required values:
 
 ```env
+APP_ENV=development
+PORT=8080
 BASE_URL=localhost:8080
 TURSO_DATABASE_URL=your_turso_database_url
 TURSO_AUTH_TOKEN=your_turso_auth_token
