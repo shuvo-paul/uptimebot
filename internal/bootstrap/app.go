@@ -26,8 +26,6 @@ import (
 	"github.com/shuvo-paul/uptimebot/pkg/flash"
 )
 
-var db *sql.DB
-
 type App struct {
 	Config          *config.Config
 	AuthService     *authService.AuthService
@@ -35,6 +33,8 @@ type App struct {
 	UserHandler     *authHandler.AuthHandler
 	TargetHandler   *uptimeHandler.TargetHandler
 	NotifierHandler *notificationHandler.NotifierHandler
+	db              *sql.DB
+	tempDBDir       *database.TempDBDir
 }
 
 func NewApp() *App {
@@ -47,7 +47,13 @@ func NewApp() *App {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	db, err := database.InitDatabase(config.Database)
+	tempDBDir, err := database.NewTempDir()
+
+	if err != nil {
+		log.Fatalf("Failed to create temporary directory: %v", err)
+	}
+
+	db, err := database.InitDatabase(config.Database, tempDBDir)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
@@ -122,9 +128,12 @@ func NewApp() *App {
 		UserHandler:     authHandler,
 		TargetHandler:   targetHandler,
 		NotifierHandler: notifierHandler,
+		db:              db,
+		tempDBDir:       tempDBDir,
 	}
 }
 
 func (a *App) Close() {
-	db.Close()
+	a.db.Close()
+	a.tempDBDir.Cleanup()
 }

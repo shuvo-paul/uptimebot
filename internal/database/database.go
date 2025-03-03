@@ -6,10 +6,10 @@ import (
 	"log"
 
 	"github.com/shuvo-paul/uptimebot/internal/config"
-	_ "github.com/tursodatabase/libsql-client-go/libsql"
+	"github.com/tursodatabase/go-libsql"
 )
 
-func InitDatabase(config config.DatabaseConfig) (*sql.DB, error) {
+func InitDatabase(config config.DatabaseConfig, tempDBDir *TempDBDir) (*sql.DB, error) {
 	if config.URL == "" {
 		return nil, fmt.Errorf("database URL is empty")
 	}
@@ -17,16 +17,25 @@ func InitDatabase(config config.DatabaseConfig) (*sql.DB, error) {
 	if config.Token == "" {
 		return nil, fmt.Errorf("database token is empty")
 	}
-	db, err := sql.Open("libsql", config.URL+"?authToken="+config.Token)
+
+	// Create a new embedded replica connector
+	connector, err := libsql.NewEmbeddedReplicaConnector(tempDBDir.dbPath, config.URL,
+		libsql.WithAuthToken(config.Token),
+	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
+		return nil, fmt.Errorf("failed to create database connector: %w", err)
 	}
 
+	// Open the database with the connector
+	db := sql.OpenDB(connector)
+
+	// Verify the connection
 	if err = db.Ping(); err != nil {
-		db.Close() // Close the connection if Ping fails
+		db.Close()
+		connector.Close()
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	log.Println("Connected to Turso database successfully")
+	log.Println("Connected to Turso database successfully with local replica")
 	return db, nil
 }

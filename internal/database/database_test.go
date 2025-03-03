@@ -36,7 +36,14 @@ func TestInitDatabase(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			db, err := InitDatabase(tt.config)
+			// Create temporary directory for each test
+			tempDir, err := NewTempDir()
+			if err != nil {
+				t.Fatalf("Failed to create temp directory: %v", err)
+			}
+			defer tempDir.Cleanup()
+
+			db, err := InitDatabase(tt.config, tempDir)
 			if tt.wantErr {
 				assert.Error(t, err)
 				assert.Nil(t, db)
