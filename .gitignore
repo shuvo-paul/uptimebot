@@ -5,3 +5,11 @@
 !cmd/**/*
 node_modules
 tmp
+*.pem
+*.crt
+*.key
+*.csr
+*.csr.pem
+*.csr.pem.crt
+*.csr.pem.key
+*.csr.pem.crt.key
