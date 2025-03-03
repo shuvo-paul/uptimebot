@@ -38,11 +38,15 @@ type App struct {
 }
 
 func NewApp() *App {
-	if err := godotenv.Load(); err != nil {
-		log.Printf("Warning: .env file not found or error loading it: %v", err)
+	cfg, err := config.Load()
+	if err != nil {
+		// Try loading from .env file if config loading fails
+		if envErr := godotenv.Load(); envErr != nil {
+			log.Printf("Warning: .env file not found or error loading it: %v", envErr)
+		}
+		// Attempt to load config again after loading .env
+		cfg, err = config.Load()
 	}
-
-	config, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
@@ -53,7 +57,7 @@ func NewApp() *App {
 		log.Fatalf("Failed to create temporary directory: %v", err)
 	}
 
-	db, err := database.InitDatabase(config.Database, tempDBDir)
+	db, err := database.InitDatabase(cfg.Database, tempDBDir)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
@@ -68,7 +72,7 @@ func NewApp() *App {
 	sessionRepository := authRepository.NewSessionRepository(db)
 	tokenRepository := authRepository.NewTokenRepository(db)
 
-	emailService, err := email.NewEmailService(&config.Email)
+	emailService, err := email.NewEmailService(&cfg.Email)
 	if err != nil {
 		log.Fatalf("Failed to initialize email service: %v", err)
 	}
@@ -85,7 +89,7 @@ func NewApp() *App {
 	tokenService := authService.NewTokenService(
 		tokenRepository,
 		emailService,
-		config.BaseURL,
+		cfg.BaseURL,
 		emailTemplates,
 	)
 
@@ -122,7 +126,7 @@ func NewApp() *App {
 	fmt.Println("app initialized")
 
 	return &App{
-		Config:          config,
+		Config:          cfg,
 		AuthService:     authService2,
 		SessionService:  sessionService,
 		UserHandler:     authHandler,
