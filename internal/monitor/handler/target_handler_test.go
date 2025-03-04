@@ -82,7 +82,7 @@ func TestTargetHandler_List(t *testing.T) {
 	templateRenderer := renderer.New(templates.TemplateFS, mockFlashStore)
 	handler.Template.List = templateRenderer.GetTemplate("pages:targets/list")
 
-	req := httptest.NewRequest(http.MethodGet, "/targets", nil)
+	req := httptest.NewRequest(http.MethodGet, "/app/targets", nil)
 	user := &authModel.User{ID: 1}
 	ctx := authService.WithUser(req.Context(), user)
 	req = req.WithContext(ctx)
@@ -103,7 +103,7 @@ func TestTargetHandler_Create(t *testing.T) {
 		templateRenderer := renderer.New(templates.TemplateFS, mockFlashStore)
 		handler.Template.Create = templateRenderer.GetTemplate("pages:targets/create")
 
-		req := httptest.NewRequest(http.MethodGet, "/targets/create", nil)
+		req := httptest.NewRequest(http.MethodGet, "/app/targets/create", nil)
 		w := httptest.NewRecorder()
 
 		handler.Create(w, req)
@@ -128,7 +128,7 @@ func TestTargetHandler_Create(t *testing.T) {
 		form.Add("url", "http://example.com")
 		form.Add("interval", "60")
 
-		req := httptest.NewRequest(http.MethodPost, "/targets/create", strings.NewReader(form.Encode()))
+		req := httptest.NewRequest(http.MethodPost, "/app/targets/create", strings.NewReader(form.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 		// Add user to context
@@ -141,7 +141,7 @@ func TestTargetHandler_Create(t *testing.T) {
 		handler.Create(w, req)
 
 		assert.Equal(t, http.StatusSeeOther, w.Code)
-		assert.Equal(t, "/targets", w.Header().Get("Location"))
+		assert.Equal(t, "/app/targets", w.Header().Get("Location"))
 	})
 
 	t.Run("POST request - no user in context", func(t *testing.T) {
@@ -161,7 +161,7 @@ func TestTargetHandler_Create(t *testing.T) {
 		form.Add("url", "http://example.com")
 		form.Add("interval", "60")
 
-		req := httptest.NewRequest(http.MethodPost, "/targets/create", strings.NewReader(form.Encode()))
+		req := httptest.NewRequest(http.MethodPost, "/app/targets/create", strings.NewReader(form.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		w := httptest.NewRecorder()
 
@@ -188,7 +188,7 @@ func TestTargetHandler_Edit(t *testing.T) {
 		templateRenderer := renderer.New(templates.TemplateFS, mockFlashStore)
 		handler.Template.Edit = templateRenderer.GetTemplate("pages:targets/edit")
 
-		req := httptest.NewRequest(http.MethodGet, "/targets/1/edit", nil)
+		req := httptest.NewRequest(http.MethodGet, "/app/targets/1/edit", nil)
 		req.SetPathValue("id", "1")
 
 		// Add user to context
@@ -224,7 +224,7 @@ func TestTargetHandler_Edit(t *testing.T) {
 		form.Add("url", "http://example.com")
 		form.Add("interval", "60")
 
-		req := httptest.NewRequest(http.MethodPost, "/targets/1/edit", strings.NewReader(form.Encode()))
+		req := httptest.NewRequest(http.MethodPost, "/app/targets/1/edit", strings.NewReader(form.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		req.SetPathValue("id", "1")
 
@@ -238,7 +238,7 @@ func TestTargetHandler_Edit(t *testing.T) {
 		handler.Edit(w, req)
 
 		assert.Equal(t, http.StatusSeeOther, w.Code)
-		assert.Equal(t, "/targets", w.Header().Get("Location"))
+		assert.Equal(t, "/app/targets", w.Header().Get("Location"))
 	})
 }
 
@@ -253,7 +253,7 @@ func TestTargetHandler_Delete(t *testing.T) {
 
 		handler := NewTargetHandler(mockService, &flash.MockFlashStore{})
 
-		req := httptest.NewRequest(http.MethodPost, "/targets/1/delete", nil)
+		req := httptest.NewRequest(http.MethodPost, "/app/targets/1/delete", nil)
 		req.SetPathValue("id", "1")
 
 		// Add user to context
@@ -266,7 +266,7 @@ func TestTargetHandler_Delete(t *testing.T) {
 		handler.Delete(w, req)
 
 		assert.Equal(t, http.StatusSeeOther, w.Code)
-		assert.Equal(t, "/targets", w.Header().Get("Location"))
+		assert.Equal(t, "/app/targets", w.Header().Get("Location"))
 	})
 
 	t.Run("invalid ID", func(t *testing.T) {
@@ -275,7 +275,7 @@ func TestTargetHandler_Delete(t *testing.T) {
 		}
 		handler := NewTargetHandler(mockService, &flash.MockFlashStore{})
 
-		req := httptest.NewRequest(http.MethodPost, "/targets/invalid/delete", nil)
+		req := httptest.NewRequest(http.MethodPost, "/app/targets/invalid/delete", nil)
 		req.SetPathValue("id", "invalid")
 		w := httptest.NewRecorder()
 
@@ -312,7 +312,7 @@ func TestTargetHandler_ToggleEnabled(t *testing.T) {
 
 		handler := NewTargetHandler(mockService, &flash.MockFlashStore{})
 
-		req := httptest.NewRequest(http.MethodPost, "/targets/1/toggle", nil)
+		req := httptest.NewRequest(http.MethodPost, "/app/targets/1/toggle", nil)
 		req.SetPathValue("id", "1")
 
 		// Add user to context
@@ -325,7 +325,7 @@ func TestTargetHandler_ToggleEnabled(t *testing.T) {
 		handler.ToggleEnabled(w, req)
 
 		assert.Equal(t, http.StatusSeeOther, w.Code)
-		assert.Equal(t, "/targets", w.Header().Get("Location"))
+		assert.Equal(t, "/app/targets", w.Header().Get("Location"))
 	})
 
 	t.Run("unauthorized access", func(t *testing.T) {
@@ -353,7 +353,7 @@ func TestTargetHandler_ToggleEnabled(t *testing.T) {
 
 		handler := NewTargetHandler(mockService, &flash.MockFlashStore{})
 
-		req := httptest.NewRequest(http.MethodPost, "/targets/1/toggle", nil)
+		req := httptest.NewRequest(http.MethodPost, "/app/targets/1/toggle", nil)
 		req.SetPathValue("id", "1")
 
 		// Add different user to context
@@ -366,7 +366,7 @@ func TestTargetHandler_ToggleEnabled(t *testing.T) {
 		handler.ToggleEnabled(w, req)
 
 		assert.Equal(t, http.StatusSeeOther, w.Code)
-		assert.Equal(t, "/targets", w.Header().Get("Location"))
+		assert.Equal(t, "/app/targets", w.Header().Get("Location"))
 	})
 
 	t.Run("invalid ID", func(t *testing.T) {
@@ -375,7 +375,7 @@ func TestTargetHandler_ToggleEnabled(t *testing.T) {
 		}
 		handler := NewTargetHandler(mockService, &flash.MockFlashStore{})
 
-		req := httptest.NewRequest(http.MethodPost, "/targets/invalid/toggle", nil)
+		req := httptest.NewRequest(http.MethodPost, "/app/targets/invalid/toggle", nil)
 		req.SetPathValue("id", "invalid")
 		w := httptest.NewRecorder()
 

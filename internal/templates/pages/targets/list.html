@@ -9,7 +9,7 @@
         </div>
         {{ $targetCount := len .targets }}
         {{ if lt $targetCount 5 }}
-            <a href="/targets/create" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+            <a href="/app/targets/create" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                 Add New Target
             </a>
         {{ else }}
@@ -30,18 +30,18 @@
                         <p class="text-gray-600">Check Interval: {{ .Interval.Seconds }} Seconds</p>
                     </div>
                     <div class="flex space-x-2">
-                        <form method="POST" action="/targets/{{ .ID }}/toggle-enable">
+                        <form method="POST" action="/app/targets/toggle-enable/{{ .ID }}">
                             {{csrfField}}
                             <button type="submit" 
                                 class="{{ if .Enabled }}bg-yellow-500 hover:bg-yellow-700{{ else }}bg-green-500 hover:bg-green-700{{ end }} text-white font-bold py-2 px-4 rounded">
                                 {{ if .Enabled }}Disable{{ else }}Enable{{ end }}
                             </button>
                         </form>
-                        <a href="/targets/{{ .ID }}/edit" 
+                        <a href="/app/targets/edit/{{ .ID }}" 
                             class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                             Edit
                         </a>
-                        <form method="POST" action="/targets/{{ .ID }}/delete" 
+                        <form method="POST" action="/app/targets/delete/{{ .ID }}" 
                             onsubmit="return confirm('Are you sure you want to delete this target?');">
                             {{csrfField}}
                             <input type="hidden" name="_method" value="DELETE">

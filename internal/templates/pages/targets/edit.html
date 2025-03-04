@@ -6,7 +6,7 @@
         <h1 class="text-2xl font-bold mb-6">Edit Target</h1>
         <div class="flex gap-6">
             <div class="flex-grow">
-                <form method="POST" action="/targets/{{ .target.ID }}/edit">
+                <form method="POST" action="/targets/edit/{{ .target.ID }}">
                     {{csrfField}}
                     <div class="mb-4">
                         <label for="url" class="block text-gray-700 text-sm font-bold mb-2">URL</label>
@@ -36,7 +36,7 @@
             </div>
 
             <div class="flex-shrink-0">
-                <a href="/targets/auth/slack/{{ .target.ID }}" class="text-black border inline-flex py-4 px-4 rounded-md" >
+                <a href="/app/auth/slack/{{ .target.ID }}" class="text-black border inline-flex py-4 px-4 rounded-md" >
                     <svg
                         xmlns="http://www.w3.org/2000/svg" style="height:20px;width:20px;" viewBox="0 0 122.8 122.8">
                         <path

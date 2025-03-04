@@ -5,7 +5,7 @@
     <div class="max-w-md mx-auto bg-white rounded-lg shadow-md p-6">
         <h1 class="text-2xl font-bold mb-6">Add New Target</h1>
         
-        <form method="POST" action="/targets/create">
+        <form method="POST" action="/app/targets/create">
             {{csrfField}}
             <div class="mb-4">
                 <label for="url" class="block text-gray-700 text-sm font-bold mb-2">URL</label>
@@ -26,7 +26,7 @@
                     class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
                     Add Target
                 </button>
-                <a href="/targets"
+                <a href="/app/targets"
                     class="text-blue-500 hover:text-blue-800">
                     Cancel
                 </a>

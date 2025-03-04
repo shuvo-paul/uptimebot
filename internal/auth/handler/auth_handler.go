@@ -55,7 +55,7 @@ func (c *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := &model.User{
-		
+
 		Email:    r.FormValue("email"),
 		Password: r.FormValue("password"),
 	}
@@ -117,7 +117,7 @@ func (c *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteStrictMode,
 	})
 
-	http.Redirect(w, r, "/targets", http.StatusSeeOther)
+	http.Redirect(w, r, "/app/targets", http.StatusSeeOther)
 }
 
 func (c *AuthHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
@@ -333,7 +333,7 @@ func (c *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c.flashStore.SetSuccesses(ctx, []string{"Password updated successfully"})
-	http.Redirect(w, r, "/targets", http.StatusSeeOther)
+	http.Redirect(w, r, "/app/targets", http.StatusSeeOther)
 }
 
 func (c *AuthHandler) redirectIfAuthenticated(w http.ResponseWriter, r *http.Request) bool {
@@ -353,7 +353,7 @@ func (c *AuthHandler) redirectIfAuthenticated(w http.ResponseWriter, r *http.Req
 			return false
 		}
 		if user != nil {
-			http.Redirect(w, r, "/targets", http.StatusSeeOther)
+			http.Redirect(w, r, "/app/targets", http.StatusSeeOther)
 			return true
 		}
 	}

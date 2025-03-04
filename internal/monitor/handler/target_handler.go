@@ -72,7 +72,7 @@ func (c *TargetHandler) Create(w http.ResponseWriter, r *http.Request) {
 			"Invalid interval value",
 		}
 		c.flash.SetErrors(r.Context(), errors)
-		http.Redirect(w, r, "/targets/create", http.StatusSeeOther)
+		http.Redirect(w, r, "/app/targets/create", http.StatusSeeOther)
 		return
 	}
 
@@ -82,13 +82,13 @@ func (c *TargetHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = c.targetService.Create(user.ID, url, time.Duration(interval)*time.Second)
+	userTarget, err := c.targetService.Create(user.ID, url, time.Duration(interval)*time.Second)
 	if err != nil {
 		errors := []string{
 			"Failed to create target: " + err.Error(),
 		}
 		c.flash.SetErrors(r.Context(), errors)
-		http.Redirect(w, r, "/targets/create", http.StatusSeeOther)
+		http.Redirect(w, r, "/app/targets/create", http.StatusSeeOther)
 		return
 	}
 
@@ -96,11 +96,13 @@ func (c *TargetHandler) Create(w http.ResponseWriter, r *http.Request) {
 		"Target created successfully",
 	}
 	c.flash.SetSuccesses(r.Context(), successes)
-	http.Redirect(w, r, "/targets", http.StatusSeeOther)
+	redirectURL := fmt.Sprintf("/app/targets/edit/%d", userTarget.ID)
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 func (c *TargetHandler) Edit(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
+	redirectURL := fmt.Sprintf("/app/targets/edit/%d", id)
 	if err != nil {
 		http.Error(w, "Invalid target ID", http.StatusBadRequest)
 		slog.Error("Invalid target ID", "error", err)
@@ -148,7 +150,7 @@ func (c *TargetHandler) Edit(w http.ResponseWriter, r *http.Request) {
 			"Invalid interval value",
 		}
 		c.flash.SetErrors(r.Context(), errors)
-		http.Redirect(w, r, "/targets/"+strconv.Itoa(id)+"/edit", http.StatusSeeOther)
+		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 		return
 	}
 	target.Interval = time.Duration(interval) * time.Second
@@ -159,13 +161,13 @@ func (c *TargetHandler) Edit(w http.ResponseWriter, r *http.Request) {
 			"Failed to update target: " + err.Error(),
 		}
 		c.flash.SetErrors(r.Context(), errors)
-		http.Redirect(w, r, "/targets/"+strconv.Itoa(id)+"/edit", http.StatusSeeOther)
+		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 		return
 	}
 
 	c.flash.SetSuccesses(r.Context(), []string{"Target updated successfully"})
 
-	http.Redirect(w, r, "/targets", http.StatusSeeOther)
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 func (c *TargetHandler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -189,7 +191,7 @@ func (c *TargetHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		c.flash.SetSuccesses(r.Context(), []string{"Target deleted successfully"})
 	}
 
-	http.Redirect(w, r, "/targets", http.StatusSeeOther)
+	http.Redirect(w, r, "/app/targets", http.StatusSeeOther)
 }
 
 func (c *TargetHandler) ToggleEnabled(w http.ResponseWriter, r *http.Request) {
@@ -222,5 +224,5 @@ func (c *TargetHandler) ToggleEnabled(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	http.Redirect(w, r, "/targets", http.StatusSeeOther)
+	http.Redirect(w, r, "/app/targets", http.StatusSeeOther)
 }

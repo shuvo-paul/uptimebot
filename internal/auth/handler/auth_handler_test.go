@@ -172,7 +172,7 @@ func TestLogin(t *testing.T) {
 				return &model.Session{}, "session-token", nil
 			},
 			expectedStatus: http.StatusSeeOther,
-			expectedPath:   "/targets",
+			expectedPath:   "/app/targets",
 		},
 	}
 

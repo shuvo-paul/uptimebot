@@ -25,54 +25,63 @@ func SetupRoutes(
 
 	// Public routes
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(static.StaticFS))))
+	mux.HandleFunc("GET /register/", userHandler.ShowRegisterForm)
 	mux.HandleFunc("GET /register", userHandler.ShowRegisterForm)
+	mux.HandleFunc("POST /register/", userHandler.Register)
 	mux.HandleFunc("POST /register", userHandler.Register)
+	mux.HandleFunc("GET /login/", userHandler.ShowLoginForm)
 	mux.HandleFunc("GET /login", userHandler.ShowLoginForm)
+	mux.HandleFunc("POST /login/", userHandler.Login)
 	mux.HandleFunc("POST /login", userHandler.Login)
+	mux.HandleFunc("POST /logout/", userHandler.Logout)
 	mux.HandleFunc("POST /logout", userHandler.Logout)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			return
 		}
-		http.Redirect(w, r, "/targets", http.StatusFound)
+		http.Redirect(w, r, "/app/targets", http.StatusFound)
 	})
 
+	mux.HandleFunc("GET /verify-email/", userHandler.VerifyEmail)
 	mux.HandleFunc("GET /verify-email", userHandler.VerifyEmail)
-	mux.HandleFunc("POST /verify-email", userHandler.SendVerificationEmail)
 
+	mux.HandleFunc("GET /request-reset-password/", userHandler.ShowRequestResetForm)
 	mux.HandleFunc("GET /request-reset-password", userHandler.ShowRequestResetForm)
+	mux.HandleFunc("POST /send-reset-password-link/", userHandler.SendResetLink)
 	mux.HandleFunc("POST /send-reset-password-link", userHandler.SendResetLink)
 
+	mux.HandleFunc("GET /reset-password/", userHandler.ShowResetPasswordForm)
 	mux.HandleFunc("GET /reset-password", userHandler.ShowResetPasswordForm)
+	mux.HandleFunc("POST /reset-password/", userHandler.ResetPassword)
 	mux.HandleFunc("POST /reset-password", userHandler.ResetPassword)
 
 	// Protected routes
 	protected := http.NewServeMux()
 	// Add target monitoring routes
 	protected.HandleFunc("GET /", targetHandler.List)
-	protected.HandleFunc("GET /create", targetHandler.Create)
-	protected.HandleFunc("POST /create", targetHandler.Create)
-	protected.HandleFunc("GET /{id}/edit", targetHandler.Edit)
-	protected.HandleFunc("POST /{id}/edit", targetHandler.Edit)
-	protected.HandleFunc("POST /{id}/delete", targetHandler.Delete)
-	protected.HandleFunc("POST /{id}/toggle-enable", targetHandler.ToggleEnabled)
+	// Register specific routes first
+	protected.HandleFunc("GET /targets/create", targetHandler.Create)
+	protected.HandleFunc("POST /targets/create", targetHandler.Create)
+
+	// Then register wildcard routes
+	protected.HandleFunc("GET /targets/edit/{id}", targetHandler.Edit)
+	protected.HandleFunc("POST /targets/edit/{id}", targetHandler.Edit)
+	protected.HandleFunc("POST /targets/delete/{id}", targetHandler.Delete)
+	protected.HandleFunc("POST /targets/toggle-enable/{id}", targetHandler.ToggleEnabled)
 
 	protected.HandleFunc("GET /auth/slack/{targetId}", notifierHandler.AuthSlack)
+	protected.HandleFunc("POST /verify-email/", userHandler.SendVerificationEmail)
+	protected.HandleFunc("POST /verify-email", userHandler.SendVerificationEmail)
+	protected.HandleFunc("POST /profile", userHandler.ShowProfileForm)
+	protected.HandleFunc("POST /update-password", userHandler.UpdatePassword)
+	protected.HandleFunc("POST /update-password/", userHandler.UpdatePassword)
+
+	// Move Slack callback route to main mux to preserve query parameters
+	protected.HandleFunc("GET /auth/slack/callback/", notifierHandler.AuthSlackCallback)
 	protected.HandleFunc("GET /auth/slack/callback", notifierHandler.AuthSlackCallback)
 
-	mux.Handle("/targets/", middleware.RequireAuth(
-		http.StripPrefix("/targets", protected),
-		sessionService,
-		authService,
-	))
-
-	// Profile routes
-	profileRoutes := http.NewServeMux()
-	profileRoutes.HandleFunc("GET /", userHandler.ShowProfileForm)
-	profileRoutes.HandleFunc("POST /update-password", userHandler.UpdatePassword)
-
-	mux.Handle("/profile/", middleware.RequireAuth(
-		http.StripPrefix("/profile", profileRoutes),
+	mux.Handle("/app/", middleware.RequireAuth(
+		http.StripPrefix("/app", protected),
 		sessionService,
 		authService,
 	))
