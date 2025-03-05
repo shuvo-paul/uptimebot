@@ -114,7 +114,7 @@ func (c *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Expires:  session.ExpiresAt,
 		HttpOnly: true,
 		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteLaxMode,
 	})
 
 	http.Redirect(w, r, "/app/targets", http.StatusSeeOther)
@@ -192,7 +192,7 @@ func (c *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		MaxAge:   -1,
 		HttpOnly: true,
 		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteLaxMode,
 	})
 
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -348,7 +348,7 @@ func (c *AuthHandler) redirectIfAuthenticated(w http.ResponseWriter, r *http.Req
 				MaxAge:   -1,
 				HttpOnly: true,
 				Secure:   true,
-				SameSite: http.SameSiteStrictMode,
+				SameSite: http.SameSiteLaxMode,
 			})
 			return false
 		}
