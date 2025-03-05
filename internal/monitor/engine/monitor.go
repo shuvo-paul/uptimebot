@@ -62,8 +62,15 @@ func (s *Target) Check() error {
 	r, err := s.Client.Get(s.URL)
 
 	if err != nil {
+		// Check if the error is a timeout error
+		if timeoutErr, ok := err.(interface{ Timeout() bool }); ok && timeoutErr.Timeout() {
+			// Log the timeout but don't update status or trigger notification
+			slog.Info("Target check timeout", "URL", s.URL, "error", err)
+			return fmt.Errorf("timeout error: %v", err)
+		}
+		// For non-timeout errors, update status and trigger notification
 		s.updateStatus(statusError)
-		return fmt.Errorf("connection error: %w", err)
+		return fmt.Errorf("connection error: %v", err)
 	}
 
 	defer r.Body.Close()

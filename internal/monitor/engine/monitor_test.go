@@ -33,6 +33,44 @@ func TestTargetCheck(t *testing.T) {
 	}
 }
 
+func TestTargetCheckTimeout(t *testing.T) {
+	// Create a test server that delays response
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(2 * time.Second) // Delay longer than client timeout
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	// Create target with a client that has a short timeout
+	client := &http.Client{
+		Timeout: 1 * time.Second,
+		Transport: &http.Transport{
+			MaxIdleConns:    100,
+			IdleConnTimeout: 90 * time.Second,
+		},
+	}
+
+	target := &Target{
+		ID:       1,
+		URL:      ts.URL,
+		Interval: time.Minute,
+		Enabled:  true,
+		Client:   client,
+		Status:   statusUp, // Initial status
+	}
+
+	// Check should return timeout error but not change status
+	err := target.Check()
+	if err == nil {
+		t.Error("Expected timeout error, got nil")
+	}
+
+	// Verify status hasn't changed due to timeout
+	if target.Status != statusUp {
+		t.Errorf("Status should not change on timeout, expected %s, got %s", statusUp, target.Status)
+	}
+}
+
 func TestTarget_updateStatus(t *testing.T) {
 	target := &Target{
 		Status:          statusUp,
