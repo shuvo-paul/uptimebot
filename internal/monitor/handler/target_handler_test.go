@@ -141,7 +141,7 @@ func TestTargetHandler_Create(t *testing.T) {
 		handler.Create(w, req)
 
 		assert.Equal(t, http.StatusSeeOther, w.Code)
-		assert.Equal(t, "/app/targets", w.Header().Get("Location"))
+		assert.Equal(t, "/app/targets/edit/1", w.Header().Get("Location"))
 	})
 
 	t.Run("POST request - no user in context", func(t *testing.T) {
@@ -238,7 +238,7 @@ func TestTargetHandler_Edit(t *testing.T) {
 		handler.Edit(w, req)
 
 		assert.Equal(t, http.StatusSeeOther, w.Code)
-		assert.Equal(t, "/app/targets", w.Header().Get("Location"))
+		assert.Equal(t, "/app/targets/edit/1", w.Header().Get("Location"))
 	})
 }
 
