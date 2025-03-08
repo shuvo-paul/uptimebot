@@ -6,7 +6,7 @@
         <h1 class="text-2xl font-bold mb-6">Edit Target</h1>
         <div class="flex gap-6">
             <div class="flex-grow">
-                <form method="POST" action="/targets/edit/{{ .target.ID }}">
+                <form method="POST" action="/app/targets/edit/{{ .target.ID }}">
                     {{csrfField}}
                     <div class="mb-4">
                         <label for="url" class="block text-gray-700 text-sm font-bold mb-2">URL</label>
