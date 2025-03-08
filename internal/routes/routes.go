@@ -25,15 +25,10 @@ func SetupRoutes(
 
 	// Public routes
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(static.StaticFS))))
-	mux.HandleFunc("GET /register/", userHandler.ShowRegisterForm)
 	mux.HandleFunc("GET /register", userHandler.ShowRegisterForm)
-	mux.HandleFunc("POST /register/", userHandler.Register)
 	mux.HandleFunc("POST /register", userHandler.Register)
-	mux.HandleFunc("GET /login/", userHandler.ShowLoginForm)
 	mux.HandleFunc("GET /login", userHandler.ShowLoginForm)
-	mux.HandleFunc("POST /login/", userHandler.Login)
 	mux.HandleFunc("POST /login", userHandler.Login)
-	mux.HandleFunc("POST /logout/", userHandler.Logout)
 	mux.HandleFunc("POST /logout", userHandler.Logout)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
@@ -42,17 +37,10 @@ func SetupRoutes(
 		http.Redirect(w, r, "/app/targets", http.StatusFound)
 	})
 
-	mux.HandleFunc("GET /verify-email/", userHandler.VerifyEmail)
 	mux.HandleFunc("GET /verify-email", userHandler.VerifyEmail)
-
-	mux.HandleFunc("GET /request-reset-password/", userHandler.ShowRequestResetForm)
 	mux.HandleFunc("GET /request-reset-password", userHandler.ShowRequestResetForm)
-	mux.HandleFunc("POST /send-reset-password-link/", userHandler.SendResetLink)
 	mux.HandleFunc("POST /send-reset-password-link", userHandler.SendResetLink)
-
-	mux.HandleFunc("GET /reset-password/", userHandler.ShowResetPasswordForm)
 	mux.HandleFunc("GET /reset-password", userHandler.ShowResetPasswordForm)
-	mux.HandleFunc("POST /reset-password/", userHandler.ResetPassword)
 	mux.HandleFunc("POST /reset-password", userHandler.ResetPassword)
 
 	// Protected routes
@@ -70,14 +58,11 @@ func SetupRoutes(
 	protected.HandleFunc("POST /targets/toggle-enable/{id}", targetHandler.ToggleEnabled)
 
 	protected.HandleFunc("GET /auth/slack/{targetId}", notifierHandler.AuthSlack)
-	protected.HandleFunc("POST /verify-email/", userHandler.SendVerificationEmail)
 	protected.HandleFunc("POST /verify-email", userHandler.SendVerificationEmail)
 	protected.HandleFunc("POST /profile", userHandler.ShowProfileForm)
 	protected.HandleFunc("POST /update-password", userHandler.UpdatePassword)
-	protected.HandleFunc("POST /update-password/", userHandler.UpdatePassword)
 
 	// Move Slack callback route to main mux to preserve query parameters
-	protected.HandleFunc("GET /auth/slack/callback/", notifierHandler.AuthSlackCallback)
 	protected.HandleFunc("GET /auth/slack/callback", notifierHandler.AuthSlackCallback)
 
 	mux.Handle("/app/", middleware.RequireAuth(
@@ -91,6 +76,7 @@ func SetupRoutes(
 		csrf.Middleware,
 		middleware.ErrorHandler,
 		middleware.Logger,
+		middleware.RemoveTrailingSlash,
 	)
 	return mws(mux)
 }
