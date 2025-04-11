@@ -36,28 +36,6 @@ func NewTargetRepository(db database.Querier) *TargetRepository {
 	return &TargetRepository{db: db}
 }
 
-func (r *TargetRepository) formatTime(t time.Time) string {
-	if t.IsZero() {
-		return ""
-	}
-	return t.UTC().Format(time.RFC3339Nano)
-}
-
-func (r *TargetRepository) parseTime(s string) (time.Time, error) {
-	if s == "" {
-		return time.Time{}, nil
-	}
-
-	// Try parsing RFC3339Nano format first
-	t, err := time.Parse(time.RFC3339Nano, s)
-	if err == nil {
-		return t, nil
-	}
-
-	// If that fails, try parsing the alternative format
-	return time.Parse("2006-01-02 15:04:05.999999999-07:00", s)
-}
-
 func (r *TargetRepository) Create(userTarget model.UserTarget) (model.UserTarget, error) {
 	if userTarget.URL == "" {
 		return model.UserTarget{}, fmt.Errorf("URL cannot be empty")
@@ -68,6 +46,9 @@ func (r *TargetRepository) Create(userTarget model.UserTarget) (model.UserTarget
 	if userTarget.UserID <= 0 {
 		return model.UserTarget{}, fmt.Errorf("invalid UserID: %d", userTarget.UserID)
 	}
+
+	// Ensure time is in UTC before storing
+	userTarget.StatusChangedAt = userTarget.StatusChangedAt.UTC()
 
 	query := `
 		INSERT INTO target (url, user_id, status, enabled, interval, changed_at)
@@ -81,26 +62,24 @@ func (r *TargetRepository) Create(userTarget model.UserTarget) (model.UserTarget
 		userTarget.Status,
 		userTarget.Enabled,
 		userTarget.Interval.Seconds(),
-		r.formatTime(userTarget.StatusChangedAt),
+		userTarget.StatusChangedAt,
 	).Scan(&userTarget.ID)
 
 	if err != nil {
 		return model.UserTarget{}, fmt.Errorf("failed to create target: %w", err)
 	}
 
-	userTarget.StatusChangedAt = userTarget.StatusChangedAt.UTC()
 	return userTarget, nil
 }
 
 func (r *TargetRepository) GetByID(id int) (model.UserTarget, error) {
 	query := `
-		SELECT id, url, status, enabled, interval, changed_at, user_id
-		FROM target
-		WHERE id = $1`
+        SELECT id, url, status, enabled, interval, changed_at, user_id
+        FROM target
+        WHERE id = $1`
 
 	userTarget := model.UserTarget{Target: &monitor.Target{}}
 	var intervalSeconds float64
-	var statusChangedAtStr string
 
 	err := r.db.QueryRow(query, id).Scan(
 		&userTarget.ID,
@@ -108,7 +87,7 @@ func (r *TargetRepository) GetByID(id int) (model.UserTarget, error) {
 		&userTarget.Status,
 		&userTarget.Enabled,
 		&intervalSeconds,
-		&statusChangedAtStr,
+		&userTarget.StatusChangedAt, // Direct scan into time.Time
 		&userTarget.UserID,
 	)
 
@@ -120,11 +99,7 @@ func (r *TargetRepository) GetByID(id int) (model.UserTarget, error) {
 	}
 
 	userTarget.Interval = time.Duration(intervalSeconds) * time.Second
-	userTarget.StatusChangedAt, err = r.parseTime(statusChangedAtStr)
-	if err != nil {
-		return model.UserTarget{}, fmt.Errorf("failed to parse changed_at: %w", err)
-	}
-
+	userTarget.StatusChangedAt = userTarget.StatusChangedAt.UTC()
 	return userTarget, nil
 }
 
@@ -143,7 +118,6 @@ func (r *TargetRepository) GetAll() ([]model.UserTarget, error) {
 	for rows.Next() {
 		userTarget := model.UserTarget{Target: &monitor.Target{}}
 		var intervalSeconds float64
-		var statusChangedAtStr string
 
 		err = rows.Scan(
 			&userTarget.ID,
@@ -151,19 +125,15 @@ func (r *TargetRepository) GetAll() ([]model.UserTarget, error) {
 			&userTarget.Status,
 			&userTarget.Enabled,
 			&intervalSeconds,
-			&statusChangedAtStr,
+			&userTarget.StatusChangedAt, // Direct scan into time.Time
 			&userTarget.UserID,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan target: %w", err)
 		}
 
-		userTarget.StatusChangedAt, err = r.parseTime(statusChangedAtStr)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse changed_at: %w", err)
-		}
-
 		userTarget.Interval = time.Duration(intervalSeconds) * time.Second
+		userTarget.StatusChangedAt = userTarget.StatusChangedAt.UTC()
 		targets = append(targets, userTarget)
 	}
 
@@ -190,7 +160,6 @@ func (r *TargetRepository) GetAllByUserID(userID int) ([]model.UserTarget, error
 	for rows.Next() {
 		userTarget := model.UserTarget{Target: &monitor.Target{}}
 		var intervalSeconds float64
-		var statusChangedAtStr string
 
 		err = rows.Scan(
 			&userTarget.ID,
@@ -198,19 +167,15 @@ func (r *TargetRepository) GetAllByUserID(userID int) ([]model.UserTarget, error
 			&userTarget.Status,
 			&userTarget.Enabled,
 			&intervalSeconds,
-			&statusChangedAtStr,
+			&userTarget.StatusChangedAt, // Direct scan into time.Time
 			&userTarget.UserID,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan target: %w", err)
 		}
 
-		userTarget.StatusChangedAt, err = r.parseTime(statusChangedAtStr)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse changed_at: %w", err)
-		}
-
 		userTarget.Interval = time.Duration(intervalSeconds) * time.Second
+		userTarget.StatusChangedAt = userTarget.StatusChangedAt.UTC()
 		targets = append(targets, userTarget)
 	}
 
@@ -222,6 +187,9 @@ func (r *TargetRepository) GetAllByUserID(userID int) ([]model.UserTarget, error
 }
 
 func (r *TargetRepository) Update(userTarget model.UserTarget) (model.UserTarget, error) {
+	// Ensure time is in UTC before updating
+	userTarget.StatusChangedAt = userTarget.StatusChangedAt.UTC()
+
 	query := `
 		UPDATE target
 		SET url = $1, status = $2, enabled = $3, interval = $4, changed_at = $5
@@ -233,7 +201,7 @@ func (r *TargetRepository) Update(userTarget model.UserTarget) (model.UserTarget
 		userTarget.Status,
 		userTarget.Enabled,
 		userTarget.Interval.Seconds(),
-		r.formatTime(userTarget.StatusChangedAt),
+		userTarget.StatusChangedAt,
 		userTarget.ID,
 	)
 	if err != nil {
@@ -253,6 +221,9 @@ func (r *TargetRepository) Update(userTarget model.UserTarget) (model.UserTarget
 }
 
 func (r *TargetRepository) UpdateStatus(target *monitor.Target, status string) error {
+	// Ensure time is in UTC before updating
+	target.StatusChangedAt = target.StatusChangedAt.UTC()
+
 	query := `
 		UPDATE target
 		SET status = $1, changed_at = $2

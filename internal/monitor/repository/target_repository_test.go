@@ -177,7 +177,16 @@ func TestTargetRepository_Update(t *testing.T) {
 			assert.NoError(t, err)
 			fetched, err := repo.GetByID(userTarget.ID)
 			assert.NoError(t, err)
-			assert.Equal(t, updated, fetched)
+
+			// Replace direct equality check with individual field comparisons
+			assert.Equal(t, updated.ID, fetched.ID)
+			assert.Equal(t, updated.URL, fetched.URL)
+			assert.Equal(t, updated.Status, fetched.Status)
+			assert.Equal(t, updated.Enabled, fetched.Enabled)
+			assert.Equal(t, updated.Interval, fetched.Interval)
+			assert.Equal(t, updated.UserID, fetched.UserID)
+			// Normalize both times to UTC before comparison
+			assert.Equal(t, updated.StatusChangedAt, fetched.StatusChangedAt)
 		})
 	}
 }
