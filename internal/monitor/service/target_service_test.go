@@ -64,7 +64,7 @@ func (m *mockNotifierService) Create(notifier *alertModel.Notifier) error {
 	return nil
 }
 
-func (m *mockNotifierService) Get(id int64) (*alertModel.Notifier, error) {
+func (m *mockNotifierService) Get(id int) (*alertModel.Notifier, error) {
 	return nil, nil
 }
 
@@ -72,7 +72,7 @@ func (m *mockNotifierService) Update(id int, config json.RawMessage) (*alertMode
 	return nil, nil
 }
 
-func (m *mockNotifierService) Delete(id int64) error {
+func (m *mockNotifierService) Delete(id int) error {
 	return nil
 }
 

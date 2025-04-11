@@ -34,7 +34,6 @@ type App struct {
 	TargetHandler   *uptimeHandler.TargetHandler
 	NotifierHandler *notificationHandler.NotifierHandler
 	db              *sql.DB
-	tempDBDir       *database.TempDBDir
 }
 
 func NewApp() *App {
@@ -51,13 +50,7 @@ func NewApp() *App {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	tempDBDir, err := database.NewTempDir()
-
-	if err != nil {
-		log.Fatalf("Failed to create temporary directory: %v", err)
-	}
-
-	db, err := database.InitDatabase(cfg.Database, tempDBDir)
+	db, err := database.InitDatabase(cfg.Database)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
@@ -133,11 +126,9 @@ func NewApp() *App {
 		TargetHandler:   targetHandler,
 		NotifierHandler: notifierHandler,
 		db:              db,
-		tempDBDir:       tempDBDir,
 	}
 }
 
 func (a *App) Close() {
 	a.db.Close()
-	a.tempDBDir.Cleanup()
 }

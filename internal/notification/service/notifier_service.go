@@ -16,9 +16,9 @@ import (
 
 type NotifierServiceInterface interface {
 	Create(notifier *model.Notifier) error
-	Get(id int64) (*model.Notifier, error)
+	Get(id int) (*model.Notifier, error)
 	Update(id int, config json.RawMessage) (*model.Notifier, error)
-	Delete(id int64) error
+	Delete(id int) error
 	ConfigureObservers(targetID int) error
 	HandleSlackCallback(code string, targetID int) (*model.Notifier, error)
 	ParseOAuthState(state string) (int, error)
@@ -57,7 +57,7 @@ func (s *NotifierService) Create(notifier *model.Notifier) error {
 }
 
 // Get retrieves a notifier by ID
-func (s *NotifierService) Get(id int64) (*model.Notifier, error) {
+func (s *NotifierService) Get(id int) (*model.Notifier, error) {
 	notifier, err := s.notifierRepo.Get(id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get notifier: %w", err)
@@ -75,7 +75,7 @@ func (s *NotifierService) Update(id int, config json.RawMessage) (*model.Notifie
 }
 
 // Delete removes a notifier
-func (s *NotifierService) Delete(id int64) error {
+func (s *NotifierService) Delete(id int) error {
 	if err := s.notifierRepo.Delete(id); err != nil {
 		return fmt.Errorf("failed to delete notifier: %w", err)
 	}

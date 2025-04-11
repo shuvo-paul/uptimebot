@@ -1,9 +1,9 @@
 -- +migrate Up
 CREATE TABLE notifier (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     target_id INTEGER NOT NULL,
     type TEXT NOT NULL,
-    config BLOB NOT NULL,
+    config JSONB NOT NULL,
     FOREIGN KEY (target_id) REFERENCES target (id) ON DELETE CASCADE
 );
 

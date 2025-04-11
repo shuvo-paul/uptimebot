@@ -14,8 +14,12 @@ type Config struct {
 }
 
 type DatabaseConfig struct {
-	URL   string
-	Token string
+	Host     string
+	Port     string
+	User     string
+	Password string
+	DBName   string
+	SSLMode  string
 }
 
 type EmailConfig struct {
@@ -61,16 +65,28 @@ func Load() (*Config, error) {
 }
 
 func loadDatabaseConfig() (DatabaseConfig, error) {
-	url := os.Getenv("TURSO_DATABASE_URL")
-	token := os.Getenv("TURSO_AUTH_TOKEN")
+	host := os.Getenv("DB_HOST")
+	port := os.Getenv("DB_PORT")
+	user := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASSWORD")
+	dbName := os.Getenv("DB_NAME")
+	sslMode := os.Getenv("DB_SSL_MODE")
 
-	if url == "" || token == "" {
+	if host == "" || port == "" || user == "" || password == "" || dbName == "" {
 		return DatabaseConfig{}, fmt.Errorf("missing required database configuration")
 	}
 
+	if sslMode == "" {
+		sslMode = "disable" // Default SSL mode
+	}
+
 	return DatabaseConfig{
-		URL:   url,
-		Token: token,
+		Host:     host,
+		Port:     port,
+		User:     user,
+		Password: password,
+		DBName:   dbName,
+		SSLMode:  sslMode,
 	}, nil
 }
 

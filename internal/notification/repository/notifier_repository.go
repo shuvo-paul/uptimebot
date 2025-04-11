@@ -5,14 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/shuvo-paul/uptimebot/internal/database"
 	"github.com/shuvo-paul/uptimebot/internal/notification/model"
 )
 
 type NotifierRepositoryInterface interface {
 	Create(*model.Notifier) (*model.Notifier, error)
-	Get(int64) (*model.Notifier, error)
+	Get(int) (*model.Notifier, error)
 	Update(int, json.RawMessage) (*model.Notifier, error)
-	Delete(int64) error
+	Delete(int) error
 	GetByTargetID(int) ([]*model.Notifier, error)
 }
 
@@ -20,11 +21,11 @@ var _ NotifierRepositoryInterface = (*NotifierRepository)(nil)
 
 // NotifierRepository handles database operations for notifiers
 type NotifierRepository struct {
-	db *sql.DB
+	db database.Querier
 }
 
 // NewNotifierRepository creates a new notifier repository
-func NewNotifierRepository(db *sql.DB) *NotifierRepository {
+func NewNotifierRepository(db database.Querier) *NotifierRepository {
 	return &NotifierRepository{db: db}
 }
 
@@ -51,8 +52,8 @@ func (r *NotifierRepository) Create(notifier *model.Notifier) (*model.Notifier, 
 
 	query := `
 		INSERT INTO notifier (target_id, type, config)
-		VALUES (?, ?, ?)
-		RETURNING *
+		VALUES ($1, $2, $3)
+		RETURNING id, target_id, type, config
 	`
 
 	newNotifier := &model.Notifier{}
@@ -70,11 +71,11 @@ func (r *NotifierRepository) Create(notifier *model.Notifier) (*model.Notifier, 
 }
 
 // Get retrieves a notifier by ID
-func (r *NotifierRepository) Get(id int64) (*model.Notifier, error) {
+func (r *NotifierRepository) Get(id int) (*model.Notifier, error) {
 	query := `
 		SELECT id, target_id, type, config
 		FROM notifier
-		WHERE id = ?
+		WHERE id = $1
 	`
 
 	notifier := &model.Notifier{}
@@ -99,8 +100,8 @@ func (r *NotifierRepository) Get(id int64) (*model.Notifier, error) {
 func (r *NotifierRepository) Update(id int, config json.RawMessage) (*model.Notifier, error) {
 	query := `
 		UPDATE notifier
-		SET config = ?
-		WHERE id = ?
+		SET config = $1
+		WHERE id = $2
 		RETURNING id, target_id, type, config
 	`
 
@@ -119,8 +120,8 @@ func (r *NotifierRepository) Update(id int, config json.RawMessage) (*model.Noti
 }
 
 // Delete removes a notifier from the database
-func (r *NotifierRepository) Delete(id int64) error {
-	query := `DELETE FROM notifier WHERE id = ?`
+func (r *NotifierRepository) Delete(id int) error {
+	query := `DELETE FROM notifier WHERE id = $1`
 	result, err := r.db.Exec(query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete notifier: %w", err)
@@ -143,7 +144,7 @@ func (r *NotifierRepository) GetByTargetID(targetID int) ([]*model.Notifier, err
 	query := `
 		SELECT id, target_id, type, config
 		FROM notifier
-		WHERE target_id = ?
+		WHERE target_id = $1
 	`
 
 	rows, err := r.db.Query(query, targetID)

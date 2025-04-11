@@ -5,17 +5,29 @@ import (
 	"time"
 
 	"github.com/shuvo-paul/uptimebot/internal/auth/model"
+	"github.com/shuvo-paul/uptimebot/internal/database"
 	"github.com/shuvo-paul/uptimebot/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSessionRepository_Create(t *testing.T) {
-	db := testutil.NewInMemoryDB()
-	defer db.Close()
+func createTestUser(t *testing.T, tx database.Querier) *model.User {
+	userRepo := NewUserRepository(tx)
+	user := &model.User{
+		Email:    "test@example.com",
+		Password: "hashedpassword",
+	}
+	savedUser, err := userRepo.SaveUser(user)
+	assert.NoError(t, err)
+	return savedUser
+}
 
-	sessionRepo := NewSessionRepository(db)
+func TestSessionRepository_Create(t *testing.T) {
+	tx := testutil.GetTestTx(t)
+	user := createTestUser(t, tx)
+
+	sessionRepo := NewSessionRepository(tx)
 	session := &model.Session{
-		UserID:    1,
+		UserID:    user.ID,
 		Token:     "test-token",
 		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(24 * time.Hour),
@@ -26,15 +38,14 @@ func TestSessionRepository_Create(t *testing.T) {
 }
 
 func TestSessionRepository_GetByToken(t *testing.T) {
-	db := testutil.NewInMemoryDB()
-	defer db.Close()
+	tx := testutil.GetTestTx(t)
+	user := createTestUser(t, tx)
 
-	sessionRepo := NewSessionRepository(db)
+	sessionRepo := NewSessionRepository(tx)
 
-	// First create a session
 	now := time.Now()
 	expectedSession := &model.Session{
-		UserID:    1,
+		UserID:    user.ID,
 		Token:     "test-token",
 		CreatedAt: now,
 		ExpiresAt: now.Add(24 * time.Hour),
@@ -42,7 +53,6 @@ func TestSessionRepository_GetByToken(t *testing.T) {
 	err := sessionRepo.Create(expectedSession)
 	assert.NoError(t, err)
 
-	// Then try to get it
 	session, err := sessionRepo.GetByToken("test-token")
 	assert.NoError(t, err)
 	assert.Equal(t, expectedSession.UserID, session.UserID)
@@ -50,14 +60,13 @@ func TestSessionRepository_GetByToken(t *testing.T) {
 }
 
 func TestSessionRepository_Delete(t *testing.T) {
-	db := testutil.NewInMemoryDB()
-	defer db.Close()
+	tx := testutil.GetTestTx(t)
+	user := createTestUser(t, tx)
 
-	sessionRepo := NewSessionRepository(db)
+	sessionRepo := NewSessionRepository(tx)
 
-	// First create a session
 	session := &model.Session{
-		UserID:    1,
+		UserID:    user.ID,
 		Token:     "token",
 		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(24 * time.Hour),
@@ -65,20 +74,16 @@ func TestSessionRepository_Delete(t *testing.T) {
 	err := sessionRepo.Create(session)
 	assert.NoError(t, err)
 
-	// Then delete it
 	err = sessionRepo.Delete("token")
 	assert.NoError(t, err)
 
-	// Verify it's deleted
 	_, err = sessionRepo.GetByToken("token")
 	assert.Error(t, err)
 }
 
 func TestSessionRepository_Errors(t *testing.T) {
-	db := testutil.NewInMemoryDB()
-	defer db.Close()
-
-	sessionRepo := NewSessionRepository(db)
+	tx := testutil.GetTestTx(t)
+	sessionRepo := NewSessionRepository(tx)
 
 	t.Run("GetByToken Error - Non-existent Token", func(t *testing.T) {
 		session, err := sessionRepo.GetByToken("non-existent-token")

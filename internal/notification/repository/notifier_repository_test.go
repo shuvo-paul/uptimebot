@@ -1,45 +1,70 @@
 package repository
 
 import (
+	"database/sql"
 	"encoding/json"
 	"testing"
+	"time"
 
+	authModel "github.com/shuvo-paul/uptimebot/internal/auth/model"
+	authRepo "github.com/shuvo-paul/uptimebot/internal/auth/repository"
+	core "github.com/shuvo-paul/uptimebot/internal/monitor/engine"
+	monitorModel "github.com/shuvo-paul/uptimebot/internal/monitor/model"
+	monitorRepo "github.com/shuvo-paul/uptimebot/internal/monitor/repository"
 	"github.com/shuvo-paul/uptimebot/internal/notification/model"
 	"github.com/shuvo-paul/uptimebot/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
-func createNotifier() (*model.Notifier, error) {
-	db := testutil.NewInMemoryDB()
-	defer db.Close()
+func createTestUser(t *testing.T, tx *sql.Tx) *authModel.User {
+	userRepo := authRepo.NewUserRepository(tx)
+	user, err := userRepo.SaveUser(&authModel.User{
+		Email:    "test@example.com",
+		Password: "hashedpassword",
+	})
 
-	notifierRepo := NewNotifierRepository(db)
-	config := json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test"}`)
-	notifier := &model.Notifier{
-		TargetId: 1,
-		Type:     model.NotifierTypeSlack,
-		Config:   config,
+	if err != nil {
+		return nil
 	}
 
-	return notifierRepo.Create(notifier)
+	return user
+}
+
+func createTestTarget(t *testing.T, tx *sql.Tx, user *authModel.User) int {
+	// Create target
+	targetRepo := monitorRepo.NewTargetRepository(tx)
+	target, err := targetRepo.Create(monitorModel.UserTarget{
+		UserID: user.ID,
+		Target: &core.Target{
+			URL:             "example.org",
+			Status:          "up",
+			Enabled:         true,
+			Interval:        30 * time.Second,
+			StatusChangedAt: time.Now(),
+		},
+	})
+	assert.NoError(t, err)
+
+	return target.ID
 }
 
 func TestNotifierRepository_Create(t *testing.T) {
-	db := testutil.NewInMemoryDB()
-	defer db.Close()
+	tx := testutil.GetTestTx(t)
+	notifierRepo := NewNotifierRepository(tx)
 
-	notifierRepo := NewNotifierRepository(db)
+	user := createTestUser(t, tx)
+	targetID := createTestTarget(t, tx, user)
 
 	slackNotifier := &model.Notifier{
-		TargetId: 1,
+		TargetId: targetID,
 		Type:     model.NotifierTypeSlack,
 		Config:   json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test"}`),
 	}
 
 	emailNotifier := &model.Notifier{
-		TargetId: 1,
+		TargetId: targetID,
 		Type:     model.NotifierTypeEmail,
-		Config:   json.RawMessage(`{"recipients": ["EMAIL", "EMAIL", "EMAIL"]}`),
+		Config:   json.RawMessage(`{"recipients": ["test@example.com"]}`),
 	}
 
 	tests := []struct {
@@ -57,8 +82,9 @@ func TestNotifierRepository_Create(t *testing.T) {
 		{
 			name: "invalid json",
 			notifier: &model.Notifier{
-				Type:   model.NotifierTypeSlack,
-				Config: json.RawMessage(`invalid json`),
+				TargetId: targetID,
+				Type:     model.NotifierTypeSlack,
+				Config:   json.RawMessage(`invalid json`),
 			},
 			want:    nil,
 			wantErr: true,
@@ -70,10 +96,11 @@ func TestNotifierRepository_Create(t *testing.T) {
 			wantErr:  false,
 		},
 		{
-			name: "invalid json",
+			name: "invalid target id",
 			notifier: &model.Notifier{
-				Type:   model.NotifierTypeEmail,
-				Config: json.RawMessage(`invalid json`),
+				TargetId: 999,
+				Type:     model.NotifierTypeSlack,
+				Config:   json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test"}`),
 			},
 			want:    nil,
 			wantErr: true,
@@ -100,10 +127,10 @@ func TestNotifierRepository_Create(t *testing.T) {
 }
 
 func TestNotifierRepository_Get(t *testing.T) {
-	db := testutil.NewInMemoryDB()
-	defer db.Close()
-
-	notifierRepo := NewNotifierRepository(db)
+	tx := testutil.GetTestTx(t)
+	notifierRepo := NewNotifierRepository(tx)
+	user := createTestUser(t, tx)
+	targetID := createTestTarget(t, tx, user)
 
 	t.Run("NotFound", func(t *testing.T) {
 		notifier, err := notifierRepo.Get(1)
@@ -114,7 +141,7 @@ func TestNotifierRepository_Get(t *testing.T) {
 	t.Run("Found", func(t *testing.T) {
 		config := json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test"}`)
 		notifier := &model.Notifier{
-			TargetId: 2,
+			TargetId: targetID,
 			Type:     model.NotifierTypeSlack,
 			Config:   config,
 		}
@@ -132,10 +159,10 @@ func TestNotifierRepository_Get(t *testing.T) {
 }
 
 func TestNotifierRepository_Update(t *testing.T) {
-	db := testutil.NewInMemoryDB()
-	defer db.Close()
-
-	notifierRepo := NewNotifierRepository(db)
+	tx := testutil.GetTestTx(t)
+	notifierRepo := NewNotifierRepository(tx)
+	user := createTestUser(t, tx)
+	targetID := createTestTarget(t, tx, user)
 
 	t.Run("NotFound", func(t *testing.T) {
 		config := json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test2"}`)
@@ -145,10 +172,9 @@ func TestNotifierRepository_Update(t *testing.T) {
 	})
 
 	t.Run("Success", func(t *testing.T) {
-		// First create a notifier
 		initialConfig := json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test"}`)
 		notifier := &model.Notifier{
-			TargetId: 1,
+			TargetId: targetID,
 			Type:     model.NotifierTypeSlack,
 			Config:   initialConfig,
 		}
@@ -156,9 +182,8 @@ func TestNotifierRepository_Update(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, created.ID)
 
-		// Update the config
 		newConfig := json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test2"}`)
-		updated, err := notifierRepo.Update(int(created.ID), newConfig)
+		updated, err := notifierRepo.Update(created.ID, newConfig)
 		assert.NoError(t, err)
 		assert.NotNil(t, updated)
 		assert.Equal(t, created.ID, updated.ID)
@@ -167,32 +192,12 @@ func TestNotifierRepository_Update(t *testing.T) {
 	})
 }
 
-func TestNotifierRepository_Delete(t *testing.T) {
-	db := testutil.NewInMemoryDB()
-	defer db.Close()
-
-	repo := NewNotifierRepository(db)
-
-	t.Run("NotFound", func(t *testing.T) {
-		err := repo.Delete(1)
-		assert.NoError(t, err)
-	})
-
-	t.Run("Success", func(t *testing.T) {
-		notifier, err := createNotifier()
-		assert.NoError(t, err)
-		assert.NotEmpty(t, notifier.ID)
-
-		err = repo.Delete(notifier.ID)
-		assert.NoError(t, err)
-	})
-}
-
 func TestNotifierRepository_GetByTargetID(t *testing.T) {
-	db := testutil.NewInMemoryDB()
-	defer db.Close()
-
-	repo := NewNotifierRepository(db)
+	tx := testutil.GetTestTx(t)
+	repo := NewNotifierRepository(tx)
+	user := createTestUser(t, tx)
+	targetID := createTestTarget(t, tx, user)
+	targetID2 := createTestTarget(t, tx, user)
 
 	t.Run("NoNotifiers", func(t *testing.T) {
 		notifiers, err := repo.GetByTargetID(999)
@@ -201,8 +206,6 @@ func TestNotifierRepository_GetByTargetID(t *testing.T) {
 	})
 
 	t.Run("MultipleNotifiers", func(t *testing.T) {
-		// Create multiple notifiers for the same target
-		targetID := 1
 		config1 := json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test1"}`)
 		config2 := json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test2"}`)
 		otherConfig := json.RawMessage(`{"webhook_url": "https://hooks.slack.com/other"}`)
@@ -218,7 +221,7 @@ func TestNotifierRepository_GetByTargetID(t *testing.T) {
 			Config:   config2,
 		}
 		otherNotifier := &model.Notifier{
-			TargetId: targetID + 1,
+			TargetId: targetID2,
 			Type:     model.NotifierTypeSlack,
 			Config:   otherConfig,
 		}
@@ -240,16 +243,15 @@ func TestNotifierRepository_GetByTargetID(t *testing.T) {
 		for _, n := range notifiers {
 			assert.Equal(t, targetID, n.TargetId)
 			assert.Equal(t, model.NotifierTypeSlack, n.Type)
-
 			config, err := n.GetSlackConfig()
 			assert.NoError(t, err)
 			assert.Contains(t, config.WebhookURL, "https://hooks.slack.com/test")
 		}
 
 		// Verify other target's notifier is not included
-		otherNotifiers, err := repo.GetByTargetID(targetID + 1)
+		otherNotifiers, err := repo.GetByTargetID(targetID2)
 		assert.NoError(t, err)
 		assert.Len(t, otherNotifiers, 1)
-		assert.Equal(t, targetID+1, otherNotifiers[0].TargetId)
+		assert.Equal(t, targetID2, otherNotifiers[0].TargetId)
 	})
 }

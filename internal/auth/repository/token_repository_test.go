@@ -10,14 +10,21 @@ import (
 )
 
 func TestVerificationTokenRepository(t *testing.T) {
-	db := testutil.NewInMemoryDB()
-	defer db.Close()
+	tx := testutil.GetTestTx(t)
 
-	repo := NewTokenRepository(db)
+	userRepo := NewUserRepository(tx)
+	user, err := userRepo.SaveUser(&model.User{
+		Email:    "test@example.com",
+		Password: "password123",
+	})
+	assert.NoError(t, err)
+	assert.NotZero(t, user.ID)
+
+	repo := NewTokenRepository(tx)
 
 	t.Run("SaveToken", func(t *testing.T) {
 		token := &model.Token{
-			UserID:    1,
+			UserID:    user.ID,
 			Token:     "test-token",
 			Type:      model.TokenTypeEmailVerification,
 			ExpiresAt: time.Now().Add(24 * time.Hour),
@@ -36,7 +43,7 @@ func TestVerificationTokenRepository(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, token)
 		assert.Equal(t, "test-token", token.Token)
-		assert.Equal(t, 1, token.UserID)
+		assert.Equal(t, user.ID, token.UserID)
 	})
 
 	t.Run("GetTokenByValue_NotFound", func(t *testing.T) {
@@ -57,7 +64,7 @@ func TestVerificationTokenRepository(t *testing.T) {
 	t.Run("GetTokensByUserID", func(t *testing.T) {
 		// Add another token for the same user
 		newToken := &model.Token{
-			UserID:    1,
+			UserID:    user.ID,
 			Token:     "test-token-2",
 			Type:      model.TokenTypePasswordReset,
 			ExpiresAt: time.Now().Add(24 * time.Hour),
@@ -66,14 +73,14 @@ func TestVerificationTokenRepository(t *testing.T) {
 		_, err := repo.SaveToken(newToken)
 		assert.NoError(t, err)
 
-		tokens, err := repo.GetTokensByUserID(1)
+		tokens, err := repo.GetTokensByUserID(newToken.UserID)
 		assert.NoError(t, err)
 		assert.Len(t, tokens, 2)
 	})
 
 	t.Run("InvalidateExistingTokens", func(t *testing.T) {
 		token := &model.Token{
-			UserID:    2,
+			UserID:    user.ID,
 			Token:     "test-token-3",
 			Type:      model.TokenTypeEmailVerification,
 			ExpiresAt: time.Now().Add(24 * time.Hour),
@@ -82,7 +89,7 @@ func TestVerificationTokenRepository(t *testing.T) {
 		_, err := repo.SaveToken(token)
 		assert.NoError(t, err)
 
-		err = repo.InvalidateExistingTokens(2, model.TokenTypeEmailVerification)
+		err = repo.InvalidateExistingTokens(user.ID, model.TokenTypeEmailVerification)
 		assert.NoError(t, err)
 
 		retrievedToken, err := repo.GetTokenByValue(token.Token)

@@ -5,19 +5,20 @@ import (
 	"fmt"
 
 	"github.com/shuvo-paul/uptimebot/internal/auth/model"
+	"github.com/shuvo-paul/uptimebot/internal/database"
 )
 
 type SessionRepository struct {
-	db *sql.DB
+	db database.Querier
 }
 
-func NewSessionRepository(db *sql.DB) *SessionRepository {
+func NewSessionRepository(db database.Querier) *SessionRepository {
 	return &SessionRepository{db: db}
 }
 
 func (r *SessionRepository) Create(session *model.Session) error {
 	query := `INSERT INTO session (user_id, token, created_at, expires_at) 
-			  VALUES (?, ?, ?, ?)`
+			  VALUES ($1, $2, $3, $4)`
 	_, err := r.db.Exec(query, session.UserID, session.Token,
 		session.CreatedAt, session.ExpiresAt)
 	if err != nil {
@@ -29,9 +30,12 @@ func (r *SessionRepository) Create(session *model.Session) error {
 func (r *SessionRepository) GetByToken(token string) (*model.Session, error) {
 	var session model.Session
 	query := `SELECT user_id, token, created_at, expires_at 
-			  FROM session WHERE token = ?`
+			  FROM session WHERE token = $1`
 	err := r.db.QueryRow(query, token).Scan(&session.UserID, &session.Token,
 		&session.CreatedAt, &session.ExpiresAt)
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("session not found")
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get session: %w", err)
 	}
@@ -39,7 +43,7 @@ func (r *SessionRepository) GetByToken(token string) (*model.Session, error) {
 }
 
 func (r *SessionRepository) Delete(token string) error {
-	query := `DELETE FROM session WHERE token = ?`
+	query := `DELETE FROM session WHERE token = $1`
 	result, err := r.db.Exec(query, token)
 	if err != nil {
 		return fmt.Errorf("failed to delete session: %w", err)

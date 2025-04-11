@@ -5,13 +5,14 @@ import (
 	"fmt"
 
 	"github.com/shuvo-paul/uptimebot/internal/auth/model"
+	"github.com/shuvo-paul/uptimebot/internal/database"
 )
 
 type TokenRepository struct {
-	db *sql.DB
+	db database.Querier
 }
 
-func NewTokenRepository(db *sql.DB) *TokenRepository {
+func NewTokenRepository(db database.Querier) *TokenRepository {
 	return &TokenRepository{db: db}
 }
 
@@ -25,25 +26,20 @@ type TokenRepositoryInterface interface {
 
 func (r *TokenRepository) SaveToken(token *model.Token) (*model.Token, error) {
 	query := `INSERT INTO token (user_id, token, type, expires_at, used) 
-			  VALUES (?, ?, ?, ?, ?)`
-	result, err := r.db.Exec(query, token.UserID, token.Token, token.Type, token.ExpiresAt, token.Used)
+			  VALUES ($1, $2, $3, $4, $5)
+			  RETURNING id`
+	err := r.db.QueryRow(query, token.UserID, token.Token, token.Type, token.ExpiresAt, token.Used).Scan(&token.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to save  token: %w", err)
+		return nil, fmt.Errorf("failed to save token: %w", err)
 	}
 
-	id, err := result.LastInsertId()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get last insert ID: %w", err)
-	}
-
-	token.ID = int(id)
 	return token, nil
 }
 
 func (r *TokenRepository) GetTokenByValue(tokenValue string) (*model.Token, error) {
 	var token model.Token
 	query := `SELECT id, user_id, token, type, expires_at, used 
-			  FROM token WHERE token = ?`
+			  FROM token WHERE token = $1`
 	err := r.db.QueryRow(query, tokenValue).Scan(
 		&token.ID,
 		&token.UserID,
@@ -62,7 +58,7 @@ func (r *TokenRepository) GetTokenByValue(tokenValue string) (*model.Token, erro
 }
 
 func (r *TokenRepository) MarkTokenUsed(tokenID int) error {
-	query := `UPDATE token SET used = TRUE WHERE id = ?`
+	query := `UPDATE token SET used = TRUE WHERE id = $1`
 	result, err := r.db.Exec(query, tokenID)
 	if err != nil {
 		return fmt.Errorf("failed to mark token as used: %w", err)
@@ -80,7 +76,7 @@ func (r *TokenRepository) MarkTokenUsed(tokenID int) error {
 
 func (r *TokenRepository) GetTokensByUserID(userID int) ([]*model.Token, error) {
 	query := `SELECT id, user_id, token, type, expires_at, used 
-			  FROM token WHERE user_id = ?`
+			  FROM token WHERE user_id = $1`
 	rows, err := r.db.Query(query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get verification tokens: %w", err)
@@ -112,7 +108,7 @@ func (r *TokenRepository) GetTokensByUserID(userID int) ([]*model.Token, error) 
 func (r *TokenRepository) InvalidateExistingTokens(userID int, tokenType model.TokenType) error {
 	query := `UPDATE token 
 			  SET used = TRUE 
-			  WHERE user_id = ? AND type = ? AND used = FALSE AND expires_at > datetime('now')`
+			  WHERE user_id = $1 AND type = $2 AND used = FALSE AND expires_at > NOW()`
 	_, err := r.db.Exec(query, userID, string(tokenType))
 	if err != nil {
 		return fmt.Errorf("failed to invalidate existing tokens: %w", err)

@@ -9,10 +9,9 @@ import (
 )
 
 func TestSaveUser(t *testing.T) {
-	db := testutil.NewInMemoryDB()
-	defer db.Close()
+	tx := testutil.GetTestTx(t)
 
-	userRepo := NewUserRepository(db)
+	userRepo := NewUserRepository(tx)
 
 	user := &model.User{
 
@@ -29,9 +28,9 @@ func TestSaveUser(t *testing.T) {
 }
 
 func TestEmailExists(t *testing.T) {
-	db := testutil.NewInMemoryDB()
-	userRepo := NewUserRepository(db)
-	defer db.Close()
+	tx := testutil.GetTestTx(t)
+
+	userRepo := NewUserRepository(tx)
 
 	// Create a test user first
 	user := &model.User{
@@ -56,9 +55,8 @@ func TestEmailExists(t *testing.T) {
 }
 
 func TestGetUser(t *testing.T) {
-	db := testutil.NewInMemoryDB()
-	userRepo := NewUserRepository(db)
-	defer db.Close()
+	tx := testutil.GetTestTx(t)
+	userRepo := NewUserRepository(tx)
 
 	// Create a test user first
 	expectedUser := &model.User{
@@ -87,9 +85,8 @@ func TestGetUser(t *testing.T) {
 }
 
 func TestUpdateUser(t *testing.T) {
-	db := testutil.NewInMemoryDB()
-	userRepo := NewUserRepository(db)
-	defer db.Close()
+	tx := testutil.GetTestTx(t)
+	userRepo := NewUserRepository(tx)
 	// Create a test user first
 	expectedUser := &model.User{
 
@@ -111,10 +108,8 @@ func TestUpdateUser(t *testing.T) {
 }
 
 func TestUpdatePassword(t *testing.T) {
-	db := testutil.NewInMemoryDB()
-	userRepo := NewUserRepository(db)
-	defer db.Close()
-
+	tx := testutil.GetTestTx(t)
+	userRepo := NewUserRepository(tx)
 	// Create a test user first
 	user := &model.User{
 

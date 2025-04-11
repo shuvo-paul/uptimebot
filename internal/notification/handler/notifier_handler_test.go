@@ -15,9 +15,9 @@ import (
 
 type MockNotifierService struct {
 	createFunc              func(notifier *model.Notifier) error
-	getFunc                 func(id int64) (*model.Notifier, error)
+	getFunc                 func(id int) (*model.Notifier, error)
 	updateFunc              func(id int, config json.RawMessage) (*model.Notifier, error)
-	deleteFunc              func(id int64) error
+	deleteFunc              func(id int) error
 	configureObserversFunc  func(targetID int) error
 	handleSlackCallbackFunc func(code string, targetId int) (*model.Notifier, error)
 	parseOAuthStateFunc     func(state string) (int, error)
@@ -27,7 +27,7 @@ func (m *MockNotifierService) Create(notifier *model.Notifier) error {
 	return m.createFunc(notifier)
 }
 
-func (m *MockNotifierService) Get(id int64) (*model.Notifier, error) {
+func (m *MockNotifierService) Get(id int) (*model.Notifier, error) {
 	return m.getFunc(id)
 }
 
@@ -35,7 +35,7 @@ func (m *MockNotifierService) Update(id int, config json.RawMessage) (*model.Not
 	return m.updateFunc(id, config)
 }
 
-func (m *MockNotifierService) Delete(id int64) error {
+func (m *MockNotifierService) Delete(id int) error {
 	return m.deleteFunc(id)
 }
 

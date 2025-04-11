@@ -25,7 +25,7 @@ func migrateTool(db *sql.DB) {
 	switch args[2] {
 	case "down":
 		// Code for down migration
-		n, err := migrate.Exec(db, "sqlite3", migrations, migrate.Down)
+		n, err := migrate.Exec(db, "postgres", migrations, migrate.Down)
 		if err != nil {
 			fmt.Printf("down migration failed: %v", err)
 		}
@@ -44,14 +44,14 @@ func migrateTool(db *sql.DB) {
 		fmt.Printf("Created migration file: %s\n", migrationFile)
 	case "redo":
 		// Rollback the last migration
-		n, err := migrate.ExecMax(db, "sqlite3", migrations, migrate.Down, 1)
+		n, err := migrate.ExecMax(db, "postgres", migrations, migrate.Down, 1)
 		if err != nil {
 			fmt.Printf("redo down migration failed: %v\n", err)
 		}
 		fmt.Printf("Rolled back %d migration(s)!\n", n)
 
 		// Apply the last migration again
-		n, err = migrate.ExecMax(db, "sqlite3", migrations, migrate.Up, 1)
+		n, err = migrate.ExecMax(db, "postgres", migrations, migrate.Up, 1)
 		if err != nil {
 			fmt.Printf("redo up migration failed: %v\n", err)
 		}
@@ -62,20 +62,20 @@ func migrateTool(db *sql.DB) {
 	case "skip":
 
 	case "up":
-		n, err := migrate.Exec(db, "sqlite3", migrations, migrate.Up)
+		n, err := migrate.Exec(db, "postgres", migrations, migrate.Up)
 		if err != nil {
 			fmt.Printf("migrations failed: %v", err)
 		}
 		fmt.Printf("Applied %d migrations!\n", n)
 
 	case "fresh":
-		n, err := migrate.ExecMax(db, "sqlite3", migrations, migrate.Down, -1)
+		n, err := migrate.ExecMax(db, "postgres", migrations, migrate.Down, -1)
 		if err != nil {
 			fmt.Printf("Failed to drop all migrations: %v\n", err)
 		}
 		fmt.Printf("Dropped %d migrations!\n", n)
 
-		n, err = migrate.ExecMax(db, "sqlite3", migrations, migrate.Up, 0)
+		n, err = migrate.ExecMax(db, "postgres", migrations, migrate.Up, 0)
 		if err != nil {
 			fmt.Printf("Failed to apply all migrations: %v\n", err)
 		}

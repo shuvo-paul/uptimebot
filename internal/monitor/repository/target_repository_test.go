@@ -4,6 +4,9 @@ import (
 	"testing"
 	"time"
 
+	authModel "github.com/shuvo-paul/uptimebot/internal/auth/model"
+	authRepo "github.com/shuvo-paul/uptimebot/internal/auth/repository"
+
 	core "github.com/shuvo-paul/uptimebot/internal/monitor/engine"
 	"github.com/shuvo-paul/uptimebot/internal/monitor/model"
 	"github.com/shuvo-paul/uptimebot/internal/testutil"
@@ -15,66 +18,18 @@ type testTarget struct {
 	target model.UserTarget
 }
 
-func createTestTargets() []testTarget {
-	return []testTarget{
-		{
-			name: "target with minimal interval",
-			target: model.UserTarget{
-				UserID: 1,
-				Target: &core.Target{
-					URL:             "example1.org",
-					Status:          "up",
-					Enabled:         true,
-					Interval:        30 * time.Second,
-					StatusChangedAt: time.Now(),
-				},
-			},
-		},
-		{
-			name: "target with medium interval",
-			target: model.UserTarget{
-				UserID: 1,
-				Target: &core.Target{
-					URL:             "example2.org",
-					Status:          "down",
-					Enabled:         false,
-					Interval:        60 * time.Second,
-					StatusChangedAt: time.Now(),
-				},
-			},
-		},
-		{
-			name: "target with large interval",
-			target: model.UserTarget{
-				UserID: 2,
-				Target: &core.Target{
-					URL:             "example3.org",
-					Status:          "up",
-					Enabled:         true,
-					Interval:        90 * time.Second,
-					StatusChangedAt: time.Now(),
-				},
-			},
-		},
-	}
-}
-
-func setupTestTargets(t *testing.T, repo *TargetRepository) map[string]model.UserTarget {
-	createdTargets := make(map[string]model.UserTarget)
-	for _, tc := range createTestTargets() {
-		created, err := repo.Create(tc.target)
-		if err != nil {
-			t.Fatalf("Failed to create test target %s: %v", tc.name, err)
-		}
-		createdTargets[tc.name] = created
-	}
-	return createdTargets
-}
-
 func TestTargetRepository_Create(t *testing.T) {
-	db := testutil.NewInMemoryDB()
-	defer db.Close()
-	repo := NewTargetRepository(db)
+	tx := testutil.GetTestTx(t)
+	repo := NewTargetRepository(tx)
+
+	// Create test user
+	userRepo := authRepo.NewUserRepository(tx)
+	user, err := userRepo.SaveUser(&authModel.User{
+		Email:    "test@example.com",
+		Password: "hashedpassword",
+	})
+
+	assert.NoError(t, err)
 
 	tests := []struct {
 		name    string
@@ -84,7 +39,7 @@ func TestTargetRepository_Create(t *testing.T) {
 		{
 			name: "valid target",
 			target: model.UserTarget{
-				UserID: 1,
+				UserID: user.ID, // Use actual user ID
 				Target: &core.Target{
 					URL:             "example.org",
 					Status:          "up",
@@ -141,10 +96,18 @@ func TestTargetRepository_Create(t *testing.T) {
 	}
 }
 
+// Update TestTargetRepository_Update
 func TestTargetRepository_Update(t *testing.T) {
-	db := testutil.NewInMemoryDB()
-	defer db.Close()
-	repo := NewTargetRepository(db)
+	tx := testutil.GetTestTx(t)
+	repo := NewTargetRepository(tx)
+
+	// Create test user
+	userRepo := authRepo.NewUserRepository(tx)
+	user, err := userRepo.SaveUser(&authModel.User{
+		Email:    "test@example.com",
+		Password: "hashedpassword",
+	})
+	assert.NoError(t, err)
 
 	tests := []struct {
 		name        string
@@ -155,17 +118,19 @@ func TestTargetRepository_Update(t *testing.T) {
 		{
 			name: "update status and enabled",
 			setupTarget: model.UserTarget{
-				UserID: 1,
+				UserID: user.ID,
 				Target: &core.Target{
-					URL:      "example.org",
-					Status:   "up",
-					Enabled:  false,
-					Interval: 30 * time.Second,
+					URL:             "example.org",
+					Status:          "up",
+					Enabled:         false,
+					Interval:        30 * time.Second,
+					StatusChangedAt: time.Now(), // Add this
 				},
 			},
 			updateFunc: func(s *model.UserTarget) {
 				s.Status = "down"
 				s.Enabled = true
+				s.StatusChangedAt = time.Now() // Add this
 			},
 			wantErr: false,
 		},
@@ -217,10 +182,18 @@ func TestTargetRepository_Update(t *testing.T) {
 	}
 }
 
+// Update TestTargetRepository_Delete
 func TestTargetRepository_Delete(t *testing.T) {
-	db := testutil.NewInMemoryDB()
-	defer db.Close()
-	repo := NewTargetRepository(db)
+	tx := testutil.GetTestTx(t)
+	repo := NewTargetRepository(tx)
+
+	// Create test user
+	userRepo := authRepo.NewUserRepository(tx)
+	user, err := userRepo.SaveUser(&authModel.User{
+		Email:    "test@example.com",
+		Password: "hashedpassword",
+	})
+	assert.NoError(t, err)
 
 	tests := []struct {
 		name        string
@@ -231,12 +204,13 @@ func TestTargetRepository_Delete(t *testing.T) {
 		{
 			name: "delete existing target",
 			setupTarget: model.UserTarget{
-				UserID: 1,
+				UserID: user.ID,
 				Target: &core.Target{
-					URL:      "example.org",
-					Status:   "up",
-					Enabled:  false,
-					Interval: 30 * time.Second,
+					URL:             "example.org",
+					Status:          "up",
+					Enabled:         false,
+					Interval:        30 * time.Second,
+					StatusChangedAt: time.Now(), // Add this
 				},
 			},
 			wantErr: false,
@@ -275,16 +249,65 @@ func TestTargetRepository_Delete(t *testing.T) {
 	}
 }
 
+// Fix TestTargetRepository_GetAll
 func TestTargetRepository_GetAll(t *testing.T) {
-	db := testutil.NewInMemoryDB()
-	defer db.Close()
-	repo := NewTargetRepository(db)
+	tx := testutil.GetTestTx(t)
+	repo := NewTargetRepository(tx)
 
-	createdTargets := setupTestTargets(t, repo)
-
-	targets, err := repo.GetAll()
+	// Create test user
+	userRepo := authRepo.NewUserRepository(tx)
+	user, err := userRepo.SaveUser(&authModel.User{
+		Email:    "test@example.com",
+		Password: "hashedpassword",
+	})
 	assert.NoError(t, err)
-	assert.Len(t, targets, len(createdTargets))
+
+	// Create test targets with actual user ID
+	targets := []model.UserTarget{
+		{
+			UserID: user.ID,
+			Target: &core.Target{
+				URL:             "example1.org",
+				Status:          "up",
+				Enabled:         true,
+				Interval:        30 * time.Second,
+				StatusChangedAt: time.Now(),
+			},
+		},
+		{
+			UserID: user.ID,
+			Target: &core.Target{
+				URL:             "example2.org",
+				Status:          "down",
+				Enabled:         false,
+				Interval:        60 * time.Second,
+				StatusChangedAt: time.Now(),
+			},
+		},
+		{
+			UserID: user.ID,
+			Target: &core.Target{
+				URL:             "example3.org",
+				Status:          "up",
+				Enabled:         true,
+				Interval:        90 * time.Second,
+				StatusChangedAt: time.Now(),
+			},
+		},
+	}
+
+	// Create targets
+	createdTargets := make(map[string]model.UserTarget)
+	for _, target := range targets {
+		created, err := repo.Create(target)
+		assert.NoError(t, err)
+		createdTargets[created.URL] = created
+	}
+
+	// Remove duplicate setupTestTargets call
+	allTargets, err := repo.GetAll()
+	assert.NoError(t, err)
+	assert.Len(t, allTargets, len(createdTargets))
 
 	targetMap := make(map[int]model.UserTarget)
 	for _, t := range targets {
@@ -303,12 +326,64 @@ func TestTargetRepository_GetAll(t *testing.T) {
 	}
 }
 
+// Update TestTargetRepository_GetAllByUserID
 func TestTargetRepository_GetAllByUserID(t *testing.T) {
-	db := testutil.NewInMemoryDB()
-	defer db.Close()
-	repo := NewTargetRepository(db)
+	tx := testutil.GetTestTx(t)
+	repo := NewTargetRepository(tx)
 
-	setupTestTargets(t, repo)
+	// Create test user
+	userRepo := authRepo.NewUserRepository(tx)
+	user1, err := userRepo.SaveUser(&authModel.User{
+		Email:    "test1@example.com",
+		Password: "hashedpassword",
+	})
+	assert.NoError(t, err)
+
+	user2, err := userRepo.SaveUser(&authModel.User{
+		Email:    "test2@example.com",
+		Password: "hashedpassword",
+	})
+	assert.NoError(t, err)
+
+	// Create test targets
+	// Update the targets in TestTargetRepository_GetAllByUserID
+	targets := []model.UserTarget{
+		{
+			UserID: user1.ID,
+			Target: &core.Target{
+				URL:             "example1.org",
+				Status:          "up",
+				Enabled:         true,
+				Interval:        30 * time.Second,
+				StatusChangedAt: time.Now(), // Add this
+			},
+		},
+		{
+			UserID: user1.ID,
+			Target: &core.Target{
+				URL:             "example2.org",
+				Status:          "down",
+				Enabled:         false,
+				Interval:        60 * time.Second,
+				StatusChangedAt: time.Now(), // Add this
+			},
+		},
+		{
+			UserID: user2.ID,
+			Target: &core.Target{
+				URL:             "example3.org",
+				Status:          "up",
+				Enabled:         true,
+				Interval:        90 * time.Second,
+				StatusChangedAt: time.Now(), // Add this
+			},
+		},
+	}
+
+	for _, target := range targets {
+		_, err := repo.Create(target)
+		assert.NoError(t, err)
+	}
 
 	tests := []struct {
 		name          string
@@ -318,13 +393,13 @@ func TestTargetRepository_GetAllByUserID(t *testing.T) {
 	}{
 		{
 			name:          "user with multiple targets",
-			userID:        1,
+			userID:        user1.ID,
 			expectedURLs:  []string{"example1.org", "example2.org"},
 			expectedCount: 2,
 		},
 		{
 			name:          "user with single target",
-			userID:        2,
+			userID:        user2.ID,
 			expectedURLs:  []string{"example3.org"},
 			expectedCount: 1,
 		},

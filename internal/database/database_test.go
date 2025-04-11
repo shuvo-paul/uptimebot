@@ -15,35 +15,48 @@ func TestInitDatabase(t *testing.T) {
 		expectedErr string
 	}{
 		{
-			name: "empty URL",
+			name: "empty host",
 			config: config.DatabaseConfig{
-				URL:   "",
-				Token: "valid-token",
+				Port:     "5432",
+				User:     "test",
+				Password: "test",
+				DBName:   "test",
+				SSLMode:  "disable",
 			},
 			wantErr:     true,
-			expectedErr: "database URL is empty",
+			expectedErr: "failed to connect to database",
 		},
 		{
-			name: "empty token",
+			name: "invalid port",
 			config: config.DatabaseConfig{
-				URL:   "libsql://test.turso.io",
-				Token: "",
+				Host:     "localhost",
+				Port:     "invalid",
+				User:     "test",
+				Password: "test",
+				DBName:   "test",
+				SSLMode:  "disable",
 			},
 			wantErr:     true,
-			expectedErr: "database token is empty",
+			expectedErr: "failed to connect to database",
+		},
+		{
+			name: "invalid credentials",
+			config: config.DatabaseConfig{
+				Host:     "localhost",
+				Port:     "5432",
+				User:     "invalid",
+				Password: "invalid",
+				DBName:   "test",
+				SSLMode:  "disable",
+			},
+			wantErr:     true,
+			expectedErr: "failed to connect to database",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create temporary directory for each test
-			tempDir, err := NewTempDir()
-			if err != nil {
-				t.Fatalf("Failed to create temp directory: %v", err)
-			}
-			defer tempDir.Cleanup()
-
-			db, err := InitDatabase(tt.config, tempDir)
+			db, err := InitDatabase(tt.config)
 			if tt.wantErr {
 				assert.Error(t, err)
 				assert.Nil(t, db)

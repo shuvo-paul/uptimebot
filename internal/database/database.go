@@ -5,37 +5,27 @@ import (
 	"fmt"
 	"log"
 
+	_ "github.com/lib/pq"
 	"github.com/shuvo-paul/uptimebot/internal/config"
-	"github.com/tursodatabase/go-libsql"
 )
 
-func InitDatabase(config config.DatabaseConfig, tempDBDir *TempDBDir) (*sql.DB, error) {
-	if config.URL == "" {
-		return nil, fmt.Errorf("database URL is empty")
-	}
+func InitDatabase(config config.DatabaseConfig) (*sql.DB, error) {
+	// Construct PostgreSQL connection string
+	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		config.Host, config.Port, config.User, config.Password, config.DBName, config.SSLMode)
 
-	if config.Token == "" {
-		return nil, fmt.Errorf("database token is empty")
-	}
-
-	// Create a new embedded replica connector
-	connector, err := libsql.NewEmbeddedReplicaConnector(tempDBDir.dbPath, config.URL,
-		libsql.WithAuthToken(config.Token),
-	)
+	// Open the database connection
+	db, err := sql.Open("postgres", connStr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create database connector: %w", err)
+		return nil, err
 	}
-
-	// Open the database with the connector
-	db := sql.OpenDB(connector)
 
 	// Verify the connection
 	if err = db.Ping(); err != nil {
 		db.Close()
-		connector.Close()
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	log.Println("Connected to Turso database successfully with local replica")
+	log.Println("Connected to PostgreSQL database successfully")
 	return db, nil
 }

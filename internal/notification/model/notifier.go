@@ -14,7 +14,7 @@ const (
 
 // Notifier represents a notification channel configuration
 type Notifier struct {
-	ID       int64           `db:"id"`
+	ID       int             `db:"id"`
 	TargetId int             `db:"target_id"`
 	Type     NotifierType    `db:"type"`
 	Config   json.RawMessage `db:"config"`

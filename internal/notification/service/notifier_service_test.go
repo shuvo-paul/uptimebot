@@ -19,9 +19,9 @@ import (
 type mockNotifierRepository struct {
 	getByTargetIDFunc func(targetID int) ([]*model.Notifier, error)
 	createFunc        func(notifier *model.Notifier) (*model.Notifier, error)
-	getFunc           func(id int64) (*model.Notifier, error)
+	getFunc           func(id int) (*model.Notifier, error)
 	updateFunc        func(id int, config json.RawMessage) (*model.Notifier, error)
-	deleteFunc        func(id int64) error
+	deleteFunc        func(id int) error
 }
 
 func (m *mockNotifierRepository) GetByTargetID(targetID int) ([]*model.Notifier, error) {
@@ -32,7 +32,7 @@ func (m *mockNotifierRepository) Create(notifier *model.Notifier) (*model.Notifi
 	return m.createFunc(notifier)
 }
 
-func (m *mockNotifierRepository) Get(id int64) (*model.Notifier, error) {
+func (m *mockNotifierRepository) Get(id int) (*model.Notifier, error) {
 	return m.getFunc(id)
 }
 
@@ -40,7 +40,7 @@ func (m *mockNotifierRepository) Update(id int, config json.RawMessage) (*model.
 	return m.updateFunc(id, config)
 }
 
-func (m *mockNotifierRepository) Delete(id int64) error {
+func (m *mockNotifierRepository) Delete(id int) error {
 	return m.deleteFunc(id)
 }
 
@@ -109,7 +109,7 @@ func TestNotifierService_Get(t *testing.T) {
 			Config:   json.RawMessage(`{"webhook_url": "https://hooks.slack.com/test"}`),
 		}
 
-		mockRepo.getFunc = func(id int64) (*model.Notifier, error) {
+		mockRepo.getFunc = func(id int) (*model.Notifier, error) {
 			return expected, nil
 		}
 
@@ -119,7 +119,7 @@ func TestNotifierService_Get(t *testing.T) {
 	})
 
 	t.Run("retrieval fails", func(t *testing.T) {
-		mockRepo.getFunc = func(id int64) (*model.Notifier, error) {
+		mockRepo.getFunc = func(id int) (*model.Notifier, error) {
 			return nil, fmt.Errorf("db error")
 		}
 
@@ -170,7 +170,7 @@ func TestNotifierService_Delete(t *testing.T) {
 	service := NewNotifierService(mockRepo, nil)
 
 	t.Run("successful deletion", func(t *testing.T) {
-		mockRepo.deleteFunc = func(id int64) error {
+		mockRepo.deleteFunc = func(id int) error {
 			return nil
 		}
 
@@ -179,7 +179,7 @@ func TestNotifierService_Delete(t *testing.T) {
 	})
 
 	t.Run("deletion fails", func(t *testing.T) {
-		mockRepo.deleteFunc = func(id int64) error {
+		mockRepo.deleteFunc = func(id int) error {
 			return fmt.Errorf("db error")
 		}
 

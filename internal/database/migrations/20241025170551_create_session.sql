@@ -1,11 +1,11 @@
 -- +migrate Up
 CREATE TABLE session (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
     token TEXT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT (datetime('now')),
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     expires_at TIMESTAMP NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES usr(id) ON DELETE CASCADE,
     UNIQUE (token)
 );
 
