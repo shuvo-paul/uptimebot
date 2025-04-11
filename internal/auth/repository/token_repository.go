@@ -86,7 +86,7 @@ func (r *TokenRepository) GetTokensByUserID(userID int) ([]*model.Token, error) 
 	var tokens []*model.Token
 	for rows.Next() {
 		var token model.Token
-		err := rows.Scan(
+		err = rows.Scan(
 			&token.ID,
 			&token.UserID,
 			&token.Token,
