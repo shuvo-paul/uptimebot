@@ -1,6 +1,6 @@
 # Site Monitor 🛠️
 
-A **website uptime monitoring** web app built with **Go** and **Turso (libSQL)**, following a **Test-Driven Development (TDD)** approach. The app allows users to log in, add sites for monitoring, and receive notifications via **Slack** when a site goes down.
+A **website uptime monitoring** web app built with **Go** and **PostgreSQL**, following a **Test-Driven Development (TDD)** approach. The app allows users to log in, add sites for monitoring, and receive notifications via **Slack** when a site goes down.
 
 🚀 **Just a fun side project!** Built mainly for **learning and experimenting**
 
@@ -16,7 +16,7 @@ A **website uptime monitoring** web app built with **Go** and **Turso (libSQL)**
 ## 📦 Tech Stack
 
 - **Go** (Standard Template Library for templates)
-- **Turso (libSQL)** for database
+- **PostgreSQL** for database
 
 ---
 
@@ -48,8 +48,14 @@ Create a `.env` file and set the required values:
 APP_ENV=development
 PORT=8080
 BASE_URL=localhost:8080
-TURSO_DATABASE_URL=your_turso_database_url
-TURSO_AUTH_TOKEN=your_turso_auth_token
+
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=uptimebot
+DB_PASSWORD=uptimebot
+DB_NAME=uptimebot
+DB_SSLMODE=disable
 
 # Slack OAuth Credentials
 SLACK_CLIENT_ID=
