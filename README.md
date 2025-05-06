@@ -28,26 +28,13 @@ A **website uptime monitoring** web app built with **Go** and **PostgreSQL**, fo
 git clone https://github.com/shuvo-paul/uptimebot.git
 cd uptimebot
 ```
-
-### 2️⃣ Install Dependencies
-
-Ensure you have Go installed, then run:
-
-```sh
-go mod tidy
-```
-
-### 3️⃣ Configure Environment Variables
+### 2️⃣ Configure Environment Variables
 
 Create a `.env` file and set the required values:
 
 ```env
-Create a `.env` file and set the required values:
-
-```env
-APP_ENV=development
-PORT=8080
 BASE_URL=localhost:8080
+PORT=8080 # Default port is 8080
 
 # Database Configuration
 DB_HOST=localhost
@@ -70,15 +57,17 @@ SMTP_PASSWORD=
 SMTP_EMAIL_FROM=
 ```
 
-### 4️⃣ Run the App
+### 3️⃣ Run the App
+
+To run the application using Docker Compose, execute the following command:
 
 ```sh
-pnpm install
-make build
-make run
+docker compose up
 ```
 
-### 5️⃣ Run Tests 🧪
+This will build and start the application along with the PostgreSQL database in a Docker container. Ensure that your `.env` file is correctly configured with the necessary environment variables.
+
+### 4️⃣ Run Tests 🧪
 
 ```sh
 go test ./...
