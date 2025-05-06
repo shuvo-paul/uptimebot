@@ -144,7 +144,7 @@ func (s *TokenService) sendTokenEmail(params emailParams) error {
 	}
 
 	// Generate token link
-	tokenLink := fmt.Sprintf("%s/%s?token=%s", s.baseURL, params.Path, token.Token)
+	tokenLink := template.URL(fmt.Sprintf("%s/%s?token=%s", s.baseURL, params.Path, token.Token))
 
 	// Send email using the email service
 	if err := s.emailService.SetTo(params.Email); err != nil {
@@ -158,7 +158,7 @@ func (s *TokenService) sendTokenEmail(params emailParams) error {
 	// Execute the email template with the token link
 	var buf bytes.Buffer
 	data := struct {
-		TokenLink string
+		TokenLink template.URL
 	}{
 		TokenLink: tokenLink,
 	}
