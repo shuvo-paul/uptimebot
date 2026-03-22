@@ -37,5 +37,5 @@ jobs:
           username: ${{ vars.VPS_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # Restart service
-            sudo systemctl restart uptimebot
+            # Restart service (no sudo needed with user systemd)
+            systemctl --user restart uptimebot
