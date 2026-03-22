@@ -22,7 +22,7 @@ jobs:
           go build -o uptimebot ./cmd/main.go
 
       - name: Copy binary to server
-        uses: appleboy/scp-action@v0.15.0
+        uses: appleboy/scp-action@v1
         with:
           host: ${{ vars.VPS_HOST }}
           username: ${{ vars.VPS_USER }}
@@ -31,7 +31,7 @@ jobs:
           target: "~/uptimebot"
 
       - name: Restart systemd service
-        uses: appleboy/ssh-action@v1.0.0
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ vars.VPS_HOST }}
           username: ${{ vars.VPS_USER }}
