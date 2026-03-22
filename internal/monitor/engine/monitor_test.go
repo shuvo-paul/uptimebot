@@ -12,7 +12,6 @@ func TestTargetCheck(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
-	defer ts.Close()
 
 	// Create target using DefaultClient
 	target := &Target{
@@ -31,6 +30,7 @@ func TestTargetCheck(t *testing.T) {
 	if target.Status != statusUp {
 		t.Errorf("Expected status %s, got %s", statusUp, target.Status)
 	}
+	ts.Close()
 }
 
 func TestTargetCheckTimeout(t *testing.T) {

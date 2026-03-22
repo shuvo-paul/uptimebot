@@ -60,7 +60,6 @@ func (s *Target) Check() error {
 	}(s.Status)
 
 	r, err := s.Client.Get(s.URL)
-
 	if err != nil {
 		// Check if the error is a timeout error
 		if timeoutErr, ok := err.(interface{ Timeout() bool }); ok && timeoutErr.Timeout() {
@@ -158,7 +157,6 @@ func (m *Manager) RegisterTarget(target *Target) error {
 				}
 			}
 		}
-
 	}()
 
 	slog.Info("Monitoring started", "Target", target.URL)
